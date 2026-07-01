@@ -1,0 +1,471 @@
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Eye, EyeOff, Loader2, Mail, Lock, User, AtSign, Check, X, KeyRound } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
+import { SocialLoginButtons } from './SocialLoginButtons';
+import { triggerCelebrationConfetti } from '@/lib/confetti';
+
+const registerSchema = z.object({
+  accessCode: z
+    .string()
+    .min(1, 'Código de acesso obrigatório')
+    .regex(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/i, 'Formato inválido (ex: ABCD-1234)'),
+  displayName: z.string().min(2, 'Name must be at least 2 characters'),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(20, 'Username must be less than 20 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  email: z.string().email('Please enter a valid email address'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
+
+export function RegisterForm() {
+  const { t } = useTranslation();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [codeValid, setCodeValid] = useState<boolean | null>(null);
+  const [checkingCode, setCheckingCode] = useState(false);
+  const [candidateId, setCandidateId] = useState<string | null>(null);
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
+
+  const passwordRequirements = [
+    { regex: /.{8,}/, label: t('auth.passwordRequirements.minLength') },
+    { regex: /[A-Z]/, label: t('auth.passwordRequirements.uppercase') },
+    { regex: /[a-z]/, label: t('auth.passwordRequirements.lowercase') },
+    { regex: /[0-9]/, label: t('auth.passwordRequirements.number') },
+  ];
+
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      accessCode: '',
+      displayName: '',
+      username: '',
+      email: '',
+      password: '',
+    },
+    mode: 'onChange',
+  });
+
+  const isEmailValid = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const password = form.watch('password');
+
+  const checkAccessCode = async (code: string) => {
+    const formatted = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (formatted.length < 8) {
+      setCodeValid(null);
+      setCandidateId(null);
+      return;
+    }
+    setCheckingCode(true);
+    const { data } = await supabase.rpc('validate_mvp_access_code', { p_code: code });
+    const result = data as { valid: boolean; error?: string; candidate_id?: string } | null;
+    if (result?.valid) {
+      setCodeValid(true);
+      setCandidateId(result.candidate_id || null);
+    } else {
+      setCodeValid(false);
+      setCandidateId(null);
+    }
+    setCheckingCode(false);
+  };
+
+  const checkUsernameAvailability = async (username: string) => {
+    if (username.length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    const { data } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', username.toLowerCase())
+      .single();
+
+    setUsernameAvailable(!data);
+    setIsCheckingUsername(false);
+  };
+
+  const onSubmit = async (values: RegisterFormValues) => {
+    if (usernameAvailable === false) {
+      toast.error(t('auth.usernameTaken'));
+      return;
+    }
+
+    if (!codeValid) {
+      toast.error('Código de acesso inválido ou já utilizado');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Use supabase directly to get the user object for code consumption
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            display_name: values.displayName,
+            username: values.username.toLowerCase(),
+          },
+        },
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      // Mark the access code as used
+      const userId = authData?.user?.id;
+      if (userId) {
+        await supabase.rpc('consume_mvp_access_code', {
+          p_code: values.accessCode.toUpperCase(),
+          p_user_id: userId,
+        });
+      }
+
+      triggerCelebrationConfetti();
+      toast.success(t('auth.accountCreated'));
+      navigate('/onboarding');
+    } catch {
+      toast.error(t('errors.generic'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <motion.form 
+        onSubmit={form.handleSubmit(onSubmit)} 
+        className="space-y-5"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        {/* Access Code — first field */}
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.45 }}
+        >
+          <FormField
+            control={form.control}
+            name="accessCode"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel>Código de Acesso MVP *</FormLabel>
+                <FormControl>
+                  <div className={fieldState.error ? "animate-shake" : ""}>
+                    <div className="relative">
+                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        {...field}
+                        placeholder="XXXX-XXXX"
+                        className={cn(
+                          "pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary font-mono tracking-widest uppercase",
+                          codeValid === true && "ring-2 ring-green-500",
+                          codeValid === false && "ring-2 ring-destructive",
+                          fieldState.error && "ring-2 ring-destructive"
+                        )}
+                        disabled={isLoading}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          checkAccessCode(e.target.value);
+                        }}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {checkingCode ? (
+                          <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                        ) : codeValid === true ? (
+                          <Check className="w-5 h-5 text-green-500" />
+                        ) : codeValid === false ? (
+                          <X className="w-5 h-5 text-destructive" />
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </FormControl>
+                {codeValid === false && (
+                  <p className="text-sm text-destructive">Código inválido ou já utilizado</p>
+                )}
+                {codeValid === true && (
+                  <p className="text-sm text-green-600">✓ Código válido!</p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.5 }}
+        >
+          <FormField
+            control={form.control}
+            name="displayName"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel>{t('auth.displayName')}</FormLabel>
+                <FormControl>
+                  <div className={fieldState.error ? "animate-shake" : ""}>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        {...field}
+                        placeholder={t('auth.displayNamePlaceholder')}
+                        className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && field.value.length >= 2 ? 'ring-2 ring-green-500' : ''}`}
+                        disabled={isLoading}
+                      />
+                      {!fieldState.error && field.value && field.value.length >= 2 && (
+                        <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500 transition-all duration-300" />
+                      )}
+                    </div>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.6 }}
+        >
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel>{t('auth.username')}</FormLabel>
+                <FormControl>
+                  <div className={fieldState.error ? "animate-shake" : ""}>
+                    <div className="relative">
+                      <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        {...field}
+                        placeholder={t('auth.usernamePlaceholder')}
+                        className={cn(
+                          "pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary",
+                          usernameAvailable === true && "ring-2 ring-green-500",
+                          usernameAvailable === false && "ring-2 ring-red-500",
+                          fieldState.error && "ring-2 ring-destructive"
+                        )}
+                        disabled={isLoading}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          checkUsernameAvailability(e.target.value);
+                        }}
+                      />
+                      {field.value.length >= 3 && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {isCheckingUsername ? (
+                            <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                          ) : usernameAvailable === true ? (
+                            <Check className="w-5 h-5 text-green-500" />
+                          ) : usernameAvailable === false ? (
+                            <X className="w-5 h-5 text-red-500" />
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </FormControl>
+                <FormMessage />
+                {usernameAvailable === false && (
+                  <p className="text-sm text-destructive">{t('auth.usernameTaken')}</p>
+                )}
+              </FormItem>
+            )}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.7 }}
+        >
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel>{t('auth.email')}</FormLabel>
+                <FormControl>
+                  <div className={fieldState.error ? "animate-shake" : ""}>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        {...field}
+                        type="email"
+                        placeholder="nome@exemplo.com"
+                        className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && isEmailValid(field.value) ? 'ring-2 ring-green-500' : ''}`}
+                        disabled={isLoading}
+                      />
+                      {!fieldState.error && field.value && isEmailValid(field.value) && (
+                        <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500 transition-all duration-300" />
+                      )}
+                    </div>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.8 }}
+        >
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel>{t('auth.password')}</FormLabel>
+                <FormControl>
+                  <div className={fieldState.error ? "animate-shake" : ""}>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        {...field}
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''}`}
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </FormControl>
+                {password && (
+                  <div className="mt-3 space-y-2">
+                    {passwordRequirements.map((req, i) => {
+                      const isMet = req.regex.test(password);
+                      return (
+                        <div
+                          key={i}
+                          className={cn(
+                            'flex items-center gap-2 text-sm transition-colors',
+                            isMet ? 'text-green-600' : 'text-muted-foreground'
+                          )}
+                        >
+                          {isMet ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border-2 border-current" />
+                          )}
+                          {req.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.9 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Button
+            type="submit"
+            className="w-full h-12 rounded-xl bg-gradient-primary hover:opacity-90 transition-all text-white font-semibold shadow-md hover:shadow-lg mt-6"
+            disabled={isLoading || usernameAvailable === false}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                {t('auth.creatingAccount')}
+              </>
+            ) : (
+              t('auth.createAccount')
+            )}
+          </Button>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 1.0 }}
+        >
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-card text-muted-foreground">
+                {t('auth.continueWith')}
+              </span>
+            </div>
+          </div>
+
+          <SocialLoginButtons isLoading={isLoading} />
+
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            {t('auth.haveAccount')}{' '}
+            <Link to="/login" className="text-primary font-medium hover:underline">
+              {t('auth.login')}
+            </Link>
+          </p>
+        </motion.div>
+      </motion.form>
+    </Form>
+  );
+}

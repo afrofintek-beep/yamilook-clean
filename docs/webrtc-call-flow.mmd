@@ -1,0 +1,151 @@
+%% WebRTC Call Flow Diagram
+%% This diagram documents the signaling flow for voice/video calls
+
+sequenceDiagram
+    autonumber
+    participant Caller as Caller (Initiator)
+    participant DB as Supabase DB
+    participant RT as Supabase Realtime
+    participant Callee as Callee (Receiver)
+    participant TURN as TURN Server
+
+    Note over Caller,Callee: === CALL INITIATION ===
+    
+    Caller->>Caller: getUserMedia() - capture audio/video
+    Caller->>TURN: Fetch ICE servers (edge function)
+    TURN-->>Caller: Return STUN/TURN credentials
+    Caller->>Caller: createPeerConnection()
+    Caller->>Caller: addTrack() - add local media
+    
+    Caller->>DB: RPC create_call(callee_id, type)
+    DB-->>Caller: call_id
+    
+    Caller->>Caller: createOffer()
+    Caller->>Caller: setLocalDescription(offer)
+    Caller->>DB: INSERT call_signals (offer)
+    
+    Note over Caller: Start ring timeout (60s)
+    
+    Caller->>Caller: onicecandidate fires
+    Caller->>DB: INSERT call_signals (ice-candidate)
+    
+    Note over Caller,Callee: === CALLEE RECEIVES CALL ===
+    
+    RT->>Callee: Realtime: new offer signal
+    Callee->>Callee: Show incoming call UI
+    
+    alt Callee Accepts
+        Callee->>Callee: getUserMedia()
+        Callee->>TURN: Fetch ICE servers
+        TURN-->>Callee: STUN/TURN credentials
+        Callee->>Callee: createPeerConnection()
+        Callee->>Callee: addTrack()
+        
+        Callee->>DB: INSERT call_signals (call-accepted)
+        RT->>Caller: Realtime: call-accepted
+        Caller->>Caller: Clear ring timeout
+        
+        Callee->>Callee: setRemoteDescription(offer)
+        Callee->>Callee: Apply pending ICE candidates
+        Callee->>Callee: createAnswer()
+        Callee->>Callee: setLocalDescription(answer)
+        Callee->>DB: INSERT call_signals (answer)
+        
+        Callee->>Callee: onicecandidate fires
+        Callee->>DB: INSERT call_signals (ice-candidate)
+        
+        RT->>Caller: Realtime: answer signal
+        Caller->>Caller: setRemoteDescription(answer)
+        Caller->>Caller: Apply pending ICE candidates
+        
+        Note over Caller,Callee: === ICE NEGOTIATION ===
+        
+        RT->>Callee: Realtime: ice-candidate (from Caller)
+        Callee->>Callee: addIceCandidate()
+        
+        RT->>Caller: Realtime: ice-candidate (from Callee)
+        Caller->>Caller: addIceCandidate()
+        
+        Note over Caller,TURN,Callee: ICE connectivity check via STUN/TURN
+        
+        Caller->>TURN: STUN binding / TURN allocation
+        Callee->>TURN: STUN binding / TURN allocation
+        
+        alt Direct Connection (P2P)
+            Caller<-->Callee: Direct media flow
+        else Relayed Connection
+            Caller<-->TURN: Media via relay
+            TURN<-->Callee: Media via relay
+        end
+        
+        Note over Caller,Callee: === MEDIA FLOW ===
+        
+        Caller->>Caller: ontrack fires
+        Caller->>Caller: Display remote video
+        Caller->>Caller: tryPlayRemoteStream()
+        
+        Callee->>Callee: ontrack fires
+        Callee->>Callee: Display remote video
+        Callee->>Callee: tryPlayRemoteStream()
+        
+        Note over Caller,Callee: iceConnectionState: connected
+        Note over Caller,Callee: callStatus: connected
+        
+        Note over Caller,Callee: === CALL IN PROGRESS ===
+        
+        loop Telemetry (every 5s)
+            Caller->>Caller: getStats() - collect metrics
+            Callee->>Callee: getStats() - collect metrics
+        end
+        
+        opt ICE Restart (on disconnect)
+            Caller->>Caller: pc.restartIce()
+            Caller->>DB: INSERT call_signals (new offer)
+            Note over Caller,Callee: Renegotiation...
+        end
+        
+        Note over Caller,Callee: === CALL END ===
+        
+        alt Caller Ends
+            Caller->>DB: INSERT call_signals (call-ended)
+            RT->>Callee: Realtime: call-ended
+            Caller->>DB: UPDATE calls status=ended
+            Caller->>Caller: cleanupCall()
+            Callee->>Callee: cleanupCall()
+        else Callee Ends
+            Callee->>DB: INSERT call_signals (call-ended)
+            RT->>Caller: Realtime: call-ended
+            Callee->>DB: UPDATE calls status=ended
+            Callee->>Callee: cleanupCall()
+            Caller->>Caller: cleanupCall()
+        end
+        
+    else Callee Declines
+        Callee->>DB: INSERT call_signals (call-declined)
+        RT->>Caller: Realtime: call-declined
+        Caller->>Caller: Clear ring timeout
+        Caller->>DB: UPDATE calls status=declined
+        Caller->>Caller: cleanupCall()
+        Callee->>Callee: cleanupCall()
+        
+    else Ring Timeout (60s)
+        Note over Caller: Ring timeout expires
+        Caller->>DB: UPDATE calls status=ended, reason=no_answer
+        Caller->>Caller: cleanupCall()
+    end
+
+    Note over Caller,Callee: === CLEANUP ===
+    
+    rect rgb(255, 240, 240)
+        Note over Caller: Stop local media tracks
+        Note over Caller: Close peer connections
+        Note over Caller: Clear ICE queues
+        Note over Caller: Reset state to idle
+    end
+    
+    rect rgb(240, 255, 240)
+        Note over Callee: Stop local media tracks
+        Note over Callee: Close peer connections
+        Note over Callee: Clear ICE queues
+        Note over Callee: Reset state to idle
+    end

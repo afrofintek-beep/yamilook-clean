@@ -1,0 +1,101 @@
+{
+  "nav": {
+    "home": "Início",
+    "feed": "Muxi",
+    "chat": "Papo",
+    "calls": "Chamadas",
+    "contacts": "Contactos",
+    "profile": "Perfil",
+    "settings": "Definições",
+    "status": "Estados",
+    "discover": "Descobrir"
+  },
+  "welcome": {
+    "title": "Bem-vindo à tua banda",
+    "subtitle": "O mambo começa na banda.",
+    "tagline": "Kambas ou bradas. Com histórias da tua banda.",
+    "tagline2": ""
+  },
+  "auth": {
+    "registerTitle": "Junta-te à tua banda",
+    "registerSubtitle": "Pessoas reais. Histórias da tua banda."
+  },
+  "social": {
+    "followers": "Wis",
+    "following": "A dar Wis",
+    "friends": "Kambas",
+    "closeFriends": "Bradas",
+    "closeFriendsGroup": "Bradas",
+    "closeFriendMale": "Brada",
+    "closeFriendFemale": "Sis",
+    "closeFriendsDescription": "As pessoas na tua lista de Bradas podem ver os estados que partilhas com elas",
+    "closeFriendsSearchPlaceholder": "Pesquisar contactos...",
+    "closeFriendsSelected": "selecionados",
+    "closeFriendsNoResults": "Nenhum contacto encontrado",
+    "closeFriendsNoContacts": "Sem contactos ainda",
+    "closeFriendsAdded": "Adicionado aos Bradas",
+    "closeFriendsAddedDescription": "Esta pessoa verá os teus estados de Bradas",
+    "closeFriendsRemoved": "Removido dos Bradas",
+    "closeFriendsRemovedDescription": "Esta pessoa já não verá os teus estados de Bradas",
+    "addToCloseFriends": "Adicionar aos Bradas",
+    "removeFromCloseFriends": "Remover dos Bradas",
+    "follow": "Aceitar Wis",
+    "unfollow": "Tirar Wis",
+    "addFriend": "Adicionar aos Kambas",
+    "removeFriend": "Tirar dos Kambas",
+    "addCloseFriend": "Pôr nos Bradas",
+    "removeCloseFriend": "Tirar dos Bradas",
+    "remove": "Remover",
+    "connect": "Conectar",
+    "connected": "Kamba",
+    "pending": "A espera",
+    "accept": "Aceitar",
+    "counts": {
+      "wis": "Wis",
+      "kambas": "Kambas",
+      "bradas": "Bradas"
+    }
+  },
+  "privacy": {
+    "everyone": "Wis",
+    "friends": "Kambas",
+    "closeFriends": "Bradas",
+    "closeFriendsOnly": "Só Bradas podem ver isto",
+    "onlyMe": "Só eu"
+  },
+  "profile": {
+    "friends": "Kambas"
+  },
+  "contacts": {
+    "closeFriends": "Bradas",
+    "friendRequests": "Pedidos de Kamba"
+  },
+  "status": {
+    "closeFriends": "Bradas"
+  },
+  "feed": {
+    "createPlaceholder": "O que se passa na tua banda?",
+    "everyone": "Wis",
+    "contacts": "Contactos",
+    "onlyMe": "Só Eu"
+  },
+  "onboarding": {
+    "tourCallsDesc": "Voz e vídeo em HD com os teus {{closeFriendsGroup}}. Estejam onde estiverem, estão juntos.",
+    "tourChatTitle": "Conversa com os teus {{friends}}",
+    "tourGroupsDesc": "Cria grupos até 512 {{friends}}. Organiza eventos, partilha o mambo.",
+    "avatarSubtitle": "Os teus {{friends}} querem ver-te",
+    "welcomeProfileText": "Vamos preparar o teu perfil para que os teus {{friends}} te encontrem.",
+    "avatarStepDesc": "Os teus {{friends}} querem reconhecer-te na banda",
+    "bioStepDesc": "O que te faz único? Os {{friends}} querem conhecer-te."
+  },
+  "palco": {
+    "guide": "Mestre",
+    "guidePlural": "Mestres",
+    "mentor": "Pai Grande",
+    "mentorPlural": "Pais Grandes",
+    "guideProfile": "Perfil do Mestre",
+    "viewGuideProfile": "Ver perfil do Mestre",
+    "guideGreeting": "Olá, Mestre",
+    "guideGreetingWithName": "Olá, Mestre {{name}}"
+  }
+}

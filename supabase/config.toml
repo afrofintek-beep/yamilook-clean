@@ -1,0 +1,25 @@
+project_id = "qaestdfdgugmnjpxwhfg"
+
+[functions.get-turn-credentials]
+verify_jwt = false
+
+[functions.generate-livekit-token]
+verify_jwt = false
+
+[functions.fetch-gifs]
+verify_jwt = false
+
+[functions.seed-test-users]
+verify_jwt = false
+
+[functions.seed-business-images]
+verify_jwt = false
+
+[functions.update-currency-rates]
+verify_jwt = false
+
+[functions.export-user-data]
+verify_jwt = false
+
+[functions.moderate-content]
+verify_jwt = false

@@ -1,0 +1,254 @@
+/* @refresh reset */
+import { createContext, useContext, useState, useCallback, ReactNode, lazy, Suspense, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useWebRTC, CallState } from '@/hooks/useWebRTC';
+import { useCalls } from '@/hooks/useCalls';
+import { useToast } from '@/hooks/use-toast';
+
+// Lazy load the heavy IncomingCallOverlay component
+const IncomingCallOverlay = lazy(() => import('./IncomingCallOverlay').then(m => ({ default: m.IncomingCallOverlay })));
+
+interface ActiveCallContextType {
+  isInCall: boolean;
+  currentCallId: string | null;
+  startCall: (contactId: string, type: 'voice' | 'video', conversationId?: string) => Promise<void>;
+  /**
+   * Join an existing call when arriving via deep-link (/call/:id).
+   * For non-initiators, this will answer the call and bootstrap WebRTC.
+   */
+  joinCall: (callId: string, callType: 'voice' | 'video', initiatorId: string) => Promise<void>;
+  endCurrentCall: () => void;
+  /** Call synchronously on user tap BEFORE any async call work (iOS Safari autoplay unlock) */
+  markUserInteracted: () => void;
+  // Expose WebRTC state and methods for VideoCall component
+  webRTCState: CallState;
+  toggleMute: () => void;
+  toggleVideo: () => void;
+  toggleScreenShare: () => Promise<void>;
+  flipCamera: () => Promise<void>;
+  raiseHand: (raised: boolean) => void;
+  sendReaction: (emoji: string) => void;
+  endCall: () => void;
+}
+
+const ActiveCallContext = createContext<ActiveCallContextType | null>(null);
+
+export function useActiveCall() {
+  const context = useContext(ActiveCallContext);
+  return context;
+}
+
+export function useActiveCallRequired() {
+  const context = useContext(ActiveCallContext);
+  if (!context) {
+    throw new Error('useActiveCall must be used within ActiveCallProvider');
+  }
+  return context;
+}
+
+interface ActiveCallProviderProps {
+  children: ReactNode;
+}
+
+function formatCallError(err: unknown) {
+  // More user-friendly mapping for common media permission errors
+  if (err instanceof DOMException) {
+    switch (err.name) {
+      case 'NotAllowedError':
+      case 'SecurityError':
+        return 'Permissão negada. Ativa Microfone (e Câmara para videochamada) nas permissões do site.';
+      case 'NotFoundError':
+        return 'Não foi encontrado microfone/câmara neste dispositivo.';
+      case 'NotReadableError':
+      case 'AbortError':
+        return 'O microfone/câmara está ocupado por outra app. Fecha outras apps e tenta novamente.';
+      case 'OverconstrainedError':
+        return 'Configuração de câmara não suportada. Tenta mudar de câmara ou usar chamada de voz.';
+      default:
+        return `${err.name}${err.message ? `: ${err.message}` : ''}`;
+    }
+  }
+
+  if (err instanceof Error) return err.message;
+
+  const anyErr = err as any;
+  if (anyErr && typeof anyErr === 'object' && typeof anyErr.message === 'string') {
+    const extra = [
+      typeof anyErr.code === 'string' ? `code=${anyErr.code}` : null,
+      typeof anyErr.details === 'string' ? anyErr.details : null,
+    ].filter(Boolean).join(' · ');
+    return extra ? `${anyErr.message} (${extra})` : anyErr.message;
+  }
+
+  return 'Erro desconhecido';
+}
+
+export function ActiveCallProvider({ children }: ActiveCallProviderProps) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isInCall, setIsInCall] = useState(false);
+  const [currentCallId, setCurrentCallId] = useState<string | null>(null);
+  const { incomingCall, setIncomingCall } = useCalls();
+  
+  // Get ALL WebRTC methods and state from a single hook instance
+  const webRTC = useWebRTC();
+  const { 
+    state: webRTCState,
+    initiateCall, 
+    answerCall, 
+    declineCall, 
+    endCall,
+    toggleMute,
+    toggleVideo,
+    toggleScreenShare,
+    flipCamera,
+    raiseHand,
+    sendReaction,
+    markUserInteracted,
+  } = webRTC;
+
+  const startCall = useCallback(async (contactId: string, type: 'voice' | 'video', conversationId?: string) => {
+    console.log('[ActiveCallProvider] Starting call to:', contactId, 'type:', type);
+
+    // Preflight checks to avoid "nothing happens" when the browser blocks media APIs.
+    if (!window.isSecureContext) {
+      toast({
+        title: 'Chamada indisponível',
+        description: 'O navegador bloqueou microfone/câmara porque a página não está num contexto seguro (HTTPS).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast({
+        title: 'Chamada indisponível',
+        description: 'Este dispositivo/navegador não suporta acesso ao microfone/câmara.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Silently proceed — no permission toast
+
+    try {
+      const callId = await initiateCall(contactId, type, conversationId);
+      setCurrentCallId(callId);
+      setIsInCall(true);
+      navigate(`/call/${callId}`);
+    } catch (err) {
+      const message = formatCallError(err);
+      console.error('[ActiveCallProvider] Failed to start call:', err);
+      toast({
+        title: 'Não foi possível iniciar a chamada',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  }, [initiateCall, navigate, toast]);
+
+  const joinCall = useCallback(async (callId: string, callType: 'voice' | 'video', initiatorId: string) => {
+    // If we already bootstrapped this call, do nothing.
+    if (currentCallId === callId && isInCall) return;
+
+    try {
+      // iOS Safari gesture unlock: play a silent audio context on the user tap
+      // so subsequent media playback is not blocked by autoplay policy.
+      try {
+        const ctx = new AudioContext();
+        await ctx.resume();
+        ctx.close();
+      } catch { /* non-fatal */ }
+
+      // Answering a call requires user media; if this fails, show a clear toast.
+      await answerCall(callId, callType, initiatorId);
+      setCurrentCallId(callId);
+      setIsInCall(true);
+    } catch (err) {
+      const message = formatCallError(err);
+      console.error('[ActiveCallProvider] Failed to join call:', err);
+      toast({
+        title: 'Não foi possível entrar na chamada',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  }, [answerCall, currentCallId, isInCall, toast]);
+
+  const endCurrentCall = useCallback(() => {
+    console.log('[ActiveCallProvider] Ending current call');
+    endCall();
+    setCurrentCallId(null);
+    setIsInCall(false);
+  }, [endCall]);
+
+  const handleAnswerCall = useCallback(async () => {
+    if (incomingCall) {
+      console.log('[ActiveCallProvider] Answering incoming call:', incomingCall.id);
+      // Synchronous gesture unlock BEFORE any async work (iOS Safari)
+      markUserInteracted();
+      try {
+        const ctx = new AudioContext();
+        await ctx.resume();
+        ctx.close();
+      } catch { /* non-fatal */ }
+
+      await answerCall(
+        incomingCall.id, 
+        incomingCall.type, 
+        incomingCall.initiator_id
+      );
+      
+      setCurrentCallId(incomingCall.id);
+      setIsInCall(true);
+      setIncomingCall(null);
+      navigate(`/call/${incomingCall.id}`);
+    }
+  }, [incomingCall, answerCall, markUserInteracted, setIncomingCall, navigate]);
+
+  const handleDeclineCall = useCallback(async () => {
+    if (incomingCall) {
+      console.log('[ActiveCallProvider] Declining incoming call:', incomingCall.id);
+      await declineCall(incomingCall.id, incomingCall.initiator_id);
+      setIncomingCall(null);
+    }
+  }, [incomingCall, declineCall, setIncomingCall]);
+
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const contextValue = useMemo<ActiveCallContextType>(() => ({
+    isInCall,
+    currentCallId,
+    startCall,
+    joinCall,
+    endCurrentCall,
+    markUserInteracted,
+    // Expose WebRTC state and methods
+    webRTCState,
+    toggleMute,
+    toggleVideo,
+    toggleScreenShare,
+    flipCamera,
+    raiseHand,
+    sendReaction,
+    endCall,
+  }), [isInCall, currentCallId, startCall, joinCall, endCurrentCall, markUserInteracted, webRTCState, toggleMute, toggleVideo, toggleScreenShare, flipCamera, raiseHand, sendReaction, endCall]);
+
+  return (
+    <ActiveCallContext.Provider value={contextValue}>
+      {children}
+      
+      {/* Incoming call overlay - lazy loaded */}
+      {incomingCall && (
+        <Suspense fallback={null}>
+          <IncomingCallOverlay
+            callId={incomingCall.id}
+            callType={incomingCall.type}
+            callerId={incomingCall.initiator_id}
+            onAnswer={handleAnswerCall}
+            onDecline={handleDeclineCall}
+          />
+        </Suspense>
+      )}
+    </ActiveCallContext.Provider>
+  );
+}

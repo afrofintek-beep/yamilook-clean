@@ -1,0 +1,688 @@
+/* @refresh reset */
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+import { useIncomingCallSignals } from './useIncomingCallSignals';
+
+export interface Call {
+  id: string;
+  type: 'voice' | 'video';
+  status: string;
+  initiator_id: string;
+  is_group_call: boolean;
+  conversation_id: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  max_participants: number;
+  is_locked: boolean;
+  waiting_room_enabled: boolean;
+  recording_enabled: boolean;
+  created_at: string;
+}
+
+export interface CallParticipant {
+  id: string;
+  call_id: string;
+  user_id: string;
+  role: 'host' | 'co_host' | 'participant';
+  status: string;
+  is_muted: boolean;
+  is_video_enabled: boolean;
+  is_screen_sharing: boolean;
+  is_hand_raised: boolean;
+  is_spotlight: boolean;
+  joined_at: string | null;
+  left_at: string | null;
+  virtual_background: string | null;
+}
+
+export interface ScheduledCall {
+  id: string;
+  organizer_id: string;
+  title: string;
+  description: string | null;
+  call_type: 'voice' | 'video';
+  scheduled_at: string;
+  duration_minutes: number;
+  timezone: string;
+  is_recurring: boolean;
+  recurrence_pattern: string | null;
+  invite_link: string | null;
+  waiting_room_enabled: boolean;
+  status: string;
+}
+
+export interface CallHistory {
+  id: string;
+  type: 'voice' | 'video';
+  status: string;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  is_group_call: boolean;
+  caller_id: string | null;
+  callee_id: string | null;
+  initiator_id: string;
+  participants: {
+    user_id: string;
+    display_name: string;
+    avatar_url: string | null;
+  }[];
+}
+
+export function useCalls() {
+  const { user } = useAuth();
+  const [incomingCall, setIncomingCall] = useState<Call | null>(null);
+  const incomingCallRef = useRef<Call | null>(null);
+  const [callHistory, setCallHistory] = useState<CallHistory[]>([]);
+  const [scheduledCalls, setScheduledCalls] = useState<ScheduledCall[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Keep a ref so effects don't need to re-subscribe when incomingCall changes
+  useEffect(() => {
+    incomingCallRef.current = incomingCall;
+  }, [incomingCall]);
+
+  // ============================================================
+  // INCOMING CALL SIGNALS LISTENER
+  // This subscribes to call_signals by to_user_id ONLY,
+  // so we can detect incoming offers before knowing the call_id.
+  // ============================================================
+  
+  // Stable reference for the offer handler to prevent hook re-initialization
+  const handleIncomingOfferRef = useRef<((offer: {
+    callId: string;
+    callType: 'voice' | 'video';
+    callerId: string;
+    sdp: RTCSessionDescriptionInit;
+  }) => Promise<void>) | null>(null);
+
+  handleIncomingOfferRef.current = async (offer) => {
+    // If we already have an incoming call displayed, ignore new offers
+    if (incomingCallRef.current) {
+      console.log('[useCalls] Already have incoming call, ignoring new offer');
+      return;
+    }
+
+    console.log('[useCalls] Received incoming offer for call:', offer.callId, 'from:', offer.callerId);
+
+    try {
+      // Fetch the call details from the database
+      const { data: call, error } = await supabase
+        .from('calls')
+        .select('*')
+        .eq('id', offer.callId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[useCalls] Error fetching call:', error);
+        return;
+      }
+
+      if (!call) {
+        console.log('[useCalls] Call not found in database:', offer.callId);
+        return;
+      }
+
+      // Only show if call is still ringing
+      if (call.status !== 'ringing' && call.status !== 'initiated') {
+        console.log('[useCalls] Call status is not ringing:', call.status);
+        return;
+      }
+
+      console.log('[useCalls] Setting incoming call from WebRTC offer:', call.id);
+      setIncomingCall({
+        id: call.id,
+        type: call.type as 'voice' | 'video',
+        status: call.status,
+        initiator_id: call.initiator_id,
+        is_group_call: call.is_group_call,
+        conversation_id: call.conversation_id,
+        started_at: call.started_at,
+        ended_at: call.ended_at,
+        duration_seconds: call.duration_seconds,
+        max_participants: call.max_participants,
+        is_locked: call.is_locked,
+        waiting_room_enabled: call.waiting_room_enabled,
+        recording_enabled: call.recording_enabled,
+        created_at: call.created_at,
+      });
+    } catch (err) {
+      console.error('[useCalls] Error handling incoming offer:', err);
+    }
+  };
+
+  // Memoized stable callback that won't change between renders
+  const stableOfferHandler = useMemo(() => ({
+    onOfferReceived: (offer: {
+      callId: string;
+      callType: 'voice' | 'video';
+      callerId: string;
+      sdp: RTCSessionDescriptionInit;
+    }): void => {
+      void handleIncomingOfferRef.current?.(offer);
+    }
+  }), []);
+
+  // Use the incoming call signals hook with stable callback
+  useIncomingCallSignals(stableOfferHandler);
+
+  // Fetch call history
+  const fetchCallHistory = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      // Fetch calls where user is a participant
+      const { data: participations } = await supabase
+        .from('call_participants')
+        .select(`
+          call_id,
+          calls (
+            id,
+            type,
+            status,
+            started_at,
+            ended_at,
+            duration_seconds,
+            is_group_call,
+            caller_id,
+            callee_id,
+            initiator_id
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (participations) {
+        const callsWithParticipants = await Promise.all(
+          participations.map(async (p) => {
+            const call = p.calls as any;
+            if (!call) return null;
+
+            // First try to get participants from call_participants table
+            const { data: participants } = await supabase
+              .from('call_participants')
+              .select('user_id')
+              .eq('call_id', call.id)
+              .neq('user_id', user.id);
+
+            // Fetch profiles separately for each participant
+            let participantsList: { user_id: string; display_name: string; avatar_url: string | null }[] = [];
+            
+            if (participants && participants.length > 0) {
+              const userIds = participants.map(p => p.user_id);
+              const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, display_name, avatar_url')
+                .in('id', userIds);
+              
+              participantsList = participants.map(part => {
+                const profile = profiles?.find(p => p.id === part.user_id);
+                return {
+                  user_id: part.user_id,
+                  display_name: profile?.display_name || 'Unknown',
+                  avatar_url: profile?.avatar_url || null,
+                };
+              });
+            }
+
+            // If participants list is empty, fetch caller/callee profile directly
+            if (participantsList.length === 0) {
+              const otherUserId = call.caller_id === user.id ? call.callee_id : call.caller_id;
+              
+              if (otherUserId) {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('id, display_name, avatar_url')
+                  .eq('id', otherUserId)
+                  .single();
+
+                if (profile) {
+                  participantsList = [{
+                    user_id: profile.id,
+                    display_name: profile.display_name || 'Unknown',
+                    avatar_url: profile.avatar_url,
+                  }];
+                }
+              }
+            }
+
+            return {
+              ...call,
+              participants: participantsList,
+            };
+          })
+        );
+
+        setCallHistory(callsWithParticipants.filter(Boolean) as CallHistory[]);
+      }
+    } catch (error) {
+      console.error('Error fetching call history:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Fetch scheduled calls
+  const fetchScheduledCalls = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      // Fetch calls where user is organizer
+      const { data: organizerCalls, error: organizerError } = await supabase
+        .from('scheduled_calls')
+        .select('*')
+        .eq('organizer_id', user.id)
+        .gte('scheduled_at', new Date().toISOString())
+        .order('scheduled_at', { ascending: true });
+
+      if (organizerError) {
+        console.error('Error fetching organizer calls:', organizerError);
+      }
+
+      // Fetch calls where user is invited
+      const { data: invites, error: invitesError } = await supabase
+        .from('scheduled_call_invites')
+        .select('scheduled_call_id')
+        .eq('user_id', user.id);
+
+      if (invitesError) {
+        console.error('Error fetching invites:', invitesError);
+      }
+
+      let invitedCalls: ScheduledCall[] = [];
+      if (invites && invites.length > 0) {
+        const inviteIds = invites.map(i => i.scheduled_call_id);
+        const { data: calls } = await supabase
+          .from('scheduled_calls')
+          .select('*')
+          .in('id', inviteIds)
+          .gte('scheduled_at', new Date().toISOString())
+          .order('scheduled_at', { ascending: true });
+        
+        invitedCalls = (calls || []) as ScheduledCall[];
+      }
+
+      // Merge and deduplicate
+      const allCalls = [...(organizerCalls || []), ...invitedCalls] as ScheduledCall[];
+      const uniqueCalls = allCalls.reduce((acc, call) => {
+        if (!acc.find(c => c.id === call.id)) {
+          acc.push(call);
+        }
+        return acc;
+      }, [] as ScheduledCall[]);
+
+      // Sort by scheduled_at
+      uniqueCalls.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+
+      setScheduledCalls(uniqueCalls);
+    } catch (error) {
+      console.error('Error fetching scheduled calls:', error);
+    }
+  }, [user]);
+
+  // Schedule a new call
+  const scheduleCall = useCallback(async (
+    title: string,
+    scheduledAt: Date,
+    callType: 'voice' | 'video',
+    options: {
+      description?: string;
+      durationMinutes?: number;
+      isRecurring?: boolean;
+      recurrencePattern?: string;
+      waitingRoomEnabled?: boolean;
+      invitees?: string[];
+    } = {}
+  ) => {
+    if (!user) return null;
+
+    try {
+      const { data: call, error } = await supabase
+        .from('scheduled_calls')
+        .insert({
+          organizer_id: user.id,
+          title,
+          scheduled_at: scheduledAt.toISOString(),
+          call_type: callType,
+          description: options.description,
+          duration_minutes: options.durationMinutes || 60,
+          is_recurring: options.isRecurring || false,
+          recurrence_pattern: options.recurrencePattern,
+          waiting_room_enabled: options.waitingRoomEnabled ?? true,
+          invite_link: crypto.randomUUID(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Create invites
+      if (options.invitees?.length) {
+        await supabase.from('scheduled_call_invites').insert(
+          options.invitees.map(userId => ({
+            scheduled_call_id: call.id,
+            user_id: userId,
+          }))
+        );
+      }
+
+      await fetchScheduledCalls();
+      return call;
+    } catch (error) {
+      console.error('Error scheduling call:', error);
+      return null;
+    }
+  }, [user, fetchScheduledCalls]);
+
+  // Update RSVP
+  const updateRsvp = useCallback(async (
+    scheduledCallId: string,
+    status: 'accepted' | 'declined' | 'maybe'
+  ) => {
+    if (!user) return;
+
+    await supabase
+      .from('scheduled_call_invites')
+      .update({ rsvp_status: status })
+      .eq('scheduled_call_id', scheduledCallId)
+      .eq('user_id', user.id);
+
+    await fetchScheduledCalls();
+  }, [user, fetchScheduledCalls]);
+
+  // Cancel scheduled call
+  const cancelScheduledCall = useCallback(async (scheduledCallId: string) => {
+    if (!user) return;
+
+    await supabase
+      .from('scheduled_calls')
+      .update({ status: 'cancelled' })
+      .eq('id', scheduledCallId)
+      .eq('organizer_id', user.id);
+
+    await fetchScheduledCalls();
+  }, [user, fetchScheduledCalls]);
+
+  // Get call statistics
+  const getCallStatistics = useCallback(async (period: 'week' | 'month' | 'all') => {
+    if (!user) return null;
+
+    let startDate: Date;
+    const now = new Date();
+
+    switch (period) {
+      case 'week':
+        startDate = new Date(now.setDate(now.getDate() - 7));
+        break;
+      case 'month':
+        startDate = new Date(now.setMonth(now.getMonth() - 1));
+        break;
+      default:
+        startDate = new Date(0);
+    }
+
+    const { data } = await supabase
+      .from('call_participants')
+      .select(`
+        calls (
+          type,
+          duration_seconds,
+          created_at
+        )
+      `)
+      .eq('user_id', user.id)
+      .gte('created_at', startDate.toISOString());
+
+    if (!data) return null;
+
+    const stats = data.reduce((acc, p) => {
+      const call = p.calls as any;
+      if (!call) return acc;
+
+      acc.totalCalls++;
+      acc.totalDuration += call.duration_seconds || 0;
+      if (call.type === 'video') acc.videoCalls++;
+      else acc.voiceCalls++;
+      return acc;
+    }, { totalCalls: 0, totalDuration: 0, videoCalls: 0, voiceCalls: 0 });
+
+    return stats;
+  }, [user]);
+
+  // Run periodic cleanup of stuck calls on mount
+  useEffect(() => {
+    if (!user) return;
+    // Trigger cleanup once on mount (no need to await)
+    supabase.rpc('cleanup_stuck_calls').then(({ data, error }) => {
+      if (error) console.warn('[useCalls] Cleanup error:', error.message);
+      else if (data > 0) console.log('[useCalls] Cleaned up', data, 'stuck calls');
+    });
+  }, [user]);
+
+  // Watch the active incoming call record - clear it if A hangs up before B answers
+  useEffect(() => {
+    if (!incomingCall) return;
+
+    // Poll the call status every 2s as a fallback (Realtime may be slow)
+    const intervalId = setInterval(async () => {
+      const { data } = await supabase
+        .from('calls')
+        .select('status')
+        .eq('id', incomingCall.id)
+        .maybeSingle();
+
+      if (!data || ['ended', 'declined', 'failed', 'cancelled'].includes(data.status)) {
+        console.log('[useCalls] Active incoming call is no longer ringing (status:', data?.status, ') - clearing');
+        setIncomingCall(null);
+      }
+    }, 2000);
+
+    // Subscribe via Realtime for instant clearing
+    const channel = supabase
+      .channel(`call-status-watch-${incomingCall.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'calls',
+          filter: `id=eq.${incomingCall.id}`,
+        },
+        (payload) => {
+          const newStatus = (payload.new as any)?.status;
+          console.log('[useCalls] Incoming call status changed:', newStatus);
+          if (newStatus && ['ended', 'declined', 'failed', 'cancelled'].includes(newStatus)) {
+            console.log('[useCalls] Clearing incoming call - caller hung up');
+            setIncomingCall(null);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(intervalId);
+      supabase.removeChannel(channel);
+    };
+  }, [incomingCall?.id]);
+
+  // Listen for incoming calls with fallback polling for reliability
+  useEffect(() => {
+    if (!user) return;
+
+    let pollIntervalId: ReturnType<typeof setInterval> | null = null;
+    let channelRemoved = false;
+
+    // Poll for incoming calls – works even if Realtime is delayed/broken
+    // Call timeout: 90 seconds (matches DB cleanup function)
+    const CALL_TIMEOUT_MS = 90 * 1000;
+
+    const checkForRingingCall = async () => {
+      // Don't poll if we already have an incoming call displayed (handled by the watcher above)
+      if (incomingCallRef.current) return;
+
+      try {
+        const { data: participant, error } = await supabase
+          .from('call_participants')
+          .select('call_id, status, created_at')
+          .eq('user_id', user.id)
+          .eq('status', 'ringing')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('[useCalls] Error polling for ringing calls:', error);
+          return;
+        }
+
+        if (!participant?.call_id) return;
+
+        // Check if call is stale (older than timeout)
+        const callAge = Date.now() - new Date(participant.created_at).getTime();
+        if (callAge > CALL_TIMEOUT_MS) {
+          console.log('[useCalls] Ignoring stale ringing call:', participant.call_id, 'age:', Math.round(callAge / 1000), 's');
+          // Mark participant as missed and call as ended
+          await Promise.all([
+            supabase
+              .from('call_participants')
+              .update({ status: 'declined', left_at: new Date().toISOString() })
+              .eq('call_id', participant.call_id)
+              .eq('user_id', user.id)
+              .eq('status', 'ringing'),
+            supabase
+              .from('calls')
+              .update({ status: 'ended', ended_at: new Date().toISOString(), end_reason: 'no_answer' })
+              .eq('id', participant.call_id)
+              .eq('status', 'ringing'),
+          ]);
+          return;
+        }
+
+        // Also verify call is still actually ringing in the calls table
+        const { data: callCheck } = await supabase
+          .from('calls')
+          .select('status')
+          .eq('id', participant.call_id)
+          .maybeSingle();
+        
+        if (!callCheck || callCheck.status !== 'ringing') {
+          console.log('[useCalls] Call is no longer ringing, skipping:', participant.call_id);
+          return;
+        }
+
+        console.log('[useCalls] Found ringing participant via poll:', participant.call_id);
+
+        const { data: call } = await supabase
+          .from('calls')
+          .select('*')
+          .eq('id', participant.call_id)
+          .single();
+
+        if (call && call.status === 'ringing') {
+          console.log('[useCalls] Setting incoming call from poll:', call.id);
+          setIncomingCall(call as Call);
+        }
+      } catch (error) {
+        console.error('[useCalls] Error in checkForRingingCall:', error);
+      }
+    };
+
+    // Start polling immediately and every 2 seconds
+    void checkForRingingCall();
+    pollIntervalId = setInterval(() => {
+      void checkForRingingCall();
+    }, 2000);
+
+    // Also subscribe to Realtime for faster detection when available
+    const channel = supabase
+      .channel(`incoming-calls-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'call_participants',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          console.log('[useCalls] Realtime event:', payload.eventType, payload.new);
+          const participant = payload.new as CallParticipant;
+          
+          // Handle new ringing status
+          if (participant?.status === 'ringing') {
+            console.log('[useCalls] Realtime: participant ringing, call_id:', participant.call_id);
+            
+            const { data: call } = await supabase
+              .from('calls')
+              .select('*')
+              .eq('id', participant.call_id)
+              .single();
+
+            if (call && call.status === 'ringing') {
+              console.log('[useCalls] Setting incoming call from Realtime:', call.id);
+              setIncomingCall(call as Call);
+            }
+          }
+          
+          // Handle call ended/declined/connected - clear incoming call
+          if (participant?.status && ['connected', 'declined', 'left', 'ended'].includes(participant.status)) {
+            console.log('[useCalls] Realtime: call status changed to', participant.status, '- clearing incoming call');
+            setIncomingCall(null);
+          }
+        }
+      )
+      .subscribe((status, err) => {
+        const errMsg = err
+          ? (err instanceof Error ? err.message : String(err))
+          : '';
+
+        console.log('[useCalls] Realtime subscription status:', status, errMsg ? `Error: ${errMsg}` : '');
+
+        if (status === 'SUBSCRIBED') {
+          // Do an immediate check once subscription is ready
+          void checkForRingingCall();
+        }
+
+        // If bindings mismatch, disable Realtime for this hook and rely on polling.
+        if (status === 'CHANNEL_ERROR' && errMsg.includes('mismatch between server and client bindings')) {
+          console.warn('[useCalls] Realtime bindings mismatch; falling back to polling-only.');
+          if (!channelRemoved) {
+            channelRemoved = true;
+            supabase.removeChannel(channel);
+          }
+        }
+      });
+
+    return () => {
+      if (pollIntervalId) {
+        clearInterval(pollIntervalId);
+      }
+      if (!channelRemoved) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [user]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchCallHistory();
+    fetchScheduledCalls();
+  }, [fetchCallHistory, fetchScheduledCalls]);
+
+  return {
+    incomingCall,
+    setIncomingCall,
+    callHistory,
+    scheduledCalls,
+    loading,
+    scheduleCall,
+    updateRsvp,
+    cancelScheduledCall,
+    getCallStatistics,
+    fetchCallHistory,
+    fetchScheduledCalls,
+  };
+}

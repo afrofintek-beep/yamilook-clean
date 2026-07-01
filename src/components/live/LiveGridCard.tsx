@@ -1,0 +1,80 @@
+import { Users, Eye } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { LiveSession } from '@/hooks/useLiveStream';
+
+interface LiveGridCardProps {
+  session: LiveSession;
+  onClick: () => void;
+  isLarge?: boolean;
+}
+
+export function LiveGridCard({ session, onClick, isLarge = false }: LiveGridCardProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-xl bg-card border border-border/30 group text-left w-full transition-transform active:scale-[0.97] ${
+        isLarge ? 'row-span-2 col-span-2' : ''
+      }`}
+    >
+      <div className={`relative ${isLarge ? 'aspect-[4/5]' : 'aspect-square'}`}>
+        {/* Background */}
+        {session.thumbnail_url ? (
+          <img
+            src={session.thumbnail_url}
+            alt={session.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-card to-muted flex items-center justify-center">
+            <Avatar className={`${isLarge ? 'w-24 h-24' : 'w-14 h-14'} ring-2 ring-destructive`}>
+              <AvatarImage src={session.host?.avatar_url || ''} />
+              <AvatarFallback className={`${isLarge ? 'text-2xl' : 'text-base'} bg-muted`}>
+                {session.host?.display_name?.[0] || 'G'}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        )}
+
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+
+        {/* Viewer count badge */}
+        <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5">
+          <Eye className="w-3 h-3 text-primary" />
+          <span className="text-white text-[11px] font-medium">
+            {session.viewer_count}
+          </span>
+        </div>
+
+        {/* Guia label for host (large card only) */}
+        {isLarge && (
+          <Badge className="absolute top-2 right-2 bg-primary/90 text-primary-foreground text-[10px] px-1.5 py-0.5 border-0">
+            Guia
+          </Badge>
+        )}
+
+        {/* Bottom info */}
+        <div className="absolute bottom-0 left-0 right-0 p-2">
+          <p className="text-white text-xs font-medium truncate">
+            {session.host?.display_name || 'Anónimo'}
+          </p>
+          {isLarge && session.title && (
+            <p className="text-white/70 text-[10px] truncate mt-0.5">
+              {session.title}
+            </p>
+          )}
+          {session.city && (
+            <p className="text-white/50 text-[10px] truncate">
+              {session.neighborhood || session.city}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Hover effect */}
+      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+    </button>
+  );
+}

@@ -1,0 +1,480 @@
+import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Send, 
+  Paperclip, 
+  Smile, 
+  Mic, 
+  X, 
+  Image, 
+  File, 
+  MapPin,
+  StopCircle,
+  Sticker,
+  Sparkles,
+  Clock,
+  Eye,
+  EyeOff
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { ReplyPreview } from './ReplyPreview';
+import { StickerPicker } from './StickerPicker';
+import { GifPicker } from './GifPicker';
+import { ScheduleMessageSheet } from './ScheduleMessageSheet';
+import { ViewOnceToggle } from './ViewOnceMedia';
+import { useVoiceRecorder, useMediaUpload } from '@/hooks/useMediaUpload';
+import { toast } from 'sonner';
+
+interface EnhancedChatInputProps {
+  onSend: (content: string, type?: string, mediaUrl?: string, replyToId?: string, duration?: number, isViewOnce?: boolean) => Promise<{ messageId?: string }>;
+  onUpdateMediaUrl?: (messageId: string, newMediaUrl: string) => Promise<void>;
+  onTyping: () => void;
+  onSchedule?: (content: string, scheduledFor: Date, isRecurring: boolean, pattern?: string) => Promise<void>;
+  replyTo?: {
+    id: string;
+    content: string | null;
+    message_type: string;
+    sender_profile?: {
+      display_name: string;
+      avatar_url: string | null;
+    };
+  } | null;
+  onCancelReply?: () => void;
+  disabled?: boolean;
+  conversationId: string;
+}
+
+export function EnhancedChatInput({
+  onSend,
+  onUpdateMediaUrl,
+  onTyping,
+  onSchedule,
+  replyTo,
+  onCancelReply,
+  disabled,
+  conversationId,
+}: EnhancedChatInputProps) {
+  const { t } = useTranslation();
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiMenu, setShowEmojiMenu] = useState(false);
+  const [showScheduleSheet, setShowScheduleSheet] = useState(false);
+  const [viewOnceEnabled, setViewOnceEnabled] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const { 
+    isRecording, 
+    recordingTime, 
+    startRecording, 
+    stopRecording, 
+    cancelRecording, 
+    uploadVoiceMessageAsync,
+    clearRecording 
+  } = useVoiceRecorder();
+  const { uploading, uploadMedia } = useMediaUpload();
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [message]);
+
+  const handleSend = () => {
+    if (!message.trim() || sending || disabled) return;
+
+    const content = message.trim();
+
+    // Clear UI immediately (don’t block on network)
+    setMessage('');
+    onCancelReply?.();
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+
+    // Brief lock to prevent double-taps, but keep typing responsive
+    setSending(true);
+    window.setTimeout(() => setSending(false), 150);
+
+    // Fire & forget; Chat page will still show toast on error
+    void onSend(content, 'text', undefined, replyTo?.id);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    onTyping();
+  };
+
+  const handleVoiceRecord = async () => {
+    if (isRecording) {
+      // stopRecording now returns the blob directly - no race condition
+      const recordingResult = await stopRecording();
+      
+      if (recordingResult) {
+        const { blob, duration } = recordingResult;
+        console.log('[Voice] Recording stopped, duration:', duration);
+        
+        // Create a local URL for optimistic display
+        const localUrl = URL.createObjectURL(blob);
+        
+        // Send message immediately with local blob URL
+        const result = await onSend('', 'voice', localUrl, replyTo?.id, duration);
+        const messageId = result?.messageId;
+        console.log('[Voice] Message created with id:', messageId);
+        onCancelReply?.();
+        
+        if (!messageId) {
+          console.error('[Voice] No messageId returned, cannot update media_url');
+          clearRecording();
+          return;
+        }
+        
+        // Upload in background and update the message's media_url when complete
+        uploadVoiceMessageAsync(
+          blob,
+          async (finalUrl) => {
+            console.log('[Voice] Upload complete, updating message:', messageId, 'with URL:', finalUrl);
+            if (onUpdateMediaUrl) {
+              try {
+                await onUpdateMediaUrl(messageId, finalUrl);
+                console.log('[Voice] Message media_url updated successfully');
+              } catch (err) {
+                console.error('[Voice] Failed to update media_url:', err);
+              }
+            }
+            // Revoke the local URL to free memory
+            URL.revokeObjectURL(localUrl);
+          },
+          () => {
+            console.error('[Voice] Upload failed for message:', messageId);
+            URL.revokeObjectURL(localUrl);
+          }
+        );
+        
+        clearRecording();
+      }
+    } else {
+      startRecording();
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'file') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSending(true);
+    const result = await uploadMedia(file, type);
+    if (result) {
+      const messageType = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file';
+      await onSend(file.name, messageType, result.url, replyTo?.id, undefined, viewOnceEnabled);
+      onCancelReply?.();
+      setViewOnceEnabled(false);
+    } else {
+      toast.error('Erro ao enviar ficheiro. Tenta novamente.');
+    }
+    setSending(false);
+    e.target.value = '';
+  };
+
+  const handleStickerSelect = async (stickerUrl: string) => {
+    setShowStickerPicker(false);
+    await onSend('', 'sticker', stickerUrl, replyTo?.id);
+    onCancelReply?.();
+  };
+
+  const handleGifSelect = async (gifUrl: string) => {
+    setShowGifPicker(false);
+    await onSend('', 'gif', gifUrl, replyTo?.id);
+    onCancelReply?.();
+  };
+
+  const handleSchedule = async (scheduledFor: Date, isRecurring: boolean, pattern?: string) => {
+    if (!message.trim() || !onSchedule) return;
+    await onSchedule(message.trim(), scheduledFor, isRecurring, pattern);
+    setMessage('');
+    setShowScheduleSheet(false);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Close pickers when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowStickerPicker(false);
+      setShowGifPicker(false);
+    };
+    if (showStickerPicker || showGifPicker) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showStickerPicker, showGifPicker]);
+
+  return (
+    <div className="sticky bottom-0 glass border-t border-border/50 safe-bottom relative">
+      {/* Sticker Picker */}
+      <AnimatePresence>
+        {showStickerPicker && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <StickerPicker
+              onSelect={handleStickerSelect}
+              onClose={() => setShowStickerPicker(false)}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* GIF Picker */}
+      <AnimatePresence>
+        {showGifPicker && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <GifPicker
+              onSelect={handleGifSelect}
+              onClose={() => setShowGifPicker(false)}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* View Once Toggle for media */}
+      <AnimatePresence>
+        {viewOnceEnabled && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-3 py-2 bg-primary/10 border-b border-border/30"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                <EyeOff className="w-4 h-4 text-primary" />
+                <span>View once enabled - media will disappear after viewing</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewOnceEnabled(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {replyTo && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+          >
+            <ReplyPreview message={replyTo} onCancel={onCancelReply} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {isRecording ? (
+        <div className="flex items-center gap-3 p-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-full text-destructive"
+            onClick={cancelRecording}
+          >
+            <X className="w-5 h-5" />
+          </Button>
+
+          <div className="flex-1 flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
+            <span className="font-mono text-lg">{formatTime(recordingTime)}</span>
+            <span className="text-sm text-muted-foreground">Recording...</span>
+          </div>
+
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-full bg-gradient-primary text-white"
+            onClick={handleVoiceRecord}
+          >
+            <StopCircle className="w-6 h-6" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-end gap-2 p-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full flex-shrink-0"
+                disabled={disabled || uploading}
+              >
+                <Paperclip className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => imageInputRef.current?.click()}>
+                <Image className="w-4 h-4 mr-2" />
+                Photo or Video
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                <File className="w-4 h-4 mr-2" />
+                Document
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setShowGifPicker(true); setShowStickerPicker(false); }}>
+                <Sparkles className="w-4 h-4 mr-2" />
+                GIF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setShowStickerPicker(true); setShowGifPicker(false); }}>
+                <Sticker className="w-4 h-4 mr-2" />
+                Sticker
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setViewOnceEnabled(!viewOnceEnabled)}>
+                {viewOnceEnabled ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                {viewOnceEnabled ? 'View once ON' : 'View once'}
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled>
+                <MapPin className="w-4 h-4 mr-2" />
+                Location
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={(e) => handleFileSelect(e, 'image')}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => handleFileSelect(e, 'file')}
+          />
+
+          <div className="flex-1 relative">
+            <Textarea
+              ref={textareaRef}
+              value={message}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              placeholder={t('chat.typeMessage')}
+              className="min-h-[44px] max-h-[120px] py-3 pr-12 rounded-2xl resize-none bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/50"
+              disabled={disabled || uploading}
+              rows={1}
+            />
+            <Popover open={showEmojiMenu} onOpenChange={setShowEmojiMenu}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 bottom-1.5 h-8 w-8 rounded-full"
+                  disabled={disabled}
+                >
+                  <Smile className="w-5 h-5 text-muted-foreground" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" align="end">
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setShowStickerPicker(true); setShowEmojiMenu(false); }}
+                    className="justify-start"
+                  >
+                    <Sticker className="w-4 h-4 mr-2" />
+                    Stickers
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setShowGifPicker(true); setShowEmojiMenu(false); }}
+                    className="justify-start"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    GIFs
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {message.trim() ? (
+            <div className="flex items-center gap-1">
+              {/* Schedule button */}
+              {onSchedule && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full flex-shrink-0"
+                  onClick={() => setShowScheduleSheet(true)}
+                  disabled={sending || disabled || uploading}
+                >
+                  <Clock className="w-5 h-5" />
+                </Button>
+              )}
+              <Button
+                size="icon"
+                className="h-10 w-10 rounded-full bg-gradient-primary text-white flex-shrink-0"
+                onClick={handleSend}
+                disabled={sending || disabled || uploading}
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-full flex-shrink-0"
+              onClick={handleVoiceRecord}
+              disabled={disabled || uploading}
+            >
+              <Mic className="w-5 h-5" />
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Schedule Message Sheet */}
+      <ScheduleMessageSheet
+        open={showScheduleSheet}
+        onOpenChange={setShowScheduleSheet}
+        message={message}
+        onSchedule={handleSchedule}
+      />
+    </div>
+  );
+}

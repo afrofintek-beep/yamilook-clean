@@ -1,0 +1,510 @@
+import React, { useRef, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import { 
+  Mic, MicOff, Video, VideoOff, Phone, 
+  MonitorUp, FlipHorizontal2, Hand, MoreVertical,
+  Users, MessageSquare, Settings, Maximize2, Minimize2,
+  Volume2, VolumeX, Camera, Shield, LayoutGrid
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { useActiveCallRequired } from './ActiveCallProvider';
+import { useHostControls } from '@/hooks/useHostControls';
+import { CallControls } from './CallControls';
+import { ParticipantGrid } from './ParticipantGrid';
+import { CallReactions } from './CallReactions';
+import { VirtualBackgroundPicker } from './VirtualBackgroundPicker';
+import { CallEffects } from './CallEffects';
+import { RecordingControls } from './RecordingControls';
+import { LiveCaptions } from './LiveCaptions';
+import { WaitingRoomPanel } from './WaitingRoomPanel';
+import { BreakoutRoomsPanel } from './BreakoutRoomsPanel';
+import { HostControlsPanel } from './HostControlsPanel';
+import { cn } from '@/lib/utils';
+
+interface VideoCallProps {
+  callId: string;
+  callType: 'voice' | 'video';
+  participants: Array<{
+    id: string;
+    user_id: string;
+    display_name: string;
+    avatar_url: string | null;
+    is_muted: boolean;
+    is_video_enabled: boolean;
+    is_screen_sharing: boolean;
+    is_hand_raised: boolean;
+    is_spotlight: boolean;
+    role?: string;
+  }>;
+  onEndCall: () => void;
+  isGroupCall?: boolean;
+  isHost?: boolean;
+}
+
+export function VideoCall({ 
+  callId, 
+  callType, 
+  participants, 
+  onEndCall,
+  isGroupCall = false,
+  isHost = false,
+}: VideoCallProps) {
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const { t } = useTranslation();
+  const [isPipMode, setIsPipMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [showChat, setShowChat] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showBackgrounds, setShowBackgrounds] = useState(false);
+  const [showEffects, setShowEffects] = useState(false);
+  const [showCaptions, setShowCaptions] = useState(false);
+  const [showHostControls, setShowHostControls] = useState(false);
+  const [showWaitingRoom, setShowWaitingRoom] = useState(false);
+  const [showBreakoutRooms, setShowBreakoutRooms] = useState(false);
+  const [selectedBackground, setSelectedBackground] = useState<string | null>(null);
+  const [activeReactions, setActiveReactions] = useState<Array<{ id: string; emoji: string }>>([]);
+  const [userIsHost, setUserIsHost] = useState(isHost);
+
+  const { checkIsHost } = useHostControls(callId);
+  
+  // Use the shared WebRTC state from ActiveCallProvider context
+  const {
+    webRTCState: state,
+    toggleMute,
+    toggleVideo,
+    toggleScreenShare,
+    flipCamera,
+    raiseHand,
+    sendReaction,
+    endCall,
+  } = useActiveCallRequired();
+
+  // Check if user is host
+  useEffect(() => {
+    const checkHostStatus = async () => {
+      const hostStatus = await checkIsHost();
+      setUserIsHost(hostStatus);
+    };
+    checkHostStatus();
+  }, [checkIsHost]);
+
+  // Attach local stream to video element
+  useEffect(() => {
+    if (localVideoRef.current && state.localStream) {
+      localVideoRef.current.srcObject = state.localStream;
+    }
+  }, [state.localStream]);
+
+  // Toggle fullscreen
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  // Toggle PiP mode
+  const togglePip = async () => {
+    if (localVideoRef.current) {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPipMode(false);
+      } else {
+        await localVideoRef.current.requestPictureInPicture();
+        setIsPipMode(true);
+      }
+    }
+  };
+
+  // Handle reaction
+  const handleReaction = (emoji: string) => {
+    const id = crypto.randomUUID();
+    setActiveReactions(prev => [...prev, { id, emoji }]);
+    sendReaction(emoji);
+    setTimeout(() => {
+      setActiveReactions(prev => prev.filter(r => r.id !== id));
+    }, 3000);
+  };
+
+  // Auto-hide controls
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const handleMouseMove = () => {
+      setShowControls(true);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setShowControls(false), 4000);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  const handleEndCall = () => {
+    endCall();
+    onEndCall();
+  };
+
+  // Debug: Log state for troubleshooting
+  console.log('[VideoCall] callStatus:', state.callStatus, 'localStream:', !!state.localStream, 'isMuted:', state.isMuted, 'isVideoEnabled:', state.isVideoEnabled);
+  
+  return (
+    <div 
+      className={cn(
+        "relative w-full h-screen bg-black overflow-hidden",
+        isFullscreen && "fixed inset-0 z-50"
+      )}
+    >
+      {/* Main Video Grid */}
+      <ParticipantGrid
+        participants={participants}
+        localStream={state.localStream}
+        remoteStreams={state.remoteStreams}
+        screenStream={state.screenStream}
+        isScreenSharing={state.isScreenSharing}
+        callType={callType}
+      />
+
+      {/* Local Video (Picture-in-Picture style) */}
+      {callType === 'video' && !state.isScreenSharing && (participants.length > 0 || state.remoteStreams.size > 0) && (
+        <motion.div
+          drag
+          dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+          className="absolute bottom-24 right-4 w-48 h-36 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 z-20"
+        >
+          <video
+            ref={localVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className={cn(
+              "w-full h-full object-cover",
+              !state.isVideoEnabled && "hidden"
+            )}
+          />
+          {!state.isVideoEnabled && (
+            <div className="w-full h-full bg-muted flex items-center justify-center">
+              <Avatar className="h-16 w-16">
+                <AvatarFallback>You</AvatarFallback>
+              </Avatar>
+            </div>
+          )}
+          {state.isMuted && (
+            <div className="absolute bottom-2 right-2 p-1 rounded-full bg-destructive">
+              <MicOff className="h-3 w-3 text-destructive-foreground" />
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Active Reactions */}
+      <AnimatePresence>
+        {activeReactions.map(reaction => (
+          <motion.div
+            key={reaction.id}
+            initial={{ y: 100, opacity: 0, scale: 0 }}
+            animate={{ y: -200, opacity: 1, scale: 1.5 }}
+            exit={{ opacity: 0 }}
+            className="absolute bottom-32 left-1/2 -translate-x-1/2 text-6xl z-30"
+          >
+            {reaction.emoji}
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* Raised Hands Indicator */}
+      {participants.some(p => p.is_hand_raised) && (
+        <div className="absolute top-4 right-4 bg-yellow-500 text-black px-3 py-2 rounded-lg flex items-center gap-2 z-20">
+          <Hand className="h-4 w-4" />
+          <span className="text-sm font-medium">
+            {t('calls.raisedHands', { count: participants.filter(p => p.is_hand_raised).length })}
+          </span>
+        </div>
+      )}
+
+      {/* Live Captions */}
+      {showCaptions && (
+        <LiveCaptions callId={callId} />
+      )}
+
+      {/* Call Controls */}
+      <AnimatePresence>
+        {showControls && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="absolute bottom-0 left-0 right-0 z-30"
+          >
+            <div className="bg-gradient-to-t from-black/80 to-transparent p-6">
+              {/* Call Status */}
+              <div className="text-center mb-4">
+                <span className="text-white/70 text-sm">
+                {(state.callStatus === 'connected' || state.remoteStreams.size > 0 || state.connectionState === 'connected' || (participants.length > 0 && participants.some(p => p.is_video_enabled)))
+                    ? t('calls.statusConnected')
+                    : (state.callStatus === 'ringing' || state.callStatus === 'initiating')
+                    ? t('calls.statusCalling')
+                    : t('calls.statusConnecting')}
+                </span>
+              </div>
+
+              {/* Main Controls */}
+              <div className="flex items-center justify-center gap-3">
+                {/* Mute */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    "h-14 w-14 rounded-full border-white/20 bg-white/10 hover:bg-white/20",
+                    state.isMuted && "bg-red-500 hover:bg-red-600 border-red-500"
+                  )}
+                  onClick={toggleMute}
+                >
+                  {state.isMuted ? (
+                    <MicOff className="h-6 w-6 text-white" />
+                  ) : (
+                    <Mic className="h-6 w-6 text-white" />
+                  )}
+                </Button>
+
+                {/* Video Toggle */}
+                {callType === 'video' && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      "h-14 w-14 rounded-full border-white/20 bg-white/10 hover:bg-white/20",
+                      !state.isVideoEnabled && "bg-red-500 hover:bg-red-600 border-red-500"
+                    )}
+                    onClick={toggleVideo}
+                  >
+                    {state.isVideoEnabled ? (
+                      <Video className="h-6 w-6 text-white" />
+                    ) : (
+                      <VideoOff className="h-6 w-6 text-white" />
+                    )}
+                  </Button>
+                )}
+
+                {/* Screen Share */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    "h-14 w-14 rounded-full border-white/20 bg-white/10 hover:bg-white/20",
+                    state.isScreenSharing && "bg-primary hover:bg-primary/90 border-primary"
+                  )}
+                  onClick={toggleScreenShare}
+                >
+                  <MonitorUp className="h-6 w-6 text-white" />
+                </Button>
+
+                {/* End Call */}
+                <Button
+                  size="icon"
+                  className="h-14 w-14 rounded-full bg-red-500 hover:bg-red-600"
+                  onClick={handleEndCall}
+                >
+                  <Phone className="h-6 w-6 text-white rotate-135" />
+                </Button>
+
+                {/* Flip Camera */}
+                {callType === 'video' && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-14 w-14 rounded-full border-white/20 bg-white/10 hover:bg-white/20"
+                    onClick={flipCamera}
+                  >
+                    <FlipHorizontal2 className="h-6 w-6 text-white" />
+                  </Button>
+                )}
+
+                {/* Raise Hand */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-14 w-14 rounded-full border-white/20 bg-white/10 hover:bg-white/20"
+                  onClick={() => raiseHand(true)}
+                >
+                  <Hand className="h-6 w-6 text-white" />
+                </Button>
+
+                {/* More Options */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-14 w-14 rounded-full border-white/20 bg-white/10 hover:bg-white/20"
+                  onClick={() => setShowSettings(!showSettings)}
+                >
+                  <MoreVertical className="h-6 w-6 text-white" />
+                </Button>
+              </div>
+
+              {/* Secondary Controls */}
+                <div className="flex items-center justify-center gap-4 mt-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={() => setShowParticipants(!showParticipants)}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  {t('calls.participants')} ({participants.length + 1})
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={() => setShowChat(!showChat)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  {t('calls.chat')}
+                </Button>
+
+                {/* Host Controls Button - Only visible to hosts in group calls */}
+                {isGroupCall && userIsHost && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "text-white/70 hover:text-white hover:bg-white/10",
+                      showHostControls && "text-primary bg-primary/20"
+                    )}
+                    onClick={() => setShowHostControls(!showHostControls)}
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    {t('calls.hostControls')}
+                  </Button>
+                )}
+
+                {/* Breakout Rooms - Only visible to hosts in group calls */}
+                {isGroupCall && userIsHost && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "text-white/70 hover:text-white hover:bg-white/10",
+                      showBreakoutRooms && "text-primary bg-primary/20"
+                    )}
+                    onClick={() => setShowBreakoutRooms(!showBreakoutRooms)}
+                  >
+                    <LayoutGrid className="h-4 w-4 mr-2" />
+                    {t('calls.breakout')}
+                  </Button>
+                )}
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={() => setShowBackgrounds(!showBackgrounds)}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  {t('calls.backgrounds')}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={() => setShowEffects(!showEffects)}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  {t('calls.effects')}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "text-white/70 hover:text-white hover:bg-white/10",
+                    showCaptions && "text-primary"
+                  )}
+                  onClick={() => setShowCaptions(!showCaptions)}
+                >
+                  CC
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={toggleFullscreen}
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="h-4 w-4" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reactions Bar */}
+      <CallReactions onReaction={handleReaction} />
+
+      {/* Virtual Background Picker */}
+      {showBackgrounds && (
+        <VirtualBackgroundPicker
+          onSelect={setSelectedBackground}
+          selectedBackground={selectedBackground}
+          onClose={() => setShowBackgrounds(false)}
+        />
+      )}
+
+      {/* Call Effects Panel */}
+      {showEffects && (
+        <CallEffects onClose={() => setShowEffects(false)} />
+      )}
+
+      {/* Recording Controls */}
+      <RecordingControls callId={callId} participants={participants} />
+
+      {/* Host Controls Panel */}
+      <HostControlsPanel
+        callId={callId}
+        participants={participants.map(p => ({ ...p, role: p.role || 'participant' }))}
+        isOpen={showHostControls}
+        onClose={() => setShowHostControls(false)}
+        onOpenWaitingRoom={() => {
+          setShowHostControls(false);
+          setShowWaitingRoom(true);
+        }}
+        onOpenBreakoutRooms={() => {
+          setShowHostControls(false);
+          setShowBreakoutRooms(true);
+        }}
+      />
+
+      {/* Waiting Room Panel */}
+      <WaitingRoomPanel
+        callId={callId}
+        isOpen={showWaitingRoom}
+        onClose={() => setShowWaitingRoom(false)}
+      />
+
+      {/* Breakout Rooms Panel */}
+      <BreakoutRoomsPanel
+        callId={callId}
+        participants={participants}
+        isOpen={showBreakoutRooms}
+        onClose={() => setShowBreakoutRooms(false)}
+      />
+    </div>
+  );
+}

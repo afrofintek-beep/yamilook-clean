@@ -1,0 +1,550 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * ============================================================================
+ * YAMILOOK BRAND BOOK v1.0
+ * ============================================================================
+ * 
+ * Nome: yamilook
+ * Tagline: A vida como ela é.
+ * 
+ * ESSÊNCIA DA MARCA:
+ * - Humana, Próxima, Real, Simples, Local-first
+ * - Não somos: glamourosos, corporativos, artificiais
+ * 
+ * PALETA DE CORES:
+ * - Preto: #111111 (Base)
+ * - Branco: #FFFFFF (Base)
+ * - Âmbar: #F2A900 (Ação/Destaque - likes, botões, destaques)
+ * - Cinza claro: #F5F3EF (UI Neutra)
+ * - Cinza médio: #DADADA (UI Neutra)
+ * 
+ * REGRA: Âmbar só quando há ação. Nunca como fundo longo.
+ * 
+ * TIPOGRAFIA: Inter (única família) - Regular, Medium, SemiBold
+ * 
+ * LOGOMARCA:
+ * - Wordmark: "yamilook" (minúsculas)
+ * - Sinus: onda sinusoidal suave em Âmbar #F2A900
+ * - Tagline: "A vida como ela é." com 70-80% opacidade
+ * 
+ * ============================================================================
+ */
+
+@layer base {
+  :root {
+    /* ========== YAMILOOK DARK MODERN + WARM GOLD ========== */
+    /* 
+     * Primary palette:
+     * Background: #121214 → hsl(240 7% 8%)
+     * Surface:    #1F1F25 → hsl(240 11% 13%)
+     * Text:       #F5F5F5 → hsl(0 0% 96%)
+     * Secondary:  #A1A1AA → hsl(240 4% 65%)
+     * Gold:       #D4AF37 → hsl(45 63% 52%)
+     * Green:      #22C55E → hsl(142 71% 45%)
+     */
+    
+    /* Accent gold - Primary action */
+    --primary: 45 63% 52%;
+    --primary-foreground: 240 7% 8%;
+    
+    /* Base - Dark layered surfaces */
+    --background: 240 7% 8%;          /* #121214 */
+    --foreground: 0 0% 96%;           /* #F5F5F5 */
+    
+    /* Card & Surface - Elevated layer */
+    --card: 240 11% 13%;              /* #1F1F25 */
+    --card-foreground: 0 0% 96%;
+    
+    --popover: 240 11% 15%;
+    --popover-foreground: 0 0% 96%;
+    
+    /* Secondary - Slightly elevated */
+    --secondary: 240 8% 16%;
+    --secondary-foreground: 0 0% 90%;
+    
+    /* Muted - Subdued elements */
+    --muted: 240 6% 18%;
+    --muted-foreground: 240 4% 65%;   /* #A1A1AA */
+    
+    /* Accent - Gold */
+    --accent: 45 63% 52%;
+    --accent-foreground: 240 7% 8%;
+    
+    /* Borders & Inputs - Subtle separators */
+    --border: 240 6% 20%;
+    --input: 240 6% 18%;
+    --ring: 45 63% 52%;
+    
+    /* ========== SEMANTIC COLORS ========== */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 142 71% 45%;          /* #22C55E */
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 45 63% 52%;
+    --warning-foreground: 240 7% 8%;
+    
+    /* ========== AFRICAN REACTION TOKENS ========== */
+    /* Sankofa Love - Primary positive, love with memory */
+    --reaction-sankofa: 45 63% 52%;
+    --reaction-sankofa-hover: 45 63% 60%;
+    
+    /* Ubuntu - Solidarity, shared humanity */
+    --reaction-ubuntu: 19 55% 45%;
+    --reaction-ubuntu-hover: 19 55% 52%;
+    
+    /* Djembe - Celebration, rhythm */
+    --reaction-djembe: 32 80% 40%;
+    --reaction-djembe-hover: 32 80% 48%;
+    
+    /* Shango - Justified anger, justice */
+    --reaction-shango: 0 68% 36%;
+    --reaction-shango-hover: 0 68% 42%;
+    
+    /* Eish - Exhaustion, dissatisfaction */
+    --reaction-eish: 47 10% 35%;
+    --reaction-eish-hover: 47 10% 42%;
+    
+    /* ========== STATUS INDICATORS ========== */
+    --online: 142 71% 45%;
+    --offline: 0 0% 40%;
+    --busy: 0 72% 51%;
+    --away: 45 63% 52%;
+    
+    /* ========== SHADOWS (Dark layered) ========== */
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 20px -3px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.2);
+    --shadow-glow-accent: 0 0 25px rgba(212, 175, 55, 0.3);
+    --shadow-elevated: 0 8px 32px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
+    
+    /* ========== SIDEBAR ========== */
+    --sidebar-background: 240 7% 7%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 45 63% 52%;
+    --sidebar-primary-foreground: 240 7% 8%;
+    --sidebar-accent: 45 63% 52%;
+    --sidebar-accent-foreground: 240 7% 8%;
+    --sidebar-border: 240 6% 18%;
+    --sidebar-ring: 45 63% 52%;
+    
+    /* ========== CHAT BUBBLES ========== */
+    --bubble-sent: 45 63% 48%;
+    --bubble-sent-foreground: 240 7% 8%;
+    --bubble-received: 240 8% 16%;
+    --bubble-received-foreground: 0 0% 96%;
+    
+    /* ========== GRADIENTS ========== */
+    --gradient-primary: linear-gradient(135deg, hsl(45 63% 52%), hsl(40 70% 45%));
+    --gradient-surface: linear-gradient(180deg, hsl(240 11% 14%), hsl(240 11% 12%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(45 63% 52% / 0.15), hsl(45 63% 52% / 0.05));
+    
+    /* ========== PALCO MODULE TOKENS ========== */
+    --palco-accent: 45 63% 52%;
+    --palco-bg: 240 7% 8%;
+    --palco-text: 0 0% 96%;
+    --palco-text-secondary: 240 4% 65%;
+    --palco-surface: 240 11% 13%;
+    --palco-border: 240 6% 20%;
+    
+    /* ========== RADIUS ========== */
+    --radius: 0.625rem;
+  }
+
+  /* Dark-first: :root IS the dark theme. .dark class kept for compatibility */
+  .dark {
+    /* Inherits root values - no overrides needed */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom scrollbar - minimal */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
+  }
+}
+
+@layer components {
+  /* === GRADIENT BUTTON === */
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .bg-gradient-surface {
+    background: var(--gradient-surface);
+  }
+
+  /* === SHADOWS === */
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-glow-accent {
+    box-shadow: var(--shadow-glow-accent);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  /* === SURFACE LAYERS === */
+  /* For building layered dark UIs: bg → surface-1 → surface-2 → surface-3 */
+  .surface-base {
+    background: hsl(var(--background));
+  }
+
+  .surface-1 {
+    background: hsl(var(--card));
+  }
+
+  .surface-2 {
+    background: hsl(var(--secondary));
+  }
+
+  .surface-3 {
+    background: hsl(var(--muted));
+  }
+
+  /* === GLASS MORPHISM === */
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .glass-nav {
+    background: hsl(var(--background) / 0.85);
+    backdrop-filter: blur(20px) saturate(1.3);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+    border-top: 1px solid hsl(var(--border) / 0.4);
+  }
+
+  /* === CHAT BUBBLE STYLES === */
+  .bubble-sent {
+    background: hsl(var(--bubble-sent));
+    color: hsl(var(--bubble-sent-foreground));
+  }
+
+  .bubble-received {
+    background: hsl(var(--bubble-received));
+    color: hsl(var(--bubble-received-foreground));
+  }
+
+  /* === STATUS INDICATORS === */
+  .status-online {
+    background: hsl(var(--online));
+  }
+
+  .status-offline {
+    background: hsl(var(--offline));
+  }
+
+  .status-busy {
+    background: hsl(var(--busy));
+  }
+
+  .status-away {
+    background: hsl(var(--away));
+  }
+
+  /* === AFRICAN REACTION STYLES === */
+  .reaction-sankofa {
+    color: hsl(var(--reaction-sankofa));
+  }
+  .reaction-sankofa:hover,
+  .reaction-sankofa:focus-visible {
+    color: hsl(var(--reaction-sankofa-hover));
+  }
+
+  .reaction-ubuntu {
+    color: hsl(var(--reaction-ubuntu));
+  }
+  .reaction-ubuntu:hover,
+  .reaction-ubuntu:focus-visible {
+    color: hsl(var(--reaction-ubuntu-hover));
+  }
+
+  .reaction-djembe {
+    color: hsl(var(--reaction-djembe));
+  }
+  .reaction-djembe:hover,
+  .reaction-djembe:focus-visible {
+    color: hsl(var(--reaction-djembe-hover));
+  }
+
+  .reaction-shango {
+    color: hsl(var(--reaction-shango));
+  }
+  .reaction-shango:hover,
+  .reaction-shango:focus-visible {
+    color: hsl(var(--reaction-shango-hover));
+  }
+
+  .reaction-eish {
+    color: hsl(var(--reaction-eish));
+  }
+  .reaction-eish:hover,
+  .reaction-eish:focus-visible {
+    color: hsl(var(--reaction-eish-hover));
+  }
+
+  /* === PULSE ANIMATION === */
+  .pulse-online {
+    animation: pulse-online 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-online {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--online) / 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 6px hsl(var(--online) / 0);
+    }
+  }
+
+  .pulse-primary {
+    animation: pulse-primary 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-primary {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.5);
+    }
+    50% {
+      box-shadow: 0 0 0 8px hsl(var(--primary) / 0);
+    }
+  }
+
+  /* === TYPING INDICATOR === */
+  .typing-dot {
+    animation: typing-bounce 1.4s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-4px);
+    }
+  }
+
+  /* === MESSAGE ANIMATION === */
+  .message-enter {
+    animation: message-slide-in 0.3s ease-out;
+  }
+
+  @keyframes message-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* === BRAND BUTTON HOVER (Minimal) === */
+  .brand-hover {
+    transition: all 0.2s ease;
+  }
+
+  .brand-hover:hover {
+    transform: translateY(-1px);
+  }
+
+  .brand-hover:active {
+    transform: translateY(0);
+  }
+
+  /* === GOLD ACCENT LINE === */
+  .gold-accent-line {
+    position: relative;
+  }
+  .gold-accent-line::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--gradient-primary);
+    border-radius: 1px;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Safe area for mobile - iOS support */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .fab-safe-bottom {
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  }
+
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .pt-safe {
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  }
+
+  /* iOS viewport height fix */
+  .h-screen-safe {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .max-h-screen-safe {
+    max-height: 100vh;
+    max-height: 100dvh;
+  }
+
+  /* ========== SHIMMER LOADING ANIMATION ========== */
+  /* Instagram/TikTok style shimmer effect */
+  .shimmer-loading {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.08) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.2s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Fast fade-in for loaded content */
+  .fade-in-fast {
+    animation: fadeInFast 0.15s ease-out;
+  }
+
+  @keyframes fadeInFast {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Hide scrollbar for horizontal scroll containers */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Smooth carousel scroll snap */
+  .scroll-snap-x {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scroll-snap-x > * {
+    scroll-snap-align: start;
+  }
+
+  /* Subtle press feedback for interactive elements */
+  .press-feedback {
+    transition: transform 150ms ease-out;
+  }
+
+  .press-feedback:active {
+    transform: scale(0.96);
+  }
+
+  /* Staggered children entrance */
+  .stagger-children > * {
+    animation: fadeSlideIn 200ms ease-out both;
+  }
+
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 200ms; }
+
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

@@ -1,0 +1,535 @@
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Search, 
+  Users, 
+  Loader2, 
+  Camera, 
+  X, 
+  Check,
+  ChevronRight,
+  ImagePlus
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { useContacts } from '@/hooks/useContacts';
+import { useConversations } from '@/hooks/useChat';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+interface CreateGroupSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const MAX_GROUP_MEMBERS = 256;
+
+export function CreateGroupSheet({ open, onOpenChange }: CreateGroupSheetProps) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { contacts, loading: contactsLoading } = useContacts();
+  const { createConversation } = useConversations();
+
+  const [step, setStep] = useState<'select' | 'details'>('select');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
+  const [groupName, setGroupName] = useState('');
+  const [groupPhoto, setGroupPhoto] = useState<File | null>(null);
+  const [groupPhotoPreview, setGroupPhotoPreview] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const [createdDialogOpen, setCreatedDialogOpen] = useState(false);
+  const [createdConversationId, setCreatedConversationId] = useState<string | null>(null);
+  const [createdGroupName, setCreatedGroupName] = useState<string | null>(null);
+  const filteredContacts = useMemo(() => {
+    return contacts.filter((contact) => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        contact.nickname?.toLowerCase().includes(query) ||
+        contact.profile?.display_name?.toLowerCase().includes(query) ||
+        contact.profile?.username?.toLowerCase().includes(query)
+      );
+    });
+  }, [contacts, searchQuery]);
+
+  const selectedContactsList = useMemo(() => {
+    return contacts.filter((c) => selectedContacts.has(c.contact_user_id));
+  }, [contacts, selectedContacts]);
+
+  const toggleContact = (contactUserId: string) => {
+    setSelectedContacts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(contactUserId)) {
+        newSet.delete(contactUserId);
+      } else {
+        if (newSet.size >= MAX_GROUP_MEMBERS) {
+          toast({
+            title: 'Limite atingido',
+            description: `O grupo pode ter no máximo ${MAX_GROUP_MEMBERS} membros.`,
+            variant: 'destructive',
+          });
+          return prev;
+        }
+        newSet.add(contactUserId);
+      }
+      return newSet;
+    });
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'Ficheiro muito grande',
+          description: 'A foto deve ter no máximo 5MB.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setGroupPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGroupPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    if (selectedContacts.size < 1) {
+      toast({
+        title: 'Seleciona Links',
+        description: 'Precisa de pelo menos 1 Link para criar um grupo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!groupName.trim()) {
+      toast({
+        title: 'Nome obrigatório',
+        description: 'O grupo precisa de um nome.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setCreating(true);
+
+    try {
+      let avatarUrl: string | null = null;
+
+      // Upload group photo if provided
+      if (groupPhoto) {
+        const fileExt = groupPhoto.name.split('.').pop();
+        const fileName = `group-${Date.now()}.${fileExt}`;
+        const filePath = `group-avatars/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, groupPhoto);
+
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+          avatarUrl = urlData.publicUrl;
+        }
+      }
+
+      // Create group conversation
+      const { data, error } = await createConversation(
+        Array.from(selectedContacts),
+        groupName.trim(),
+        avatarUrl
+      );
+
+      if (error) {
+        toast({
+          title: 'Erro',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else if (data) {
+        setCreatedConversationId(data.id);
+        setCreatedGroupName(groupName.trim());
+        setCreatedDialogOpen(true);
+      }
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível criar o grupo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const resetAndClose = () => {
+    setStep('select');
+    setSearchQuery('');
+    setSelectedContacts(new Set());
+    setGroupName('');
+    setGroupPhoto(null);
+    setGroupPhotoPreview(null);
+    setCreatedDialogOpen(false);
+    setCreatedConversationId(null);
+    setCreatedGroupName(null);
+    onOpenChange(false);
+  };
+
+  const canProceed = selectedContacts.size >= 1;
+
+  const handleOpenCreatedGroup = () => {
+    const id = createdConversationId;
+    resetAndClose();
+    if (id) navigate(`/chat/${id}`);
+  };
+
+  const handleCloseCreatedDialog = () => {
+    resetAndClose();
+  };
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={resetAndClose}>
+        <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl p-0">
+          <AnimatePresence mode="wait">
+            {step === 'select' ? (
+              <motion.div
+                key="select"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex flex-col h-full"
+              >
+                <SheetHeader className="p-4 border-b border-border/50">
+                  <div className="flex items-center justify-between">
+                    <SheetTitle className="text-xl">Novo Grupo</SheetTitle>
+                    <Badge variant="secondary" className="font-mono">
+                      {selectedContacts.size}/{MAX_GROUP_MEMBERS}
+                    </Badge>
+                  </div>
+                </SheetHeader>
+
+                {/* Selected contacts preview */}
+                <AnimatePresence>
+                  {selectedContactsList.length > 0 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="border-b border-border/50 overflow-hidden"
+                    >
+                      <div className="flex gap-2 p-3 overflow-x-auto">
+                        {selectedContactsList.map((contact) => {
+                          const displayName =
+                            contact.nickname || contact.profile?.display_name || 'Unknown';
+                          return (
+                            <motion.div
+                              key={contact.id}
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              exit={{ scale: 0 }}
+                              className="flex flex-col items-center gap-1 min-w-[60px]"
+                            >
+                              <div className="relative">
+                                <Avatar className="w-12 h-12">
+                                  <AvatarImage src={contact.profile?.avatar_url || ''} />
+                                  <AvatarFallback className="bg-gradient-primary text-white text-xs">
+                                    {displayName.slice(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <button
+                                  onClick={() => toggleContact(contact.contact_user_id)}
+                                  className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <span className="text-xs text-muted-foreground truncate max-w-[60px]">
+                                {displayName.split(' ')[0]}
+                              </span>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Search */}
+                <div className="p-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Pesquisar Links..."
+                      className="pl-10 h-12 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                {/* Contacts list */}
+                <div className="flex-1 overflow-y-auto">
+                  {contactsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : filteredContacts.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      {searchQuery ? (
+                        <p>Nenhum Link encontrado</p>
+                      ) : (
+                        <>
+                          <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>Sem Links</p>
+                          <p className="text-sm">Adiciona Links primeiro</p>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/30">
+                      {filteredContacts.map((contact) => {
+                        const displayName =
+                          contact.nickname || contact.profile?.display_name || 'Unknown';
+                        const initials = displayName
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2);
+                        const isSelected = selectedContacts.has(contact.contact_user_id);
+
+                        return (
+                          <button
+                            key={contact.id}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-left"
+                            onClick={() => toggleContact(contact.contact_user_id)}
+                          >
+                            <div className="relative">
+                              <Avatar className="w-12 h-12">
+                                <AvatarImage src={contact.profile?.avatar_url || ''} />
+                                <AvatarFallback className="bg-gradient-primary text-white">
+                                  {initials}
+                                </AvatarFallback>
+                              </Avatar>
+                              {contact.profile?.is_online && (
+                                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 status-online rounded-full border-2 border-background" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="font-semibold truncate block">
+                                {displayName}
+                              </span>
+                              <span className="text-sm text-muted-foreground truncate block">
+                                @{contact.profile?.username || 'unknown'}
+                              </span>
+                            </div>
+                            <div
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                isSelected
+                                  ? 'bg-primary border-primary'
+                                  : 'border-muted-foreground/30'
+                              }`}
+                            >
+                              {isSelected && (
+                                <Check className="w-4 h-4 text-primary-foreground" />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Next button */}
+                <div className="p-4 border-t border-border/50">
+                  <Button
+                    onClick={() => setStep('details')}
+                    disabled={!canProceed}
+                    className="w-full h-12 rounded-xl gap-2"
+                  >
+                    Próximo
+                    <ChevronRight className="w-5 h-5" />
+                  </Button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="details"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="flex flex-col h-full"
+              >
+                <SheetHeader className="p-4 border-b border-border/50">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setStep('select')}
+                      className="rounded-full"
+                    >
+                      <ChevronRight className="w-5 h-5 rotate-180" />
+                    </Button>
+                    <SheetTitle className="text-xl">Detalhes do Grupo</SheetTitle>
+                  </div>
+                </SheetHeader>
+
+                <div className="flex-1 p-4 space-y-6">
+                  {/* Group photo */}
+                  <div className="flex flex-col items-center gap-3">
+                    <label className="relative cursor-pointer group">
+                      <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center overflow-hidden border-2 border-dashed border-muted-foreground/30 group-hover:border-primary transition-colors">
+                        {groupPhotoPreview ? (
+                          <img
+                            src={groupPhotoPreview}
+                            alt="Group"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ImagePlus className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                        )}
+                      </div>
+                      <div className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                        <Camera className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <span className="text-sm text-muted-foreground">
+                      Adicionar foto do grupo
+                    </span>
+                  </div>
+
+                  {/* Group name */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nome do grupo</label>
+                    <Input
+                      value={groupName}
+                      onChange={(e) => setGroupName(e.target.value.slice(0, 100))}
+                      placeholder="Ex: Família, Trabalho, Amigos..."
+                      className="h-12 rounded-xl"
+                      maxLength={100}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">
+                      {groupName.length}/100
+                    </p>
+                  </div>
+
+                  {/* Members summary */}
+                  <div className="bg-secondary/50 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Membros</span>
+                      <Badge variant="secondary">{selectedContacts.size + 1}</Badge>
+                    </div>
+                    <div className="flex -space-x-2 overflow-hidden">
+                      {selectedContactsList.slice(0, 8).map((contact) => (
+                        <Avatar
+                          key={contact.id}
+                          className="w-10 h-10 border-2 border-background"
+                        >
+                          <AvatarImage src={contact.profile?.avatar_url || ''} />
+                          <AvatarFallback className="bg-gradient-primary text-white text-xs">
+                            {(contact.nickname || contact.profile?.display_name || 'U')
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                      {selectedContactsList.length > 8 && (
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-medium border-2 border-background">
+                          +{selectedContactsList.length - 8}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Tu e mais {selectedContacts.size}{' '}
+                      {selectedContacts.size === 1 ? 'pessoa' : 'pessoas'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Create button */}
+                <div className="p-4 border-t border-border/50">
+                  <Button
+                    onClick={handleCreateGroup}
+                    disabled={creating || !groupName.trim()}
+                    className="w-full h-12 rounded-xl gap-2"
+                  >
+                    {creating ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        A criar...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="w-5 h-5" />
+                        Criar Grupo
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </SheetContent>
+      </Sheet>
+
+      <AlertDialog
+        open={createdDialogOpen}
+        onOpenChange={(nextOpen) => {
+          setCreatedDialogOpen(nextOpen);
+          if (!nextOpen) resetAndClose();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Grupo criado</AlertDialogTitle>
+            <AlertDialogDescription>
+              O grupo “{createdGroupName || groupName.trim()}” foi criado com{' '}
+              {selectedContacts.size + 1} membros.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCloseCreatedDialog}>
+              Fechar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleOpenCreatedGroup}>
+              Abrir grupo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

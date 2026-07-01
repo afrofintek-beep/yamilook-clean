@@ -1,0 +1,826 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+import { ReactionCounts, createEmptyReactionCounts, normalizeReactionType } from '@/lib/reactions';
+
+export interface Post {
+  id: string;
+  user_id: string;
+  type: 'text' | 'photo' | 'video' | 'link';
+  content: string | null;
+  media_urls: string[];
+  location: string | null;
+  privacy: 'everyone' | 'contacts' | 'close_friends' | 'only_me';
+  is_pinned: boolean;
+  likes_count: number;
+  comments_count: number;
+  shares_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PostTopic {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface PostWithUser extends Post {
+  user: {
+    id: string;
+    display_name: string;
+    avatar_url: string | null;
+    username: string;
+  };
+  is_liked: boolean;
+  my_reaction: string | null;
+  is_saved: boolean;
+  reaction_counts: ReactionCounts;
+  topics: PostTopic[];
+}
+
+export interface CommentReaction {
+  type: string;
+  count: number;
+}
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  parent_comment_id: string | null;
+  likes_count: number;
+  created_at: string;
+  user: {
+    id: string;
+    display_name: string;
+    avatar_url: string | null;
+    username: string;
+  };
+  replies?: Comment[];
+  reactions: { [type: string]: number };
+  my_reaction: string | null;
+}
+
+export interface Topic {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  image_url: string | null;
+  post_count: number;
+  is_trending: boolean;
+}
+
+export function usePosts() {
+  const { user } = useAuth();
+  const [feedPosts, setFeedPosts] = useState<PostWithUser[]>([]);
+  const [discoverPosts, setDiscoverPosts] = useState<PostWithUser[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Batch fetch posts with user data, likes, saves, reaction counts, and topics
+  const fetchPostsWithDetails = async (posts: any[]): Promise<PostWithUser[]> => {
+    if (!posts.length) return [];
+
+    // Get unique user IDs
+    const userIds = [...new Set(posts.map(p => p.user_id))];
+    const postIds = posts.map(p => p.id);
+
+    // Batch fetch all profiles (safe public fields via SECURITY DEFINER RPC)
+    const { data: profiles } = await supabase.rpc('get_public_profiles_by_ids', {
+      p_ids: userIds,
+    });
+
+    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+
+    // Batch fetch likes and saves for current user + all reactions for counts
+    let likesMap = new Map<string, string>();
+    let savedSet = new Set<string>();
+    let reactionCountsMap = new Map<string, ReactionCounts>();
+
+    // Fetch all reactions for these posts to calculate counts
+    const { data: allReactions } = await supabase
+      .from('post_likes')
+      .select('post_id, reaction_type')
+      .in('post_id', postIds);
+
+    // Calculate reaction counts per post (normalize legacy types into African set)
+    allReactions?.forEach(reaction => {
+      const postId = reaction.post_id;
+      if (!reactionCountsMap.has(postId)) {
+        reactionCountsMap.set(postId, createEmptyReactionCounts());
+      }
+      const counts = reactionCountsMap.get(postId)!;
+      const africanType = normalizeReactionType(reaction.reaction_type);
+      if (africanType) {
+        counts[africanType]++;
+      }
+    });
+
+    // Fetch topics for all posts
+    const { data: postTopicsData } = await supabase
+      .from('post_topics')
+      .select('post_id, topic_id')
+      .in('post_id', postIds);
+
+    // Get unique topic IDs and fetch topic details
+    const topicIds = [...new Set(postTopicsData?.map(pt => pt.topic_id) || [])];
+    let topicsMap = new Map<string, PostTopic>();
+    
+    if (topicIds.length > 0) {
+      const { data: topicsData } = await supabase
+        .from('discover_topics')
+        .select('id, name, slug')
+        .in('id', topicIds);
+      
+      topicsData?.forEach(t => {
+        topicsMap.set(t.id, { id: t.id, name: t.name, slug: t.slug });
+      });
+    }
+
+    // Build post-to-topics map
+    const postTopicsMap = new Map<string, PostTopic[]>();
+    postTopicsData?.forEach(pt => {
+      const topic = topicsMap.get(pt.topic_id);
+      if (topic) {
+        const existing = postTopicsMap.get(pt.post_id) || [];
+        existing.push(topic);
+        postTopicsMap.set(pt.post_id, existing);
+      }
+    });
+
+    if (user) {
+      const [likesResult, savedResult] = await Promise.all([
+        supabase
+          .from('post_likes')
+          .select('post_id, reaction_type')
+          .in('post_id', postIds)
+          .eq('user_id', user.id),
+        supabase
+          .from('saved_posts')
+          .select('post_id')
+          .in('post_id', postIds)
+          .eq('user_id', user.id)
+      ]);
+
+      likesResult.data?.forEach(l => {
+        const normalized = normalizeReactionType(l.reaction_type);
+        if (normalized) likesMap.set(l.post_id, normalized);
+      });
+      savedResult.data?.forEach(s => savedSet.add(s.post_id));
+    }
+
+    return posts.map(post => ({
+      ...post,
+      type: post.type as 'text' | 'photo' | 'video' | 'link',
+      privacy: post.privacy as 'everyone' | 'contacts' | 'close_friends' | 'only_me',
+      media_urls: post.media_urls || [],
+      user: profileMap.get(post.user_id) || { id: post.user_id, display_name: 'Unknown', avatar_url: null, username: '' },
+      is_liked: likesMap.has(post.id),
+      my_reaction: likesMap.get(post.id) || null,
+      is_saved: savedSet.has(post.id),
+      reaction_counts: reactionCountsMap.get(post.id) || createEmptyReactionCounts(),
+      topics: postTopicsMap.get(post.id) || [],
+    }));
+  };
+
+  // Fetch feed posts (contacts' visible posts + all public posts, merged & deduped)
+  const fetchFeedPosts = useCallback(async () => {
+    if (!user) return;
+
+    const { data: contacts } = await supabase
+      .from('contacts')
+      .select('contact_user_id')
+      .eq('user_id', user.id);
+
+    const contactIds = contacts?.map(c => c.contact_user_id) || [];
+    contactIds.push(user.id); // Include own posts
+
+    // Fetch contacts' posts AND public posts in parallel
+    const [contactsResult, publicResult] = await Promise.all([
+      supabase
+        .from('posts')
+        .select('*')
+        .in('user_id', contactIds)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('posts')
+        .select('*')
+        .eq('privacy', 'everyone')
+        .order('created_at', { ascending: false })
+        .limit(50),
+    ]);
+
+    // Merge and deduplicate by id, then sort by created_at desc
+    const seenIds = new Set<string>();
+    const merged: any[] = [];
+    for (const post of [...(contactsResult.data || []), ...(publicResult.data || [])]) {
+      if (!seenIds.has(post.id)) {
+        seenIds.add(post.id);
+        merged.push(post);
+      }
+    }
+    merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const limited = merged.slice(0, 50);
+
+    if (limited.length > 0) {
+      const postsWithUsers = await fetchPostsWithDetails(limited);
+      setFeedPosts(postsWithUsers);
+    } else {
+      setFeedPosts([]);
+    }
+    setLoading(false);
+  }, [user]);
+
+  // Fetch discover posts (public posts)
+  const fetchDiscoverPosts = useCallback(async () => {
+    const { data: posts } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('privacy', 'everyone')
+      .order('likes_count', { ascending: false })
+      .limit(50);
+
+    if (posts) {
+      const postsWithUsers = await fetchPostsWithDetails(posts);
+      setDiscoverPosts(postsWithUsers);
+    }
+  }, [user]);
+
+  // Fetch topics
+  const fetchTopics = useCallback(async () => {
+    const { data } = await supabase
+      .from('discover_topics')
+      .select('*')
+      .order('is_trending', { ascending: false })
+      .order('post_count', { ascending: false });
+
+    if (data) {
+      setTopics(data as Topic[]);
+    }
+  }, []);
+
+  // Create post
+  const createPost = useCallback(async (
+    type: 'text' | 'photo' | 'video' | 'link',
+    options: {
+      content?: string;
+      mediaFiles?: File[];
+      location?: string;
+      privacy?: 'everyone' | 'contacts' | 'close_friends' | 'only_me';
+    }
+  ) => {
+    if (!user) return null;
+
+    let mediaUrls: string[] = [];
+
+    if (options.mediaFiles?.length) {
+      for (const file of options.mediaFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+
+        console.log('[createPost] Uploading file:', file.name, 'size:', file.size, 'type:', file.type);
+
+        const { error: uploadError } = await supabase.storage
+          .from('media')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('[createPost] Upload error:', uploadError.message, uploadError);
+          throw new Error(`Falha ao enviar ficheiro: ${uploadError.message}`);
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('media')
+            .getPublicUrl(fileName);
+          console.log('[createPost] Upload success, URL:', publicUrl);
+          mediaUrls.push(publicUrl);
+        }
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('posts')
+      .insert({
+        user_id: user.id,
+        type,
+        content: options.content,
+        media_urls: mediaUrls,
+        location: options.location,
+        privacy: options.privacy || 'contacts',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Create post error:', error);
+      return null;
+    }
+
+    await fetchFeedPosts();
+    return data;
+  }, [user, fetchFeedPosts]);
+
+  // Delete post
+  const deletePost = useCallback(async (postId: string) => {
+    if (!user) return;
+
+    await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId)
+      .eq('user_id', user.id);
+
+    await fetchFeedPosts();
+  }, [user, fetchFeedPosts]);
+
+  // Like/unlike post
+  const toggleLike = useCallback(async (postId: string, reactionType: string = 'sankofa') => {
+    if (!user) return;
+
+    const normalizedIncoming = normalizeReactionType(reactionType) || reactionType;
+
+    const { data: existing } = await supabase
+      .from('post_likes')
+      .select('id, reaction_type')
+      .eq('post_id', postId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const existingNormalized = existing ? (normalizeReactionType(existing.reaction_type) || existing.reaction_type) : null;
+
+    // Helper to update reaction counts
+    const updateReactionCounts = (
+      counts: ReactionCounts,
+      oldType: string | null,
+      newType: string | null
+    ): ReactionCounts => {
+      const updated = { ...counts };
+      // Decrement old reaction
+      if (oldType && oldType in updated) {
+        updated[oldType as keyof ReactionCounts] = Math.max(0, updated[oldType as keyof ReactionCounts] - 1);
+      }
+      // Increment new reaction
+      if (newType && newType in updated) {
+        updated[newType as keyof ReactionCounts]++;
+      }
+      return updated;
+    };
+
+    if (existing) {
+      // If same reaction, remove it (toggle off)
+      if (existingNormalized === normalizedIncoming) {
+        await supabase
+          .from('post_likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+
+        // Update local state - removed reaction
+        setFeedPosts(prev => prev.map(p =>
+          p.id === postId
+            ? {
+                ...p,
+                is_liked: false,
+                my_reaction: null,
+                likes_count: Math.max(0, p.likes_count - 1),
+                reaction_counts: updateReactionCounts(p.reaction_counts, existingNormalized, null),
+              }
+            : p
+        ));
+        setDiscoverPosts(prev => prev.map(p =>
+          p.id === postId
+            ? {
+                ...p,
+                is_liked: false,
+                my_reaction: null,
+                likes_count: Math.max(0, p.likes_count - 1),
+                reaction_counts: updateReactionCounts(p.reaction_counts, existingNormalized, null),
+              }
+            : p
+        ));
+      } else {
+        // Different reaction, update it
+        await supabase
+          .from('post_likes')
+          .update({ reaction_type: normalizedIncoming })
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+
+        // Update local state - changed reaction (decrement old, increment new)
+        setFeedPosts(prev => prev.map(p =>
+          p.id === postId
+            ? {
+                ...p,
+                is_liked: true,
+                my_reaction: normalizedIncoming,
+                reaction_counts: updateReactionCounts(p.reaction_counts, existingNormalized, normalizedIncoming),
+              }
+            : p
+        ));
+        setDiscoverPosts(prev => prev.map(p =>
+          p.id === postId
+            ? {
+                ...p,
+                is_liked: true,
+                my_reaction: normalizedIncoming,
+                reaction_counts: updateReactionCounts(p.reaction_counts, existingNormalized, normalizedIncoming),
+              }
+            : p
+        ));
+      }
+    } else {
+      // No existing like, insert new one
+      await supabase
+        .from('post_likes')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          reaction_type: normalizedIncoming,
+        });
+
+      // Update local state - new reaction
+      setFeedPosts(prev => prev.map(p =>
+        p.id === postId
+          ? {
+              ...p,
+              is_liked: true,
+              my_reaction: normalizedIncoming,
+              likes_count: p.likes_count + 1,
+              reaction_counts: updateReactionCounts(p.reaction_counts, null, normalizedIncoming),
+            }
+          : p
+      ));
+      setDiscoverPosts(prev => prev.map(p =>
+        p.id === postId
+          ? {
+              ...p,
+              is_liked: true,
+              my_reaction: normalizedIncoming,
+              likes_count: p.likes_count + 1,
+              reaction_counts: updateReactionCounts(p.reaction_counts, null, normalizedIncoming),
+            }
+          : p
+      ));
+    }
+  }, [user]);
+
+  // Save/unsave post (optimistic update first, then DB)
+  const toggleSave = useCallback(async (postId: string) => {
+    if (!user) return;
+
+    // Optimistic: flip is_saved immediately so UI reacts instantly
+    const flipSaved = (posts: PostWithUser[]) =>
+      posts.map(p => p.id === postId ? { ...p, is_saved: !p.is_saved } : p);
+    setFeedPosts(flipSaved);
+    setDiscoverPosts(flipSaved);
+
+    try {
+      const { data: existing } = await supabase
+        .from('saved_posts')
+        .select('id')
+        .eq('post_id', postId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('saved_posts')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('saved_posts')
+          .insert({ post_id: postId, user_id: user.id });
+        if (error) throw error;
+      }
+    } catch (err) {
+      console.error('toggleSave error:', err);
+      // Revert on failure
+      setFeedPosts(flipSaved);
+      setDiscoverPosts(flipSaved);
+    }
+  }, [user]);
+
+  // Get comments for a post
+  const getComments = useCallback(async (postId: string): Promise<Comment[]> => {
+    const { data } = await supabase
+      .from('post_comments')
+      .select('*')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (!data || data.length === 0) return [];
+
+    const commentIds = data.map(c => c.id);
+
+    // Batch fetch all user profiles and reactions
+    const userIds = [...new Set(data.map(c => c.user_id))];
+    const [profilesResult, reactionsResult, myReactionsResult] = await Promise.all([
+      (supabase as any)
+        .from('public_profiles')
+        .select('id, display_name, avatar_url, username')
+        .in('id', userIds),
+      supabase
+        .from('comment_reactions')
+        .select('comment_id, reaction_type')
+        .in('comment_id', commentIds),
+      user ? supabase
+        .from('comment_reactions')
+        .select('comment_id, reaction_type')
+        .in('comment_id', commentIds)
+        .eq('user_id', user.id) : Promise.resolve({ data: [] }),
+    ]);
+
+    const profileMap = new Map(profilesResult.data?.map(p => [p.id, p]) || []);
+    
+    // Build reactions map per comment
+    const reactionsMap = new Map<string, { [type: string]: number }>();
+    reactionsResult.data?.forEach(r => {
+      const existing = reactionsMap.get(r.comment_id) || {};
+      existing[r.reaction_type] = (existing[r.reaction_type] || 0) + 1;
+      reactionsMap.set(r.comment_id, existing);
+    });
+
+    // Build my reactions map
+    const myReactionsMap = new Map<string, string>();
+    myReactionsResult.data?.forEach(r => {
+      myReactionsMap.set(r.comment_id, r.reaction_type);
+    });
+
+    const commentsWithUsers = data.map(comment => ({
+      ...comment,
+      user: profileMap.get(comment.user_id) || { 
+        id: comment.user_id, 
+        display_name: 'Unknown', 
+        avatar_url: null, 
+        username: '' 
+      },
+      reactions: reactionsMap.get(comment.id) || {},
+      my_reaction: myReactionsMap.get(comment.id) || null,
+    } as Comment));
+
+    // Organize into threads
+    const topLevel = commentsWithUsers.filter(c => !c.parent_comment_id);
+    const replies = commentsWithUsers.filter(c => c.parent_comment_id);
+
+    return topLevel.map(comment => ({
+      ...comment,
+      replies: replies.filter(r => r.parent_comment_id === comment.id),
+    }));
+  }, [user]);
+
+  // Add comment
+  const addComment = useCallback(async (postId: string, content: string, parentCommentId?: string) => {
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('post_comments')
+      .insert({
+        post_id: postId,
+        user_id: user.id,
+        content,
+        parent_comment_id: parentCommentId,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Add comment error:', error);
+      return null;
+    }
+
+    // Update local comment count
+    const updateCount = (posts: PostWithUser[]) =>
+      posts.map(p => p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p);
+
+    setFeedPosts(updateCount);
+    setDiscoverPosts(updateCount);
+
+    return data;
+  }, [user]);
+
+  // Delete comment
+  const deleteComment = useCallback(async (commentId: string, postId: string) => {
+    if (!user) return;
+
+    await supabase
+      .from('post_comments')
+      .delete()
+      .eq('id', commentId)
+      .eq('user_id', user.id);
+
+    // Update local comment count
+    const updateCount = (posts: PostWithUser[]) =>
+      posts.map(p => p.id === postId ? { ...p, comments_count: Math.max(0, p.comments_count - 1) } : p);
+
+    setFeedPosts(updateCount);
+    setDiscoverPosts(updateCount);
+  }, [user]);
+
+  // Toggle comment reaction
+  const toggleCommentReaction = useCallback(async (commentId: string, reactionType: string) => {
+    if (!user) return { action: 'none' as const, reactionType: null };
+
+    const { data: existing } = await supabase
+      .from('comment_reactions')
+      .select('id, reaction_type')
+      .eq('comment_id', commentId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.reaction_type === reactionType) {
+        // Remove reaction
+        await supabase
+          .from('comment_reactions')
+          .delete()
+          .eq('comment_id', commentId)
+          .eq('user_id', user.id);
+        return { action: 'removed' as const, reactionType: null, previousType: existing.reaction_type };
+      } else {
+        // Update reaction
+        await supabase
+          .from('comment_reactions')
+          .update({ reaction_type: reactionType })
+          .eq('comment_id', commentId)
+          .eq('user_id', user.id);
+        return { action: 'updated' as const, reactionType, previousType: existing.reaction_type };
+      }
+    } else {
+      // Add new reaction
+      await supabase
+        .from('comment_reactions')
+        .insert({
+          comment_id: commentId,
+          user_id: user.id,
+          reaction_type: reactionType,
+        });
+      return { action: 'added' as const, reactionType };
+    }
+  }, [user]);
+
+  // Update post
+  const updatePost = useCallback(async (
+    postId: string,
+    updates: { content?: string; location?: string; privacy?: 'everyone' | 'contacts' | 'close_friends' | 'only_me' }
+  ) => {
+    if (!user) return null;
+
+    // Only include defined fields to avoid nullifying existing values
+    const payload: Record<string, unknown> = {};
+    if (updates.content !== undefined) payload.content = updates.content;
+    if (updates.location !== undefined) payload.location = updates.location;
+    if (updates.privacy !== undefined) payload.privacy = updates.privacy;
+
+    const { data, error } = await supabase
+      .from('posts')
+      .update(payload)
+      .eq('id', postId)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Update post error:', error);
+      return null;
+    }
+
+    // Update local state
+    const updateLocal = (posts: PostWithUser[]) =>
+      posts.map(p => p.id === postId ? { ...p, ...updates } : p);
+    setFeedPosts(updateLocal);
+    setDiscoverPosts(updateLocal);
+
+    return data;
+  }, [user]);
+
+  // Share post
+  const sharePost = useCallback(async (postId: string, shareType: 'repost' | 'quote' | 'message', quoteContent?: string) => {
+    if (!user) return;
+
+    await supabase
+      .from('post_shares')
+      .insert({
+        post_id: postId,
+        user_id: user.id,
+        share_type: shareType,
+        quote_content: quoteContent,
+      });
+  }, [user]);
+
+  // Get user posts
+  const getUserPosts = useCallback(async (userId: string): Promise<PostWithUser[]> => {
+    const { data: posts } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (!posts) return [];
+
+    return fetchPostsWithDetails(posts);
+  }, [user]);
+
+  // Get saved posts
+  const getSavedPosts = useCallback(async (): Promise<PostWithUser[]> => {
+    if (!user) return [];
+
+    const { data: saved } = await supabase
+      .from('saved_posts')
+      .select('post_id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (!saved?.length) return [];
+
+    const { data: posts } = await supabase
+      .from('posts')
+      .select('*')
+      .in('id', saved.map(s => s.post_id));
+
+    if (!posts) return [];
+
+    return fetchPostsWithDetails(posts);
+  }, [user]);
+
+  // Get posts by topic
+  const getPostsByTopic = useCallback(async (topicId: string): Promise<PostWithUser[]> => {
+    // Fetch post IDs associated with this topic
+    const { data: postTopics } = await supabase
+      .from('post_topics')
+      .select('post_id')
+      .eq('topic_id', topicId);
+
+    if (!postTopics?.length) return [];
+
+    const postIds = postTopics.map(pt => pt.post_id);
+
+    const { data: posts } = await supabase
+      .from('posts')
+      .select('*')
+      .in('id', postIds)
+      .eq('privacy', 'everyone')
+      .order('likes_count', { ascending: false })
+      .limit(50);
+
+    if (!posts) return [];
+
+    return fetchPostsWithDetails(posts);
+  }, [user]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchFeedPosts();
+    fetchDiscoverPosts();
+    fetchTopics();
+  }, [fetchFeedPosts, fetchDiscoverPosts, fetchTopics]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('posts-updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts' },
+        () => {
+          fetchFeedPosts();
+          fetchDiscoverPosts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchFeedPosts, fetchDiscoverPosts]);
+
+  return {
+    feedPosts,
+    discoverPosts,
+    topics,
+    loading,
+    createPost,
+    updatePost,
+    deletePost,
+    toggleLike,
+    toggleSave,
+    getComments,
+    addComment,
+    deleteComment,
+    toggleCommentReaction,
+    sharePost,
+    getUserPosts,
+    getSavedPosts,
+    getPostsByTopic,
+    fetchFeedPosts,
+    fetchDiscoverPosts,
+  };
+}

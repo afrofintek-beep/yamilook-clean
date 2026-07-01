@@ -1,0 +1,124 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, ShieldAlert, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { pt } from 'date-fns/locale';
+
+type PayoutFilter = 'all' | 'pending' | 'approved' | 'processed' | 'rejected';
+
+const BADGE_VARIANT: Record<string, 'default' | 'secondary' | 'destructive'> = {
+  pending: 'secondary',
+  approved: 'default',
+  processed: 'default',
+  rejected: 'destructive',
+};
+
+export default function AdminPayouts() {
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState<PayoutFilter>('pending');
+  const [payouts, setPayouts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState<string | null>(null);
+
+  const fetchPayouts = useCallback(async () => {
+    let q = supabase
+      .from('payout_requests')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (filter !== 'all') q = q.eq('status', filter);
+    const { data } = await q;
+    setPayouts(data ?? []);
+    setLoading(false);
+  }, [filter]);
+
+  useEffect(() => { setLoading(true); fetchPayouts(); }, [fetchPayouts]);
+
+  const updateStatus = async (id: string, status: string) => {
+    setActing(id);
+    const updates: Record<string, any> = { status };
+    if (status === 'processed' || status === 'rejected') {
+      updates.processed_at = new Date().toISOString();
+    }
+    const { error } = await supabase.from('payout_requests').update(updates).eq('id', id);
+    if (error) toast.error(error.message);
+    else { toast.success(`Payout ${status}.`); fetchPayouts(); }
+    setActing(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b px-4 py-3 flex items-center gap-3 safe-top">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-lg font-semibold">Payouts — Admin</h1>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
+        <Alert>
+          <ShieldAlert className="h-4 w-4" />
+          <AlertDescription className="text-sm">Admin only — acesso verificado por role.</AlertDescription>
+        </Alert>
+
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as PayoutFilter)}>
+          <TabsList className="w-full">
+            <TabsTrigger value="pending" className="flex-1 text-xs">Pendentes</TabsTrigger>
+            <TabsTrigger value="approved" className="flex-1 text-xs">Aprovados</TabsTrigger>
+            <TabsTrigger value="processed" className="flex-1 text-xs">Pagos</TabsTrigger>
+            <TabsTrigger value="all" className="flex-1 text-xs">Todos</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {loading && <p className="text-sm text-muted-foreground text-center py-8">A carregar…</p>}
+
+        {!loading && payouts.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">Sem pedidos.</p>
+        )}
+
+        <ul className="space-y-3">
+          {payouts.map((p) => {
+            const st = BADGE_VARIANT[p.status] ?? 'secondary';
+            return (
+              <li key={p.id} className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{p.amount_kumbu} Kumbu</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {format(new Date(p.created_at), "d MMM yyyy · HH:mm", { locale: pt })}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">User: {p.user_id}</p>
+                  </div>
+                  <Badge variant={st} className="text-xs shrink-0">{p.status}</Badge>
+                </div>
+
+                {p.status === 'pending' && (
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" className="h-8 text-xs flex-1" disabled={acting === p.id} onClick={() => updateStatus(p.id, 'approved')}>
+                      {acting === p.id && <Loader2 className="h-3 w-3 animate-spin" />} Aprovar
+                    </Button>
+                    <Button size="sm" variant="destructive" className="h-8 text-xs flex-1" disabled={acting === p.id} onClick={() => updateStatus(p.id, 'rejected')}>
+                      Rejeitar
+                    </Button>
+                  </div>
+                )}
+
+                {p.status === 'approved' && (
+                  <Button size="sm" className="h-8 text-xs" disabled={acting === p.id} onClick={() => updateStatus(p.id, 'processed')}>
+                    {acting === p.id && <Loader2 className="h-3 w-3 animate-spin" />} Marcar como Pago
+                  </Button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </main>
+    </div>
+  );
+}

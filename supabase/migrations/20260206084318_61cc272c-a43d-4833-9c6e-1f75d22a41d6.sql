@@ -1,0 +1,1 @@
+ALTER TABLE public.rodas ADD COLUMN description TEXT;
