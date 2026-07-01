@@ -77,6 +77,10 @@ export function useConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  // Unique per hook instance so concurrent mounts don't collide on the same
+  // Supabase realtime channel topic (which throws "cannot add postgres_changes
+  // callbacks ... after subscribe()").
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
 
   const fetchConversations = useCallback(async () => {
     if (!user) return;
@@ -217,7 +221,7 @@ export function useConversations() {
 
     if (user) {
       channelRef.current = supabase
-        .channel('conversations-updates')
+        .channel(`conversations-updates-${instanceIdRef.current}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
           fetchConversations();
         })
@@ -291,6 +295,9 @@ export function useMessages(conversationId: string | null) {
   const [loading, setLoading] = useState(true);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  // Unique per hook instance to avoid realtime channel-topic collisions when
+  // multiple components subscribe to the same conversation concurrently.
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
   const typingChannelReadyRef = useRef(false);
   const typingPendingRef = useRef(false); // queued typing event to send on reconnect
@@ -453,7 +460,7 @@ export function useMessages(conversationId: string | null) {
 
     if (conversationId && user) {
       channelRef.current = supabase
-        .channel(`messages-${conversationId}`)
+        .channel(`messages-${conversationId}-${instanceIdRef.current}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
