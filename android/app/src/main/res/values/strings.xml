@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Yamilook</string>
+    <string name="title_activity_main">Yamilook</string>
+    <string name="package_name">com.yamilook.app</string>
+    <string name="custom_url_scheme">com.yamilook.app</string>
+</resources>
