@@ -2,6 +2,7 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { logger } from '@/lib/logger';
 
 // IMPORTANT: These must match the backend DB check constraint on public.call_signals.signal_type
 export type SignalType =
@@ -101,7 +102,7 @@ export function useWebRTCSignaling({
     if (signal.id) markProcessed(signal.id);
 
     const normalizedType = normalizeType(signal.signal_type);
-    console.log('[Signaling] Processing:', signal.signal_type, 'from:', signal.from_user_id?.substring(0, 8));
+    logger.debug('Processing signal', 'Signaling', { signalType: signal.signal_type, from: signal.from_user_id?.substring(0, 8) });
 
     const handlers = handlersRef.current;
 
@@ -126,10 +127,10 @@ export function useWebRTCSignaling({
           handlers.onEvent({ type: 'ended' }, signal.from_user_id);
           break;
         default:
-          console.warn('[Signaling] Unknown signal type:', signal.signal_type);
+          logger.warn('Unknown signal type', 'Signaling', signal.signal_type);
       }
     } catch (err) {
-      console.error('[Signaling] Error processing signal:', err);
+      logger.error('Error processing signal', 'Signaling', err);
     }
   }, [markProcessed]);
 
@@ -152,7 +153,7 @@ export function useWebRTCSignaling({
     const { data, error } = await query;
 
     if (error) {
-      console.error('[Signaling] Error fetching pending signals:', error);
+      logger.error('Error fetching pending signals', 'Signaling', error);
       return;
     }
 
@@ -207,12 +208,12 @@ export function useWebRTCSignaling({
         }
       )
       .subscribe((status, err) => {
-        console.log('[Signaling] Subscription status:', status, err ? 'Error:' + err : '');
+        logger.debug('Subscription status', 'Signaling', { status, error: err ? String(err) : undefined });
         if (status === 'SUBSCRIBED') {
           setIsSubscribed(true);
           fetchPendingSignals();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('[Signaling] Subscription error:', status, err);
+          logger.error('Subscription error', 'Signaling', { status, err });
           setIsSubscribed(false);
         }
       });
@@ -243,7 +244,7 @@ export function useWebRTCSignaling({
       });
 
       if (error) {
-        console.error('[Signaling] Error sending signal:', error);
+        logger.error('Error sending signal', 'Signaling', error);
         return false;
       }
       return true;

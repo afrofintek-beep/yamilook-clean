@@ -4,6 +4,7 @@
  */
 import { useState, useRef, useCallback } from 'react';
 import { CallSettings } from './types';
+import { logger } from '@/lib/logger';
 
 export interface UseMediaCaptureReturn {
   localStream: MediaStream | null;
@@ -40,7 +41,7 @@ export function useMediaCapture(): UseMediaCaptureReturn {
    * Get user media (camera/microphone)
    */
   const getUserMedia = useCallback(async (settings: CallSettings): Promise<MediaStream> => {
-    console.log('[MediaCapture] Getting user media:', settings);
+    logger.debug('Getting user media', 'MediaCapture', settings);
 
     const audioConstraints: MediaTrackConstraints = {
       echoCancellation: settings.echoCancellation,
@@ -63,7 +64,7 @@ export function useMediaCapture(): UseMediaCaptureReturn {
       const hasVideo = stream.getVideoTracks().length > 0;
       setIsVideoEnabled(hasVideo);
       setIsMuted(!settings.audioEnabled);
-      console.log('[MediaCapture] Got local stream:', stream.getTracks().map((t) => `${t.kind}:${t.enabled}`));
+      logger.debug('Got local stream', 'MediaCapture', stream.getTracks().map((t) => `${t.kind}:${t.enabled}`));
       return stream;
     };
 
@@ -74,18 +75,18 @@ export function useMediaCapture(): UseMediaCaptureReturn {
         audio: settings.audioEnabled ? audioConstraints : false,
       });
     } catch (err1) {
-      console.warn('[MediaCapture] First getUserMedia attempt failed:', err1);
+      logger.warn('First getUserMedia attempt failed', 'MediaCapture', err1);
 
       // Attempt 2: if video was requested, fall back to audio-only
       if (settings.videoEnabled) {
-        console.warn('[MediaCapture] Retrying with audio-only fallback...');
+        logger.warn('Retrying with audio-only fallback...', 'MediaCapture');
         try {
           return await tryGetStream({
             video: false,
             audio: settings.audioEnabled ? audioConstraints : false,
           });
         } catch (err2) {
-          console.warn('[MediaCapture] Audio-only fallback also failed, trying bare audio...');
+          logger.warn('Audio-only fallback also failed, trying bare audio...', 'MediaCapture', err2);
         }
       }
 
@@ -93,7 +94,7 @@ export function useMediaCapture(): UseMediaCaptureReturn {
       try {
         return await tryGetStream({ video: false, audio: true });
       } catch (err3) {
-        console.error('[MediaCapture] All getUserMedia attempts failed:', err3);
+        logger.error('All getUserMedia attempts failed', 'MediaCapture', err3);
         throw err3;
       }
     }
@@ -103,10 +104,10 @@ export function useMediaCapture(): UseMediaCaptureReturn {
    * Toggle audio mute
    */
   const toggleMute = useCallback(() => {
-    console.log('[MediaCapture] toggleMute called, localStream exists:', !!localStreamRef.current);
+    logger.debug('toggleMute called', 'MediaCapture', { localStreamExists: !!localStreamRef.current });
 
     if (!localStreamRef.current) {
-      console.warn('[MediaCapture] No local stream available for mute toggle');
+      logger.warn('No local stream available for mute toggle', 'MediaCapture');
       setIsMuted(prev => !prev);
       return;
     }
@@ -115,10 +116,10 @@ export function useMediaCapture(): UseMediaCaptureReturn {
     if (audioTrack) {
       audioTrack.enabled = !audioTrack.enabled;
       const newMuted = !audioTrack.enabled;
-      console.log('[MediaCapture] Toggled mute:', newMuted);
+      logger.debug('Toggled mute', 'MediaCapture', newMuted);
       setIsMuted(newMuted);
     } else {
-      console.warn('[MediaCapture] No audio track found in local stream');
+      logger.warn('No audio track found in local stream', 'MediaCapture');
     }
   }, []);
 
@@ -126,10 +127,10 @@ export function useMediaCapture(): UseMediaCaptureReturn {
    * Toggle video on/off
    */
   const toggleVideo = useCallback(() => {
-    console.log('[MediaCapture] toggleVideo called, localStream exists:', !!localStreamRef.current);
+    logger.debug('toggleVideo called', 'MediaCapture', { localStreamExists: !!localStreamRef.current });
 
     if (!localStreamRef.current) {
-      console.warn('[MediaCapture] No local stream available for video toggle');
+      logger.warn('No local stream available for video toggle', 'MediaCapture');
       setIsVideoEnabled(prev => !prev);
       return;
     }
@@ -138,10 +139,10 @@ export function useMediaCapture(): UseMediaCaptureReturn {
     if (videoTrack) {
       videoTrack.enabled = !videoTrack.enabled;
       const newEnabled = videoTrack.enabled;
-      console.log('[MediaCapture] Toggled video:', newEnabled);
+      logger.debug('Toggled video', 'MediaCapture', newEnabled);
       setIsVideoEnabled(newEnabled);
     } else {
-      console.warn('[MediaCapture] No video track found in local stream');
+      logger.warn('No video track found in local stream', 'MediaCapture');
     }
   }, []);
 
@@ -174,7 +175,7 @@ export function useMediaCapture(): UseMediaCaptureReturn {
           setIsScreenSharing(false);
         };
       } catch (error) {
-        console.error('[MediaCapture] Error starting screen share:', error);
+        logger.error('Error starting screen share', 'MediaCapture', error);
       }
     }
   }, [isScreenSharing]);
@@ -207,7 +208,7 @@ export function useMediaCapture(): UseMediaCaptureReturn {
       // Trigger re-render
       setLocalStream(localStreamRef.current);
     } catch (error) {
-      console.error('[MediaCapture] Error flipping camera:', error);
+      logger.error('Error flipping camera', 'MediaCapture', error);
     }
   }, []);
 
@@ -215,7 +216,7 @@ export function useMediaCapture(): UseMediaCaptureReturn {
    * Stop all media tracks
    */
   const stopAllMedia = useCallback(() => {
-    console.log('[MediaCapture] Stopping all media');
+    logger.debug('Stopping all media', 'MediaCapture');
     localStreamRef.current?.getTracks().forEach(track => track.stop());
     screenStreamRef.current?.getTracks().forEach(track => track.stop());
     localStreamRef.current = null;

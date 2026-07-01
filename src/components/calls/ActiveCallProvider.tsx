@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useWebRTC, CallState } from '@/hooks/useWebRTC';
 import { useCalls } from '@/hooks/useCalls';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 
 // Lazy load the heavy IncomingCallOverlay component
 const IncomingCallOverlay = lazy(() => import('./IncomingCallOverlay').then(m => ({ default: m.IncomingCallOverlay })));
@@ -108,7 +109,7 @@ export function ActiveCallProvider({ children }: ActiveCallProviderProps) {
   } = webRTC;
 
   const startCall = useCallback(async (contactId: string, type: 'voice' | 'video', conversationId?: string) => {
-    console.log('[ActiveCallProvider] Starting call to:', contactId, 'type:', type);
+    logger.debug('Starting call', 'ActiveCallProvider', { contactId, type });
 
     // Preflight checks to avoid "nothing happens" when the browser blocks media APIs.
     if (!window.isSecureContext) {
@@ -138,7 +139,7 @@ export function ActiveCallProvider({ children }: ActiveCallProviderProps) {
       navigate(`/call/${callId}`);
     } catch (err) {
       const message = formatCallError(err);
-      console.error('[ActiveCallProvider] Failed to start call:', err);
+      logger.error('Failed to start call', 'ActiveCallProvider', err);
       toast({
         title: 'Não foi possível iniciar a chamada',
         description: message,
@@ -166,7 +167,7 @@ export function ActiveCallProvider({ children }: ActiveCallProviderProps) {
       setIsInCall(true);
     } catch (err) {
       const message = formatCallError(err);
-      console.error('[ActiveCallProvider] Failed to join call:', err);
+      logger.error('Failed to join call', 'ActiveCallProvider', err);
       toast({
         title: 'Não foi possível entrar na chamada',
         description: message,
@@ -176,7 +177,7 @@ export function ActiveCallProvider({ children }: ActiveCallProviderProps) {
   }, [answerCall, currentCallId, isInCall, toast]);
 
   const endCurrentCall = useCallback(() => {
-    console.log('[ActiveCallProvider] Ending current call');
+    logger.debug('Ending current call', 'ActiveCallProvider');
     endCall();
     setCurrentCallId(null);
     setIsInCall(false);
@@ -184,7 +185,7 @@ export function ActiveCallProvider({ children }: ActiveCallProviderProps) {
 
   const handleAnswerCall = useCallback(async () => {
     if (incomingCall) {
-      console.log('[ActiveCallProvider] Answering incoming call:', incomingCall.id);
+      logger.debug('Answering incoming call', 'ActiveCallProvider', incomingCall.id);
       // Synchronous gesture unlock BEFORE any async work (iOS Safari)
       markUserInteracted();
       try {
@@ -208,7 +209,7 @@ export function ActiveCallProvider({ children }: ActiveCallProviderProps) {
 
   const handleDeclineCall = useCallback(async () => {
     if (incomingCall) {
-      console.log('[ActiveCallProvider] Declining incoming call:', incomingCall.id);
+      logger.debug('Declining incoming call', 'ActiveCallProvider', incomingCall.id);
       await declineCall(incomingCall.id, incomingCall.initiator_id);
       setIncomingCall(null);
     }

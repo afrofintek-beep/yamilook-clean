@@ -6,6 +6,7 @@ import { useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../useAuth';
 import { getWebRTCConfig } from './types';
+import { logger } from '@/lib/logger';
 
 export interface UseCallLifecycleOptions {
   onCallStarted: (callId: string) => void;
@@ -56,8 +57,8 @@ export function useCallLifecycle(options: UseCallLifecycleOptions): UseCallLifec
     callType: 'voice' | 'video',
     conversationId?: string
   ): Promise<string> => {
-    console.log('[CallLifecycle] Creating call in database...');
-    
+    logger.debug('Creating call in database...', 'CallLifecycle');
+
     const { data: callId, error } = await supabase.rpc('create_call', {
       p_callee_id: targetUserId,
       p_call_type: callType,
@@ -65,15 +66,15 @@ export function useCallLifecycle(options: UseCallLifecycleOptions): UseCallLifec
     });
 
     if (error) {
-      console.error('[CallLifecycle] Error creating call:', error);
+      logger.error('Error creating call', 'CallLifecycle', error);
       throw error;
     }
-    
+
     if (!callId) {
       throw new Error('Failed to create call');
     }
 
-    console.log('[CallLifecycle] Call created:', callId);
+    logger.debug('Call created', 'CallLifecycle', callId);
     return callId;
   }, []);
 
@@ -136,10 +137,10 @@ export function useCallLifecycle(options: UseCallLifecycleOptions): UseCallLifec
       clearTimeout(ringTimeoutRef.current);
     }
 
-    console.log('[CallLifecycle] Setting ring timeout:', config.ringTimeoutMs, 'ms');
-    
+    logger.debug('Setting ring timeout (ms)', 'CallLifecycle', config.ringTimeoutMs);
+
     ringTimeoutRef.current = setTimeout(async () => {
-      console.log('[CallLifecycle] ⏰ Ring timeout - no answer received');
+      logger.debug('⏰ Ring timeout - no answer received', 'CallLifecycle');
       
       await supabase
         .from('calls')
@@ -164,7 +165,7 @@ export function useCallLifecycle(options: UseCallLifecycleOptions): UseCallLifec
     if (ringTimeoutRef.current) {
       clearTimeout(ringTimeoutRef.current);
       ringTimeoutRef.current = null;
-      console.log('[CallLifecycle] Cleared ring timeout');
+      logger.debug('Cleared ring timeout', 'CallLifecycle');
     }
   }, []);
 
@@ -172,7 +173,7 @@ export function useCallLifecycle(options: UseCallLifecycleOptions): UseCallLifec
    * End call in database with duration calculation
    */
   const endCallInDB = useCallback(async (callId: string, userId: string) => {
-    console.log('[CallLifecycle] Ending call in database:', callId);
+    logger.debug('Ending call in database', 'CallLifecycle', callId);
 
     // Calculate duration
     const { data: call } = await supabase
@@ -209,7 +210,7 @@ export function useCallLifecycle(options: UseCallLifecycleOptions): UseCallLifec
    * Decline call in database
    */
   const declineCallInDB = useCallback(async (callId: string, userId: string) => {
-    console.log('[CallLifecycle] Declining call in database:', callId);
+    logger.debug('Declining call in database', 'CallLifecycle', callId);
 
     await supabase
       .from('call_participants')

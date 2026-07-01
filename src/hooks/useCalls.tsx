@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useIncomingCallSignals } from './useIncomingCallSignals';
+import { logger } from '@/lib/logger';
 
 export interface Call {
   id: string;
@@ -101,11 +102,11 @@ export function useCalls() {
   handleIncomingOfferRef.current = async (offer) => {
     // If we already have an incoming call displayed, ignore new offers
     if (incomingCallRef.current) {
-      console.log('[useCalls] Already have incoming call, ignoring new offer');
+      logger.debug('Already have incoming call, ignoring new offer', 'useCalls');
       return;
     }
 
-    console.log('[useCalls] Received incoming offer for call:', offer.callId, 'from:', offer.callerId);
+    logger.debug('Received incoming offer for call', 'useCalls', { callId: offer.callId, callerId: offer.callerId });
 
     try {
       // Fetch the call details from the database
@@ -116,22 +117,22 @@ export function useCalls() {
         .maybeSingle();
 
       if (error) {
-        console.error('[useCalls] Error fetching call:', error);
+        logger.error('Error fetching call', 'useCalls', error);
         return;
       }
 
       if (!call) {
-        console.log('[useCalls] Call not found in database:', offer.callId);
+        logger.debug('Call not found in database', 'useCalls', offer.callId);
         return;
       }
 
       // Only show if call is still ringing
       if (call.status !== 'ringing' && call.status !== 'initiated') {
-        console.log('[useCalls] Call status is not ringing:', call.status);
+        logger.debug('Call status is not ringing', 'useCalls', call.status);
         return;
       }
 
-      console.log('[useCalls] Setting incoming call from WebRTC offer:', call.id);
+      logger.debug('Setting incoming call from WebRTC offer', 'useCalls', call.id);
       setIncomingCall({
         id: call.id,
         type: call.type as 'voice' | 'video',
@@ -149,7 +150,7 @@ export function useCalls() {
         created_at: call.created_at,
       });
     } catch (err) {
-      console.error('[useCalls] Error handling incoming offer:', err);
+      logger.error('Error handling incoming offer', 'useCalls', err);
     }
   };
 
@@ -259,7 +260,7 @@ export function useCalls() {
         setCallHistory(callsWithParticipants.filter(Boolean) as CallHistory[]);
       }
     } catch (error) {
-      console.error('Error fetching call history:', error);
+      logger.error('Error fetching call history', 'useCalls', error);
     } finally {
       setLoading(false);
     }
@@ -279,7 +280,7 @@ export function useCalls() {
         .order('scheduled_at', { ascending: true });
 
       if (organizerError) {
-        console.error('Error fetching organizer calls:', organizerError);
+        logger.error('Error fetching organizer calls', 'useCalls', organizerError);
       }
 
       // Fetch calls where user is invited
@@ -289,7 +290,7 @@ export function useCalls() {
         .eq('user_id', user.id);
 
       if (invitesError) {
-        console.error('Error fetching invites:', invitesError);
+        logger.error('Error fetching invites', 'useCalls', invitesError);
       }
 
       let invitedCalls: ScheduledCall[] = [];
@@ -319,7 +320,7 @@ export function useCalls() {
 
       setScheduledCalls(uniqueCalls);
     } catch (error) {
-      console.error('Error fetching scheduled calls:', error);
+      logger.error('Error fetching scheduled calls', 'useCalls', error);
     }
   }, [user]);
 
@@ -372,7 +373,7 @@ export function useCalls() {
       await fetchScheduledCalls();
       return call;
     } catch (error) {
-      console.error('Error scheduling call:', error);
+      logger.error('Error scheduling call', 'useCalls', error);
       return null;
     }
   }, [user, fetchScheduledCalls]);
@@ -457,8 +458,8 @@ export function useCalls() {
     if (!user) return;
     // Trigger cleanup once on mount (no need to await)
     supabase.rpc('cleanup_stuck_calls').then(({ data, error }) => {
-      if (error) console.warn('[useCalls] Cleanup error:', error.message);
-      else if (data > 0) console.log('[useCalls] Cleaned up', data, 'stuck calls');
+      if (error) logger.warn('Cleanup error', 'useCalls', error.message);
+      else if (data > 0) logger.debug('Cleaned up stuck calls', 'useCalls', data);
     });
   }, [user]);
 
@@ -475,7 +476,7 @@ export function useCalls() {
         .maybeSingle();
 
       if (!data || ['ended', 'declined', 'failed', 'cancelled'].includes(data.status)) {
-        console.log('[useCalls] Active incoming call is no longer ringing (status:', data?.status, ') - clearing');
+        logger.debug('Active incoming call is no longer ringing - clearing', 'useCalls', data?.status);
         setIncomingCall(null);
       }
     }, 2000);
@@ -493,9 +494,9 @@ export function useCalls() {
         },
         (payload) => {
           const newStatus = (payload.new as any)?.status;
-          console.log('[useCalls] Incoming call status changed:', newStatus);
+          logger.debug('Incoming call status changed', 'useCalls', newStatus);
           if (newStatus && ['ended', 'declined', 'failed', 'cancelled'].includes(newStatus)) {
-            console.log('[useCalls] Clearing incoming call - caller hung up');
+            logger.debug('Clearing incoming call - caller hung up', 'useCalls');
             setIncomingCall(null);
           }
         }
@@ -534,7 +535,7 @@ export function useCalls() {
           .maybeSingle();
 
         if (error) {
-          console.error('[useCalls] Error polling for ringing calls:', error);
+          logger.error('Error polling for ringing calls', 'useCalls', error);
           return;
         }
 
@@ -543,7 +544,7 @@ export function useCalls() {
         // Check if call is stale (older than timeout)
         const callAge = Date.now() - new Date(participant.created_at).getTime();
         if (callAge > CALL_TIMEOUT_MS) {
-          console.log('[useCalls] Ignoring stale ringing call:', participant.call_id, 'age:', Math.round(callAge / 1000), 's');
+          logger.debug('Ignoring stale ringing call', 'useCalls', { callId: participant.call_id, ageSeconds: Math.round(callAge / 1000) });
           // Mark participant as missed and call as ended
           await Promise.all([
             supabase
@@ -569,11 +570,11 @@ export function useCalls() {
           .maybeSingle();
         
         if (!callCheck || callCheck.status !== 'ringing') {
-          console.log('[useCalls] Call is no longer ringing, skipping:', participant.call_id);
+          logger.debug('Call is no longer ringing, skipping', 'useCalls', participant.call_id);
           return;
         }
 
-        console.log('[useCalls] Found ringing participant via poll:', participant.call_id);
+        logger.debug('Found ringing participant via poll', 'useCalls', participant.call_id);
 
         const { data: call } = await supabase
           .from('calls')
@@ -582,11 +583,11 @@ export function useCalls() {
           .single();
 
         if (call && call.status === 'ringing') {
-          console.log('[useCalls] Setting incoming call from poll:', call.id);
+          logger.debug('Setting incoming call from poll', 'useCalls', call.id);
           setIncomingCall(call as Call);
         }
       } catch (error) {
-        console.error('[useCalls] Error in checkForRingingCall:', error);
+        logger.error('Error in checkForRingingCall', 'useCalls', error);
       }
     };
 
@@ -608,12 +609,12 @@ export function useCalls() {
           filter: `user_id=eq.${user.id}`,
         },
         async (payload) => {
-          console.log('[useCalls] Realtime event:', payload.eventType, payload.new);
+          logger.debug('Realtime event', 'useCalls', { eventType: payload.eventType, new: payload.new });
           const participant = payload.new as CallParticipant;
-          
+
           // Handle new ringing status
           if (participant?.status === 'ringing') {
-            console.log('[useCalls] Realtime: participant ringing, call_id:', participant.call_id);
+            logger.debug('Realtime: participant ringing', 'useCalls', participant.call_id);
             
             const { data: call } = await supabase
               .from('calls')
@@ -622,14 +623,14 @@ export function useCalls() {
               .single();
 
             if (call && call.status === 'ringing') {
-              console.log('[useCalls] Setting incoming call from Realtime:', call.id);
+              logger.debug('Setting incoming call from Realtime', 'useCalls', call.id);
               setIncomingCall(call as Call);
             }
           }
-          
+
           // Handle call ended/declined/connected - clear incoming call
           if (participant?.status && ['connected', 'declined', 'left', 'ended'].includes(participant.status)) {
-            console.log('[useCalls] Realtime: call status changed to', participant.status, '- clearing incoming call');
+            logger.debug('Realtime: call status changed - clearing incoming call', 'useCalls', participant.status);
             setIncomingCall(null);
           }
         }
@@ -639,7 +640,7 @@ export function useCalls() {
           ? (err instanceof Error ? err.message : String(err))
           : '';
 
-        console.log('[useCalls] Realtime subscription status:', status, errMsg ? `Error: ${errMsg}` : '');
+        logger.debug('Realtime subscription status', 'useCalls', { status, error: errMsg || undefined });
 
         if (status === 'SUBSCRIBED') {
           // Do an immediate check once subscription is ready
@@ -648,7 +649,7 @@ export function useCalls() {
 
         // If bindings mismatch, disable Realtime for this hook and rely on polling.
         if (status === 'CHANNEL_ERROR' && errMsg.includes('mismatch between server and client bindings')) {
-          console.warn('[useCalls] Realtime bindings mismatch; falling back to polling-only.');
+          logger.warn('Realtime bindings mismatch; falling back to polling-only.', 'useCalls');
           if (!channelRemoved) {
             channelRemoved = true;
             supabase.removeChannel(channel);

@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { logger } from '@/lib/logger';
 
 interface IncomingOffer {
   callId: string;
@@ -65,99 +66,67 @@ export function useIncomingCallSignals({ onOfferReceived }: UseIncomingCallSigna
           // Client-side filter: only process signals for this user
           if (signal.to_user_id !== userId) return;
           
-          console.log('[IncomingCallSignals] 📨 Realtime event received!');
-          console.log('[IncomingCallSignals] 📨 Raw payload:', JSON.stringify(payload, null, 2));
-
-          console.log('[IncomingCallSignals] 📨 Signal details:');
-          console.log('[IncomingCallSignals]    - ID:', signal.id);
-          console.log('[IncomingCallSignals]    - Type:', signal.signal_type);
-          console.log('[IncomingCallSignals]    - Call ID:', signal.call_id);
-          console.log('[IncomingCallSignals]    - From User:', signal.from_user_id);
-          console.log('[IncomingCallSignals]    - Processed:', signal.processed);
-          console.log('[IncomingCallSignals]    - Created At:', signal.created_at);
-          console.log('[IncomingCallSignals]    - Has Payload:', !!signal.payload);
+          logger.debug('📨 Signal received', 'IncomingCallSignals', signal);
 
           // Only process offer signals
           if (signal.signal_type !== 'offer') {
-            console.log('[IncomingCallSignals] ⏭️ Ignoring non-offer signal type:', signal.signal_type);
+            logger.debug('⏭️ Ignoring non-offer signal type', 'IncomingCallSignals', signal.signal_type);
             return;
           }
-
-          console.log('[IncomingCallSignals] ✅ This is an OFFER signal - processing...');
 
           // Prevent duplicate processing
           if (processedOffers.current.has(signal.id)) {
-            console.log('[IncomingCallSignals] ⚠️ Already processed this offer, skipping:', signal.id);
-            console.log('[IncomingCallSignals] 📋 Currently processed offers:', Array.from(processedOffers.current));
+            logger.debug('⚠️ Already processed this offer, skipping', 'IncomingCallSignals', signal.id);
             return;
           }
           processedOffers.current.add(signal.id);
-          console.log('[IncomingCallSignals] ➕ Added to processed offers set, count:', processedOffers.current.size);
 
           // Extract call type from payload or default to voice
           const sdpPayload = signal.payload as RTCSessionDescriptionInit | null;
-          
-          console.log('[IncomingCallSignals] 📄 SDP Payload analysis:');
-          console.log('[IncomingCallSignals]    - Payload exists:', !!sdpPayload);
-          console.log('[IncomingCallSignals]    - SDP type:', sdpPayload?.type);
-          console.log('[IncomingCallSignals]    - SDP length:', sdpPayload?.sdp?.length || 0);
-          
+
           // Determine call type from SDP content (video calls have video in SDP)
           let callType: 'voice' | 'video' = 'voice';
           if (sdpPayload?.sdp && sdpPayload.sdp.includes('m=video')) {
             callType = 'video';
-            console.log('[IncomingCallSignals] 📹 Detected VIDEO call (m=video found in SDP)');
-          } else {
-            console.log('[IncomingCallSignals] 📞 Detected VOICE call (no m=video in SDP)');
           }
 
           if (sdpPayload) {
-            console.log('[IncomingCallSignals] 🔔 Triggering onOfferReceived callback with:');
-            console.log('[IncomingCallSignals]    - callId:', signal.call_id);
-            console.log('[IncomingCallSignals]    - callType:', callType);
-            console.log('[IncomingCallSignals]    - callerId:', signal.from_user_id);
-            
+            logger.debug('🔔 Processing offer, triggering onOfferReceived', 'IncomingCallSignals', { callId: signal.call_id, callType, callerId: signal.from_user_id });
             onOfferReceivedRef.current({
               callId: signal.call_id,
               callType,
               callerId: signal.from_user_id,
               sdp: sdpPayload,
             });
-            
-            console.log('[IncomingCallSignals] ✅ onOfferReceived callback executed successfully');
           } else {
-            console.error('[IncomingCallSignals] ❌ Offer signal has NO SDP payload - cannot process!');
-            console.error('[IncomingCallSignals] ❌ Full signal for debugging:', JSON.stringify(signal, null, 2));
+            logger.error('❌ Offer signal has NO SDP payload - cannot process!', 'IncomingCallSignals', signal);
           }
         }
       )
       .subscribe((status, err) => {
-        console.log('[IncomingCallSignals] 📡 Subscription callback triggered');
-        console.log('[IncomingCallSignals] 📡 Status:', status);
-        
+        logger.debug('📡 Subscription status', 'IncomingCallSignals', status);
+
         if (err) {
-          console.error('[IncomingCallSignals] ❌ Subscription error:', err);
-          console.error('[IncomingCallSignals] ❌ Error message:', err.message);
+          logger.error('❌ Subscription error', 'IncomingCallSignals', err);
         }
 
         if (status === 'SUBSCRIBED') {
-          console.log('[IncomingCallSignals] ✅ Successfully subscribed to Realtime channel!');
-          console.log('[IncomingCallSignals] 🔄 Checking for any pending offers that may have been missed...');
+          logger.debug('✅ Successfully subscribed, checking for missed pending offers', 'IncomingCallSignals');
           void checkPendingOffers(userId);
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('[IncomingCallSignals] ❌ Channel error - subscription failed');
+          logger.error('❌ Channel error - subscription failed', 'IncomingCallSignals');
         } else if (status === 'TIMED_OUT') {
-          console.error('[IncomingCallSignals] ⏰ Subscription timed out');
+          logger.error('⏰ Subscription timed out', 'IncomingCallSignals');
         } else if (status === 'CLOSED') {
-          console.log('[IncomingCallSignals] 🔒 Channel closed');
+          logger.debug('🔒 Channel closed', 'IncomingCallSignals');
         }
       });
 
     // Check for pending offers on initial subscribe
     // Only fetch offers from the last 2 minutes to avoid processing stale calls
     const checkPendingOffers = async (userId: string) => {
-      console.log('[IncomingCallSignals] 🔍 Checking for recent pending offers...');
-      
+      logger.debug('🔍 Checking for recent pending offers', 'IncomingCallSignals');
+
       try {
         // Only look for offers created in the last 2 minutes
         const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
@@ -172,11 +141,11 @@ export function useIncomingCallSignals({ onOfferReceived }: UseIncomingCallSigna
           .order('created_at', { ascending: true });
 
         if (error) {
-          console.error('[IncomingCallSignals] ❌ Error fetching pending offers:', error);
+          logger.error('❌ Error fetching pending offers', 'IncomingCallSignals', error);
           return;
         }
 
-        console.log('[IncomingCallSignals] 📊 Recent pending offers:', pendingSignals?.length || 0);
+        logger.debug('📊 Recent pending offers', 'IncomingCallSignals', pendingSignals?.length || 0);
 
         if (pendingSignals && pendingSignals.length > 0) {
           // Process only the most recent offer per call
@@ -196,7 +165,7 @@ export function useIncomingCallSignals({ onOfferReceived }: UseIncomingCallSigna
             }
 
             if (sdpPayload) {
-              console.log('[IncomingCallSignals] 🔔 Processing recent offer for call:', signal.call_id);
+              logger.debug('🔔 Processing recent offer for call', 'IncomingCallSignals', signal.call_id);
               onOfferReceivedRef.current({
                 callId: signal.call_id,
                 callType,
@@ -206,17 +175,16 @@ export function useIncomingCallSignals({ onOfferReceived }: UseIncomingCallSigna
             }
           }
         } else {
-          console.log('[IncomingCallSignals] ✅ No recent pending offers');
+          logger.debug('✅ No recent pending offers', 'IncomingCallSignals');
         }
       } catch (err) {
-        console.error('[IncomingCallSignals] ❌ Error checking pending offers:', err);
+        logger.error('❌ Error checking pending offers', 'IncomingCallSignals', err);
       }
     };
 
     return () => {
-      console.log('[IncomingCallSignals] 🔌 Unsubscribing from Realtime channel:', channelName);
+      logger.debug('🔌 Unsubscribing from Realtime channel', 'IncomingCallSignals', channelName);
       supabase.removeChannel(channel);
-      console.log('[IncomingCallSignals] ✅ Channel removed');
     };
   }, [user?.id]);
 

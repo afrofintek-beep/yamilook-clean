@@ -4,6 +4,7 @@
  * Queues are bounded to prevent memory leaks.
  */
 import { useRef, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 const MAX_QUEUE_SIZE = 200;
 
@@ -29,7 +30,7 @@ export function useICECandidateQueue(): UseICECandidateQueueReturn {
   const queueIncomingCandidate = useCallback((peerId: string, candidate: RTCIceCandidateInit) => {
     const pending = pendingIncoming.current.get(peerId) || [];
     if (pending.length >= MAX_QUEUE_SIZE) {
-      console.warn('[ICEQueue] Incoming queue full for:', peerId, '— dropping oldest');
+      logger.warn('Incoming queue full — dropping oldest', 'ICEQueue', peerId);
       pending.shift();
     }
     pending.push(candidate);
@@ -39,7 +40,7 @@ export function useICECandidateQueue(): UseICECandidateQueueReturn {
   const queueOutgoingCandidate = useCallback((peerId: string, candidate: RTCIceCandidateInit) => {
     const pending = pendingOutgoing.current.get(peerId) || [];
     if (pending.length >= MAX_QUEUE_SIZE) {
-      console.warn('[ICEQueue] Outgoing queue full for:', peerId, '— dropping oldest');
+      logger.warn('Outgoing queue full — dropping oldest', 'ICEQueue', peerId);
       pending.shift();
     }
     pending.push(candidate);
@@ -50,13 +51,13 @@ export function useICECandidateQueue(): UseICECandidateQueueReturn {
     const pending = pendingIncoming.current.get(peerId) || [];
     if (pending.length === 0) return;
 
-    console.log('[ICEQueue] Applying', pending.length, 'pending ICE candidates for:', peerId);
+    logger.debug('Applying pending ICE candidates', 'ICEQueue', { count: pending.length, peerId });
 
     for (const candidate of pending) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (error) {
-        console.error('[ICEQueue] Error adding queued ICE candidate:', error);
+        logger.error('Error adding queued ICE candidate', 'ICEQueue', error);
       }
     }
     pendingIncoming.current.delete(peerId);
@@ -65,7 +66,7 @@ export function useICECandidateQueue(): UseICECandidateQueueReturn {
   const flushOutgoingCandidates = useCallback((peerId: string): RTCIceCandidateInit[] => {
     const queued = pendingOutgoing.current.get(peerId) || [];
     if (queued.length > 0) {
-      console.log('[ICEQueue] Flushing', queued.length, 'outgoing ICE candidates for:', peerId);
+      logger.debug('Flushing outgoing ICE candidates', 'ICEQueue', { count: queued.length, peerId });
       pendingOutgoing.current.delete(peerId);
     }
     return queued;

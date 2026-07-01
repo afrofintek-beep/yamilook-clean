@@ -2,6 +2,7 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MicOff, Hand, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 interface Participant {
   id: string;
@@ -54,9 +55,11 @@ export function ParticipantGrid({
 
   // Debug logging - MUST be before any conditional returns
   React.useEffect(() => {
-    console.log('[ParticipantGrid] participants:', participants.map(p => p.user_id));
-    console.log('[ParticipantGrid] remoteStreams keys:', Array.from(remoteStreams.keys()));
-    console.log('[ParticipantGrid] allParticipants:', allParticipants.length);
+    logger.debug('Grid state', 'ParticipantGrid', {
+      participants: participants.map(p => p.user_id),
+      remoteStreamKeys: Array.from(remoteStreams.keys()),
+      allParticipants: allParticipants.length,
+    });
   }, [participants, remoteStreams, allParticipants.length]);
 
   // Determine grid layout based on participant count
@@ -213,7 +216,8 @@ function ParticipantTile({ participant, stream, callType, isSpotlight }: Partici
   // Log stream state for debugging
   React.useEffect(() => {
     if (stream) {
-      console.log('[ParticipantTile] Stream for', participant.display_name, ':', {
+      logger.debug('Stream for participant', 'ParticipantTile', {
+        displayName: participant.display_name,
         videoTracks: stream.getVideoTracks().map(t => ({ enabled: t.enabled, readyState: t.readyState })),
         audioTracks: stream.getAudioTracks().map(t => ({ enabled: t.enabled, readyState: t.readyState })),
       });
@@ -240,14 +244,14 @@ function ParticipantTile({ participant, stream, callType, isSpotlight }: Partici
             if (el && stream) {
               if (el.srcObject !== stream) {
                 el.srcObject = stream;
-                console.log('[ParticipantTile] Attached stream to video element for:', participant.display_name);
+                logger.debug('Attached stream to video element for', 'ParticipantTile', participant.display_name);
               }
               // Ensure video plays with audio (handle autoplay policies)
               if (el.paused) {
                 el.play().then(() => {
-                  console.log('[ParticipantTile] Playback started for:', participant.display_name, 'muted:', el.muted);
+                  logger.debug('Playback started', 'ParticipantTile', { displayName: participant.display_name, muted: el.muted });
                 }).catch((err) => {
-                  console.warn('[ParticipantTile] Autoplay blocked for:', participant.display_name, err);
+                  logger.warn('Autoplay blocked for', 'ParticipantTile', { displayName: participant.display_name, err });
                   // Try again after a short delay (user may have interacted)
                   setTimeout(() => {
                     el.play().catch(() => {});
@@ -337,7 +341,7 @@ function ParticipantThumbnail({ participant, stream, callType, isSmall }: Partic
                 el.srcObject = stream;
               }
               if (el.paused) {
-                el.play().catch(() => console.log('[ParticipantThumbnail] Autoplay blocked'));
+                el.play().catch(() => logger.debug('Autoplay blocked', 'ParticipantThumbnail'));
               }
             }
           }}

@@ -3,6 +3,7 @@
  * Browsers block autoplay until user interaction occurs
  */
 import { useRef, useCallback, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 export interface UseAutoplayRecoveryReturn {
   /** Whether user has interacted with the page */
@@ -19,7 +20,7 @@ export function useAutoplayRecovery(): UseAutoplayRecoveryReturn {
   // Track user interaction for autoplay policy
   useEffect(() => {
     const handleInteraction = () => {
-      console.log('[AutoplayRecovery] User interaction detected');
+      logger.debug('User interaction detected', 'AutoplayRecovery');
       userInteractedRef.current = true;
     };
 
@@ -38,7 +39,7 @@ export function useAutoplayRecovery(): UseAutoplayRecoveryReturn {
    * Mark that user has interacted with the page
    */
   const markUserInteracted = useCallback(() => {
-    console.log('[AutoplayRecovery] Manually marking user interaction');
+    logger.debug('Manually marking user interaction', 'AutoplayRecovery');
     userInteractedRef.current = true;
   }, []);
 
@@ -46,7 +47,7 @@ export function useAutoplayRecovery(): UseAutoplayRecoveryReturn {
    * Attempt to play remote media stream with autoplay recovery
    */
   const tryPlayRemoteStream = useCallback(async (stream: MediaStream, peerId: string) => {
-    console.log('[AutoplayRecovery] Attempting to play remote stream for:', peerId);
+    logger.debug('Attempting to play remote stream for', 'AutoplayRecovery', peerId);
 
     // Find any video/audio elements with this stream and try to play
     const videoElements = document.querySelectorAll('video');
@@ -56,18 +57,18 @@ export function useAutoplayRecovery(): UseAutoplayRecoveryReturn {
       if (element.srcObject === stream && element.paused) {
         try {
           await element.play();
-          console.log('[AutoplayRecovery] Successfully started playback for remote stream');
+          logger.debug('Successfully started playback for remote stream', 'AutoplayRecovery');
           return true;
         } catch (error) {
-          console.warn('[AutoplayRecovery] Autoplay blocked, waiting for user interaction:', error);
-          
+          logger.warn('Autoplay blocked, waiting for user interaction', 'AutoplayRecovery', error);
+
           // Set up retry on user interaction
           const retryPlay = async () => {
             try {
               await element.play();
-              console.log('[AutoplayRecovery] Successfully started playback after user interaction');
+              logger.debug('Successfully started playback after user interaction', 'AutoplayRecovery');
             } catch (e) {
-              console.error('[AutoplayRecovery] Still failed to play after interaction:', e);
+              logger.error('Still failed to play after interaction', 'AutoplayRecovery', e);
             }
           };
           

@@ -4,6 +4,7 @@
  */
 import { useRef, useCallback, useEffect } from 'react';
 import { CallMetrics } from './types';
+import { logger } from '@/lib/logger';
 
 export interface UseCallTelemetryOptions {
   callId: string | null;
@@ -142,7 +143,7 @@ export function useCallTelemetry(options: UseCallTelemetryOptions): UseCallTelem
 
       // Log metrics in development
       if (import.meta.env.DEV) {
-        console.log('[Telemetry] 📊 Call metrics:', {
+        logger.debug('📊 Call metrics', 'Telemetry', {
           connectionState: metrics.peerConnectionState,
           iceState: metrics.iceConnectionState,
           audioBitrate: `${Math.round(metrics.bitrate.audio / 1000)} kbps`,
@@ -162,7 +163,7 @@ export function useCallTelemetry(options: UseCallTelemetryOptions): UseCallTelem
 
       return metrics;
     } catch (error) {
-      console.error('[Telemetry] Error collecting metrics:', error);
+      logger.error('Error collecting metrics', 'Telemetry', error);
       return null;
     }
   }, [callId, enabled, onCallMetrics]);
@@ -172,7 +173,7 @@ export function useCallTelemetry(options: UseCallTelemetryOptions): UseCallTelem
    */
   const incrementReconnectAttempts = useCallback(() => {
     reconnectAttempts.current += 1;
-    console.log('[Telemetry] Reconnect attempt:', reconnectAttempts.current);
+    logger.debug('Reconnect attempt', 'Telemetry', reconnectAttempts.current);
   }, []);
 
   /**
@@ -180,7 +181,7 @@ export function useCallTelemetry(options: UseCallTelemetryOptions): UseCallTelem
    */
   const setCallEndReason = useCallback((reason: string) => {
     callEndReason.current = reason;
-    console.log('[Telemetry] Call end reason:', reason);
+    logger.debug('Call end reason', 'Telemetry', reason);
   }, []);
 
   /**
@@ -189,7 +190,7 @@ export function useCallTelemetry(options: UseCallTelemetryOptions): UseCallTelem
   const logFinalMetrics = useCallback(() => {
     if (currentMetrics.current) {
       const metrics = currentMetrics.current;
-      console.log('[Telemetry] 📊 Final call metrics:', {
+      logger.debug('📊 Final call metrics', 'Telemetry', {
         callId: metrics.callId,
         duration: `${Math.round(metrics.callDurationMs / 1000)}s`,
         endReason: metrics.callEndReason,

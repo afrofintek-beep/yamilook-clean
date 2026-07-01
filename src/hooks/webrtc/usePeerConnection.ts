@@ -8,6 +8,7 @@
  */
 import { useRef, useCallback, useEffect } from 'react';
 import { getWebRTCConfig } from './types';
+import { logger } from '@/lib/logger';
 
 // --------------- Recovery constants ---------------
 const DISCONNECTED_TIMEOUT_MS = 5_000;
@@ -82,21 +83,21 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
     recoveryAttempts.current.set(peerId, attempts + 1);
 
     if (attempts >= MAX_RECOVERY_ATTEMPTS) {
-      console.error('[PeerConnection] ❌ Recovery exhausted after', MAX_RECOVERY_ATTEMPTS, 'attempts for:', peerId);
+      logger.error('❌ Recovery exhausted', 'PeerConnection', { maxAttempts: MAX_RECOVERY_ATTEMPTS, peerId });
       cbRef.current.onConnectionStateChange('failed');
       return;
     }
 
     if (attempts === 0) {
       // Step 1: ICE restart
-      console.log('[PeerConnection] 🔄 Recovery step 1/3: restartIce() for:', peerId);
+      logger.debug('🔄 Recovery step 1/3: restartIce() for', 'PeerConnection', peerId);
       pc.restartIce();
     } else if (attempts === 1) {
       // Step 2: Full renegotiation (new offer/answer via orchestrator)
-      console.log('[PeerConnection] 🔄 Recovery step 2/3: renegotiation for:', peerId);
+      logger.debug('🔄 Recovery step 2/3: renegotiation for', 'PeerConnection', peerId);
       if (cbRef.current.onRecoveryRenegotiate) {
         cbRef.current.onRecoveryRenegotiate(peerId, pc).catch(err => {
-          console.error('[PeerConnection] Recovery renegotiation failed:', err);
+          logger.error('Recovery renegotiation failed', 'PeerConnection', err);
         });
       } else {
         // Fallback to restartIce again if no renegotiate handler
@@ -104,7 +105,7 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
       }
     } else {
       // Step 3: Rebuild peer connection entirely
-      console.log('[PeerConnection] 🔄 Recovery step 3/3: rebuilding PeerConnection for:', peerId);
+      logger.debug('🔄 Recovery step 3/3: rebuilding PeerConnection for', 'PeerConnection', peerId);
       rebuildPeerConnection(peerId);
     }
   }, []);
@@ -148,7 +149,7 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
     const t = setTimeout(() => {
       const pc = peerConnections.current.get(peerId);
       if (pc && (pc.connectionState === 'connecting' || pc.connectionState === 'new')) {
-        console.warn('[PeerConnection] ⏰ Connecting watchdog fired for:', peerId, 'state:', pc.connectionState);
+        logger.warn('⏰ Connecting watchdog fired', 'PeerConnection', { peerId, state: pc.connectionState });
         runRecoveryLadder(peerId);
       }
     }, CONNECTING_WATCHDOG_MS);
@@ -163,15 +164,13 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
     const iceServers = cbRef.current.getIceServers();
     const localStream = cbRef.current.getLocalStream();
 
-    console.log('[PeerConnection] 🔧 Creating peer connection for:', peerId);
-    console.log('[PeerConnection] 🔧 ICE servers count:', iceServers.length);
-    console.log('[PeerConnection] 🔧 ICE transport policy:', config.iceTransportPolicy);
+    logger.debug('🔧 Creating peer connection', 'PeerConnection', { peerId, iceServersCount: iceServers.length, iceTransportPolicy: config.iceTransportPolicy });
 
     if (!localStream) {
-      console.error('[PeerConnection] ❌ CRITICAL: No local stream when creating peer connection!');
+      logger.error('❌ CRITICAL: No local stream when creating peer connection!', 'PeerConnection');
     } else {
       const tracks = localStream.getTracks();
-      console.log('[PeerConnection] 🔧 Local stream tracks:', tracks.map(t => ({
+      logger.debug('🔧 Local stream tracks', 'PeerConnection', tracks.map(t => ({
         kind: t.kind,
         enabled: t.enabled,
         readyState: t.readyState,
@@ -189,7 +188,7 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
     iceServers.forEach((server, i) => {
       const urls = typeof server.urls === 'string' ? server.urls : server.urls[0];
       const hasCredentials = !!server.username && !!server.credential;
-      console.log(`[PeerConnection] 🧊   ${i + 1}. ${urls?.substring(0, 50)}... (auth: ${hasCredentials})`);
+      logger.debug(`🧊   ${i + 1}. ${urls?.substring(0, 50)}... (auth: ${hasCredentials})`, 'PeerConnection');
     });
 
     // Reset recovery counter for this peer
@@ -201,14 +200,14 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
     // as they create extra recvonly transceivers that suppress the sender side.
     if (localStream) {
       const tracks = localStream.getTracks();
-      console.log('[PeerConnection] ➕ Adding', tracks.length, 'local tracks to PC');
+      logger.debug('➕ Adding local tracks to PC', 'PeerConnection', tracks.length);
       tracks.forEach(track => {
         // Log the actual hardware-level muted state (read-only, set by browser/OS).
         // track.muted=true means the OS/browser is not providing data (e.g. mic not granted).
         // track.enabled=false means we manually muted via toggleMute().
-        console.log(`[PeerConnection] ➕ track: kind=${track.kind} enabled=${track.enabled} muted=${track.muted} readyState=${track.readyState}`);
+        logger.debug(`➕ track: kind=${track.kind} enabled=${track.enabled} muted=${track.muted} readyState=${track.readyState}`, 'PeerConnection');
         if (track.kind === 'audio' && track.muted) {
-          console.warn('[PeerConnection] ⚠️ Audio track is hardware-muted (track.muted=true). Check OS/browser microphone permissions.');
+          logger.warn('⚠️ Audio track is hardware-muted (track.muted=true). Check OS/browser microphone permissions.', 'PeerConnection');
         }
         pc.addTrack(track, localStream);
       });
@@ -224,7 +223,7 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
     // ── ICE connection state ──
     pc.oniceconnectionstatechange = () => {
       const iceState = pc.iceConnectionState;
-      console.log('[PeerConnection] 🧊 ICE state:', iceState, 'peer:', peerId);
+      logger.debug('🧊 ICE state', 'PeerConnection', { iceState, peer: peerId });
       cbRef.current.onIceStateChange(iceState);
 
       if (iceState === 'connected' || iceState === 'completed') {
@@ -234,10 +233,10 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
       }
 
       if (iceState === 'failed') {
-        console.error('[PeerConnection] ❌ ICE FAILED for:', peerId);
+        logger.error('❌ ICE FAILED for', 'PeerConnection', peerId);
         runRecoveryLadder(peerId);
       } else if (iceState === 'disconnected') {
-        console.warn('[PeerConnection] ⚠️ ICE disconnected for:', peerId);
+        logger.warn('⚠️ ICE disconnected for', 'PeerConnection', peerId);
         // Start timer — if still disconnected after timeout, run recovery
         const t = setTimeout(() => {
           if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
@@ -250,7 +249,7 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
 
     // ── Remote tracks ──
     pc.ontrack = (event) => {
-      console.log('[PeerConnection] 🎵 Remote track:', event.track.kind, 'peer:', peerId, 'enabled:', event.track.enabled);
+      logger.debug('🎵 Remote track', 'PeerConnection', { kind: event.track.kind, peer: peerId, enabled: event.track.enabled });
       let stream = event.streams[0];
       if (!stream) {
         stream = new MediaStream();
@@ -262,7 +261,7 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
     // ── Connection state ──
     pc.onconnectionstatechange = () => {
       const connState = pc.connectionState;
-      console.log('[PeerConnection] 🔌 Connection state:', connState, 'peer:', peerId);
+      logger.debug('🔌 Connection state', 'PeerConnection', { connState, peer: peerId });
       cbRef.current.onConnectionStateChange(connState);
 
       if (connState === 'connected') {
@@ -280,7 +279,7 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
 
     // ── Signaling state ──
     pc.onsignalingstatechange = () => {
-      console.log('[PeerConnection] 📡 Signaling state:', pc.signalingState);
+      logger.debug('📡 Signaling state', 'PeerConnection', pc.signalingState);
     };
 
     // ── Negotiation needed ──
@@ -291,7 +290,7 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
       // only needed for renegotiation (screen-share, camera switch) which happens
       // AFTER the initial handshake when remoteDescription is already set.
       if (!pc.remoteDescription) {
-        console.log('[PeerConnection] ℹ️ Suppressing premature onnegotiationneeded (no remoteDescription yet)');
+        logger.debug('ℹ️ Suppressing premature onnegotiationneeded (no remoteDescription yet)', 'PeerConnection');
         return;
       }
       const callId = cbRef.current.callIdRef.current;
@@ -328,7 +327,7 @@ export function usePeerConnection(options: UsePeerConnectionOptions): UsePeerCon
   }, [clearTimersForPeer]);
 
   const closeAllPeerConnections = useCallback(() => {
-    console.log('[PeerConnection] Closing all peer connections');
+    logger.debug('Closing all peer connections', 'PeerConnection');
     peerConnections.current.forEach((_pc, peerId) => closePeerConnection(peerId));
     peerConnections.current.clear();
     recoveryAttempts.current.clear();
