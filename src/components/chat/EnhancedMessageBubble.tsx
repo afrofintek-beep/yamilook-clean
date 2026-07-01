@@ -41,7 +41,7 @@ interface Reaction {
   users: string[];
 }
 
-interface BubbleMessage {
+export interface BubbleMessage {
   id: string;
   content: string | null;
   message_type: string;

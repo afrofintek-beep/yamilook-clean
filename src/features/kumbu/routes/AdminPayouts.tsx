@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,7 +23,7 @@ const BADGE_VARIANT: Record<string, 'default' | 'secondary' | 'destructive'> = {
 export default function AdminPayouts() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<PayoutFilter>('pending');
-  const [payouts, setPayouts] = useState<any[]>([]);
+  const [payouts, setPayouts] = useState<Tables<'payout_requests'>[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
 
@@ -42,7 +43,7 @@ export default function AdminPayouts() {
 
   const updateStatus = async (id: string, status: string) => {
     setActing(id);
-    const updates: Record<string, any> = { status };
+    const updates: TablesUpdate<'payout_requests'> = { status };
     if (status === 'processed' || status === 'rejected') {
       updates.processed_at = new Date().toISOString();
     }

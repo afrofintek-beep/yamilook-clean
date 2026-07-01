@@ -83,7 +83,7 @@ export default function CreatorApply() {
       if (appErr) throw appErr;
 
       // 3. Insert verification doc record
-      await supabase.from('creator_verification_docs' as any).insert({
+      await supabase.from('creator_verification_docs').insert({
         application_id: app.id,
         user_id: user.id,
         storage_path: path,
@@ -92,8 +92,8 @@ export default function CreatorApply() {
 
       setStatus('pending');
       toast.success('Candidatura submetida com sucesso.');
-    } catch (err: any) {
-      toast.error(err.message ?? 'Erro ao submeter candidatura.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao submeter candidatura.');
     } finally {
       setSubmitting(false);
     }

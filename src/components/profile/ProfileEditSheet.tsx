@@ -162,7 +162,7 @@ export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: Prof
       await refreshProfile();
       
       toast.success(t('profile.photoUpdated') || 'Photo updated!');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
       toast.error(t('profile.uploadFailed') || 'Failed to upload photo');
     } finally {
@@ -212,8 +212,8 @@ export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: Prof
       
       onUpdate();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
     } finally {
       setIsLoading(false);
     }

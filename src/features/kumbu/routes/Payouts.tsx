@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,7 +32,7 @@ export default function Payouts() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [eligible, setEligible] = useState<boolean | null>(null);
-  const [payouts, setPayouts] = useState<any[]>([]);
+  const [payouts, setPayouts] = useState<Tables<'payout_requests'>[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [amount, setAmount] = useState('');
@@ -95,8 +96,8 @@ export default function Payouts() {
         .order('created_at', { ascending: false })
         .limit(50);
       setPayouts(data ?? []);
-    } catch (err: any) {
-      toast.error(err.message ?? 'Erro ao submeter pedido.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao submeter pedido.');
     } finally {
       setSubmitting(false);
     }

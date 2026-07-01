@@ -102,14 +102,14 @@ export function SwipeableConversationItem({
     isDragging.current = true;
   }, []);
 
-  const handleDrag = useCallback((_: any, info: PanInfo) => {
+  const handleDrag = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Haptic feedback at thresholds
     if (Math.abs(info.offset.x) > SWIPE_THRESHOLD && navigator.vibrate) {
       navigator.vibrate(10);
     }
   }, []);
 
-  const handleDragEnd = useCallback((_: any, info: PanInfo) => {
+  const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     isDragging.current = false;
 
     if (info.offset.x > SWIPE_THRESHOLD) {

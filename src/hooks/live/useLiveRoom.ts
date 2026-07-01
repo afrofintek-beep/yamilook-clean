@@ -18,6 +18,17 @@ import { useLiveSessions } from './useLiveSessions';
 import { useLiveChat } from './useLiveChat';
 import type { LiveSession, StreamError, UseLiveStreamReturn } from './types';
 
+/**
+ * Minimal structural type for enabling/disabling a media track. LiveKit's
+ * LocalTrack exposes `mute`/`unmute`; some track implementations also expose a
+ * `setEnabled` helper. All are probed defensively at runtime, hence optional.
+ */
+interface ToggleableTrack {
+  setEnabled?: (enabled: boolean) => Promise<void> | void;
+  mute?: () => Promise<void> | void;
+  unmute?: () => Promise<void> | void;
+}
+
 export function useLiveStream(): UseLiveStreamReturn {
   const { user, profile } = useAuth();
   const { toast } = useToast();
@@ -230,7 +241,7 @@ export function useLiveStream(): UseLiveStreamReturn {
       const pub = localParticipant.getTrackPublication(Track.Source.Camera);
       if (pub?.track) {
         const next = !isCameraEnabled;
-        const t: any = pub.track;
+        const t = pub.track as ToggleableTrack;
         if (typeof t.setEnabled === 'function') await t.setEnabled(next);
         else if (next && typeof t.unmute === 'function') await t.unmute();
         else if (!next && typeof t.mute === 'function') await t.mute();
@@ -254,7 +265,7 @@ export function useLiveStream(): UseLiveStreamReturn {
       const pub = localParticipant.getTrackPublication(Track.Source.Microphone);
       if (pub?.track) {
         const next = !isMicrophoneEnabled;
-        const t: any = pub.track;
+        const t = pub.track as ToggleableTrack;
         if (typeof t.setEnabled === 'function') await t.setEnabled(next);
         else if (next && typeof t.unmute === 'function') await t.unmute();
         else if (!next && typeof t.mute === 'function') await t.mute();

@@ -205,10 +205,10 @@ export function ChatWallpaperSheet({ open, onOpenChange }: ChatWallpaperSheetPro
         title: t('settings.wallpaperUploaded', 'Imagem carregada'),
         description: t('settings.wallpaperUploadedDesc', 'A imagem foi adicionada às suas opções'),
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: t('errors.uploadFailed', 'Erro ao carregar'),
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
         variant: 'destructive',
       });
     } finally {
@@ -262,10 +262,10 @@ export function ChatWallpaperSheet({ open, onOpenChange }: ChatWallpaperSheetPro
         description: t('settings.wallpaperAppliedDesc', 'O fundo do chat foi atualizado.'),
       });
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: t('errors.generic', 'Erro'),
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
         variant: 'destructive',
       });
     } finally {

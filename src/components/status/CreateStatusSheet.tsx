@@ -284,7 +284,7 @@ export function CreateStatusSheet({ open, onOpenChange }: CreateStatusSheetProps
               <div className="p-4 border-t bg-background space-y-4">
                 <div className="flex items-center gap-4">
                   <Label className="text-sm">{t('status.whoCanSee')}</Label>
-                  <Select value={privacy} onValueChange={(v: any) => setPrivacy(v)}>
+                  <Select value={privacy} onValueChange={(v) => setPrivacy(v as typeof privacy)}>
                     <SelectTrigger className="w-40">
                       <SelectValue />
                     </SelectTrigger>
@@ -383,7 +383,7 @@ export function CreateStatusSheet({ open, onOpenChange }: CreateStatusSheetProps
 
                 <div className="flex items-center gap-4">
                   <Label className="text-sm">{t('status.whoCanSee')}</Label>
-                  <Select value={privacy} onValueChange={(v: any) => setPrivacy(v)}>
+                  <Select value={privacy} onValueChange={(v) => setPrivacy(v as typeof privacy)}>
                     <SelectTrigger className="w-40">
                       <SelectValue />
                     </SelectTrigger>

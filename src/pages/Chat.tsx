@@ -41,6 +41,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMessages, useConversations } from '@/hooks/useChat';
 import { useSettings } from '@/hooks/useSettings';
 import { EnhancedMessageBubble } from '@/components/chat/EnhancedMessageBubble';
+import type { BubbleMessage } from '@/components/chat/EnhancedMessageBubble';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { DateSeparator, shouldShowDateSeparator } from '@/components/chat/DateSeparator';
 import { EnhancedChatInput } from '@/components/chat/EnhancedChatInput';
@@ -54,6 +55,7 @@ import { GroupAdminSheet } from '@/components/chat/GroupAdminSheet';
 import { useActiveCall } from '@/components/calls/ActiveCallProvider';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { getWallpaperStyles } from '@/components/settings/ChatWallpaperSheet';
 import { formatLastSeen } from '@/components/ui/OnlineStatus';
 
@@ -94,10 +96,10 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
-  const [replyTo, setReplyTo] = useState<any>(null);
+  const [replyTo, setReplyTo] = useState<BubbleMessage | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Tables<'messages'>[]>([]);
   const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false);
   const [scheduledMessagesOpen, setScheduledMessagesOpen] = useState(false);
   const [disappearingOpen, setDisappearingOpen] = useState(false);

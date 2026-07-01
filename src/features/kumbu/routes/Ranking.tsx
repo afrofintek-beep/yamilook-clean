@@ -10,7 +10,7 @@ export default function RankingPage() {
   const navigate = useNavigate();
   const { data: userBanda, isLoading: bandaLoading } = useUserBanda();
   const bandaId = userBanda?.banda_id;
-  const bandaName = (userBanda as any)?.bandas?.name;
+  const bandaName = userBanda?.bandas?.name;
 
   const { data: ranking, isLoading: rankingLoading } = useWeeklyRanking(bandaId);
   const { data: history } = useRankingHistory(bandaId);
@@ -79,7 +79,7 @@ export default function RankingPage() {
               </p>
             </div>
             <div className="px-5 pb-4 space-y-1.5">
-              {history.map((h: any) => {
+              {history.map((h) => {
                 const entries = typeof h.entries === 'string' ? JSON.parse(h.entries) : h.entries;
                 const count = Array.isArray(entries) ? entries.length : 0;
                 return (
