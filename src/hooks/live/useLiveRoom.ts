@@ -183,7 +183,7 @@ export function useLiveStream(): UseLiveStreamReturn {
 
   const leaveStream = useCallback(async () => {
     if (roomRef.current) {
-      try { for (const pub of roomRef.current.localParticipant.trackPublications.values()) pub.track?.stop(); } catch {}
+      try { for (const pub of roomRef.current.localParticipant.trackPublications.values()) pub.track?.stop(); } catch { /* ignore track stop errors */ }
       roomRef.current.disconnect();
     }
     if (sessionIdRef.current && user) {

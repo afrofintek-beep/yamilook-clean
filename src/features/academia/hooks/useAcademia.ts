@@ -38,7 +38,7 @@ export function useAcademiaSessions() {
 
       // Get mentor names
       const mentorIds = [...new Set(data.map(s => s.mentor_id))];
-      let profileMap: Record<string, { name: string; avatar?: string }> = {};
+      const profileMap: Record<string, { name: string; avatar?: string }> = {};
 
       if (mentorIds.length > 0) {
         const { data: profiles } = await supabase.rpc('get_public_profiles_by_ids', {

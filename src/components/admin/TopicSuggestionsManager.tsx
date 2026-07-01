@@ -69,7 +69,7 @@ export function TopicSuggestionsManager() {
 
       // Fetch suggestor profiles
       const userIds = [...new Set((data || []).filter(s => s.suggested_by).map(s => s.suggested_by))];
-      let profilesMap: Record<string, { display_name: string; avatar_url: string | null }> = {};
+      const profilesMap: Record<string, { display_name: string; avatar_url: string | null }> = {};
 
       if (userIds.length > 0) {
         const { data: profiles } = await supabase

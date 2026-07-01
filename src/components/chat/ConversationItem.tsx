@@ -97,10 +97,11 @@ export function ConversationItem({
         return { text: `${prefix}Foto`, icon: <Image className="w-3.5 h-3.5 text-muted-foreground mr-1 flex-shrink-0" />, isEmpty: false };
       case 'voice':
         return { text: `${prefix}Mensagem de voz`, icon: <Mic className="w-3.5 h-3.5 text-muted-foreground mr-1 flex-shrink-0" />, isEmpty: false };
-      default:
+      default: {
         const content = conversation.last_message.content || '';
         const truncated = content.length > 40 ? content.slice(0, 40) + '…' : content;
         return { text: `${prefix}${truncated}`, icon: null, isEmpty: false };
+      }
     }
   };
   

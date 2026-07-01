@@ -125,7 +125,7 @@ export default function Live() {
   };
 
   // IMPORTANT: do not memoize this; the participant object is stable while track publications mutate.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const _trackTick = trackTick;
 
   // Find the host participant - use prefixed identity format

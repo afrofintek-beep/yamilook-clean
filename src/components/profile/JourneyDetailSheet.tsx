@@ -168,7 +168,7 @@ export function JourneyDetailSheet({ open, onOpenChange, type, userId }: Journey
               .limit(20);
 
             const callerIds = [...new Set((callsData || []).map((c: any) => c.calls?.caller_id).filter(Boolean))];
-            let profileMap = new Map<string, string>();
+            const profileMap = new Map<string, string>();
             if (callerIds.length > 0) {
               const { data: profiles } = await supabase
                 .from('profiles')

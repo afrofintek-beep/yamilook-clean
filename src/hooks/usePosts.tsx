@@ -100,9 +100,9 @@ export function usePosts() {
     const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
     // Batch fetch likes and saves for current user + all reactions for counts
-    let likesMap = new Map<string, string>();
-    let savedSet = new Set<string>();
-    let reactionCountsMap = new Map<string, ReactionCounts>();
+    const likesMap = new Map<string, string>();
+    const savedSet = new Set<string>();
+    const reactionCountsMap = new Map<string, ReactionCounts>();
 
     // Fetch all reactions for these posts to calculate counts
     const { data: allReactions } = await supabase
@@ -131,7 +131,7 @@ export function usePosts() {
 
     // Get unique topic IDs and fetch topic details
     const topicIds = [...new Set(postTopicsData?.map(pt => pt.topic_id) || [])];
-    let topicsMap = new Map<string, PostTopic>();
+    const topicsMap = new Map<string, PostTopic>();
     
     if (topicIds.length > 0) {
       const { data: topicsData } = await supabase
@@ -279,7 +279,7 @@ export function usePosts() {
   ) => {
     if (!user) return null;
 
-    let mediaUrls: string[] = [];
+    const mediaUrls: string[] = [];
 
     if (options.mediaFiles?.length) {
       for (const file of options.mediaFiles) {

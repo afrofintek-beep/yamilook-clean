@@ -1,7 +1,7 @@
 // Parse and render formatted text (bold, italic, strikethrough, monospace, code blocks)
 export function parseFormattedText(text: string): React.ReactNode[] {
   const elements: React.ReactNode[] = [];
-  let remaining = text;
+  const remaining = text;
   let key = 0;
 
   // Patterns for formatting

@@ -46,7 +46,7 @@ export function useWeeklyRanking(bandaId: string | undefined) {
       if (eErr) throw eErr;
 
       const userIds = (entries ?? []).map((e: any) => e.user_id);
-      let profiles: Record<string, { display_name: string; level: string }> = {};
+      const profiles: Record<string, { display_name: string; level: string }> = {};
 
       if (userIds.length > 0) {
         const { data: pData } = await supabase

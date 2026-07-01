@@ -173,7 +173,7 @@ export function useSpaceRodas(spaceKey: string) {
 
       // Get organizer names
       const organizerIds = [...new Set(rodas.map(r => r.organizer_id).filter(Boolean))];
-      let profileMap: Record<string, string> = {};
+      const profileMap: Record<string, string> = {};
 
       if (organizerIds.length > 0) {
         const { data: profiles } = await supabase.rpc('get_public_profiles_by_ids', {

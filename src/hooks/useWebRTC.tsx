@@ -718,7 +718,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
   // Cleanup on unmount ONLY — empty deps ensures this cleanup never fires when
   // cleanupCall's identity changes mid-call (which would destroy the PC just created by answerCall).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   useEffect(() => { return () => { cleanupCallRef.current(); }; }, []);
 
   // Sync media state
