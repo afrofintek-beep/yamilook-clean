@@ -237,6 +237,8 @@ export function useUserStatus(userId: string | null) {
 export function useMultipleUserStatus(userIds: string[]) {
   const [statuses, setStatuses] = useState<Record<string, UserStatus>>({});
   const [loading, setLoading] = useState(true);
+  // Único por instância para não colidir no mesmo tópico do canal realtime.
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
 
   useEffect(() => {
     if (userIds.length === 0) {
@@ -289,7 +291,7 @@ export function useMultipleUserStatus(userIds: string[]) {
 
     // DB subscription for full profile changes
     const dbChannel = supabase
-      .channel('multi-user-status')
+      .channel(`multi-user-status-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         {

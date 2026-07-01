@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Circle, Pause, Play, Square, 
@@ -48,13 +48,15 @@ export function RecordingControls({ callId, participants }: RecordingControlsPro
   const [consentStatuses, setConsentStatuses] = useState<ConsentStatus[]>([]);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [waitingForConsent, setWaitingForConsent] = useState(false);
+  // Único por instância para não colidir no mesmo tópico do canal realtime.
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
 
   // Listen for recording consent requests
   useEffect(() => {
     if (!user) return;
 
     const channel = supabase
-      .channel('recording-consents')
+      .channel(`recording-consents-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { ReactionCounts, createEmptyReactionCounts, normalizeReactionType } from '@/lib/reactions';
@@ -75,6 +75,10 @@ export interface Topic {
 
 export function usePosts() {
   const { user } = useAuth();
+  // Único por instância do hook para que montagens concorrentes não colidam no
+  // mesmo tópico do canal realtime do Supabase (que lança "cannot add
+  // postgres_changes callbacks ... after subscribe()").
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
   const [feedPosts, setFeedPosts] = useState<PostWithUser[]>([]);
   const [discoverPosts, setDiscoverPosts] = useState<PostWithUser[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -786,7 +790,7 @@ export function usePosts() {
   // Realtime subscription
   useEffect(() => {
     const channel = supabase
-      .channel('posts-updates')
+      .channel(`posts-updates-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'posts' },

@@ -43,7 +43,9 @@ const YamilookLogo = ({
           alt="Yamilook"
           width={width}
           height={Math.round(width * 376 / 560)}
-          fetchPriority="high"
+          // React 18.3 não reconhece a prop camelCase `fetchPriority`; usamos o
+          // atributo HTML minúsculo `fetchpriority` (lido pelo browser) via spread.
+          {...{ fetchpriority: "high" }}
           loading="eager"
           decoding="async"
           className="relative h-auto mix-blend-screen dark:mix-blend-screen"

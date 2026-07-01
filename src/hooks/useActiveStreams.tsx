@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ActiveStream {
@@ -16,6 +16,8 @@ export function useActiveStreams() {
   const [activeCount, setActiveCount] = useState(0);
   const [activeStreams, setActiveStreams] = useState<ActiveStream[]>([]);
   const [loading, setLoading] = useState(true);
+  // Único por instância para não colidir no mesmo tópico do canal realtime.
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
 
   useEffect(() => {
     const fetchActiveStreams = async () => {
@@ -47,7 +49,7 @@ export function useActiveStreams() {
 
     // Subscribe to changes in live_sessions
     const channel = supabase
-      .channel('active-streams-count')
+      .channel(`active-streams-count-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         {

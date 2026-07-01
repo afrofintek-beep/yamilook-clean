@@ -419,8 +419,9 @@ export function CallDiagnosticsPanel() {
         }
       }
 
-      // Quick realtime check
-      const testChannel = supabase.channel('diagnostics-test');
+      // Quick realtime check — nome único por execução para não colidir se o
+      // diagnóstico correr mais do que uma vez em simultâneo.
+      const testChannel = supabase.channel(`diagnostics-test-${Math.random().toString(36).slice(2)}`);
       await new Promise<void>((resolve) => {
         testChannel.subscribe((status) => {
           result.realtimeConnected = status === 'SUBSCRIBED';

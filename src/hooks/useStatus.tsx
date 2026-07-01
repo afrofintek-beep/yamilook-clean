@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -49,6 +49,8 @@ export function useStatus() {
   const [contactStatuses, setContactStatuses] = useState<GroupedStatuses[]>([]);
   const [mutedContacts, setMutedContacts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  // Único por instância para não colidir no mesmo tópico do canal realtime.
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
 
   // Fetch my statuses
   const fetchMyStatuses = useCallback(async () => {
@@ -465,7 +467,7 @@ export function useStatus() {
     if (!user) return;
 
     const channel = supabase
-      .channel('status-updates')
+      .channel(`status-updates-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         {

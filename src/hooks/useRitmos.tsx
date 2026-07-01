@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -49,6 +49,8 @@ export function useRitmos() {
   const [loading, setLoading] = useState(true);
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [currentMarket, setCurrentMarket] = useState<string | null>(null);
+  // Único por instância para não colidir no mesmo tópico do canal realtime.
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
 
   // Convert signed URL to public URL
   const toPublicUrl = useCallback((url: string): string => {
@@ -350,7 +352,7 @@ export function useRitmos() {
   // Set up realtime subscription
   useEffect(() => {
     const channel = supabase
-      .channel('ritmos-changes')
+      .channel(`ritmos-changes-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'ritmos' },

@@ -15,6 +15,8 @@ export function GlobalMessageNotifier() {
   const messageChannelRef = useRef<RealtimeChannel | null>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
   const participatingConversationsRef = useRef<Set<string>>(new Set());
+  // Único por instância para não colidir no mesmo tópico do canal realtime.
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
 
   // Track which conversations the user is currently viewing
   // to avoid notifying when already watching the typing happen
@@ -59,7 +61,7 @@ export function GlobalMessageNotifier() {
 
     // ── 1. Listen for new messages ──────────────────────────────
     const messageChannel = supabase
-      .channel('global-message-notifications')
+      .channel(`global-message-notifications-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         {
@@ -106,7 +108,7 @@ export function GlobalMessageNotifier() {
     };
 
     const typingChannel = supabase
-      .channel('global-typing-notifications')
+      .channel(`global-typing-notifications-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'typing_indicators' },
