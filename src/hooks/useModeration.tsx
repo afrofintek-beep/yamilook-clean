@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Enums } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+
+interface PublicProfileLite {
+  id: string;
+  display_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+}
 
 export interface ContentReport {
   id: string;
@@ -82,12 +90,16 @@ export function useModeration() {
     // Enrich with reporter info
     if (data && data.length > 0) {
       const reporterIds = [...new Set(data.map(r => r.reporter_id))];
-      const { data: profiles } = await (supabase as any)
+      const { data: profiles } = await supabase
         .from('public_profiles')
         .select('id, display_name, username, avatar_url')
         .in('id', reporterIds);
 
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      const profileMap = new Map<string, PublicProfileLite>(
+        (profiles ?? [])
+          .filter((p): p is typeof p & { id: string } => p.id !== null)
+          .map(p => [p.id, { id: p.id, display_name: p.display_name, username: p.username, avatar_url: p.avatar_url }])
+      );
 
       return data.map(r => ({
         ...r,
@@ -135,12 +147,16 @@ export function useModeration() {
     // Enrich with moderator info
     if (data && data.length > 0) {
       const modIds = [...new Set(data.map(a => a.moderator_id))];
-      const { data: profiles } = await (supabase as any)
+      const { data: profiles } = await supabase
         .from('public_profiles')
         .select('id, display_name, username, avatar_url')
         .in('id', modIds);
 
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      const profileMap = new Map<string, PublicProfileLite>(
+        (profiles ?? [])
+          .filter((p): p is typeof p & { id: string } => p.id !== null)
+          .map(p => [p.id, { id: p.id, display_name: p.display_name, username: p.username, avatar_url: p.avatar_url }])
+      );
 
       return data.map(a => ({
         ...a,
@@ -163,13 +179,13 @@ export function useModeration() {
 
     const { error } = await supabase.from('moderation_actions').insert({
       moderator_id: user.id,
-      action_type: actionType as any,
+      action_type: actionType as Enums<'moderation_action_type'>,
       target_type: targetType,
       target_id: targetId,
       reason,
       report_id: reportId,
       details: details || null,
-    } as any);
+    });
 
     if (error) {
       console.error('Error logging moderation action:', error);
@@ -287,7 +303,7 @@ export function useModeration() {
     const { error } = await supabase
       .from('profiles')
       .update({
-        account_status: 'banned' as any,
+        account_status: 'banned',
         suspension_reason: reason,
       })
       .eq('id', targetUserId);
@@ -310,9 +326,9 @@ export function useModeration() {
       reporter_id: user.id,
       target_type: targetType,
       target_id: targetId,
-      category: category as any,
+      category: category as Enums<'report_category'>,
       description: description || null,
-    } as any);
+    });
 
     if (error) throw error;
     toast.success('Denúncia enviada. Obrigado por ajudar a manter a comunidade segura.');

@@ -9,7 +9,7 @@ export function useUserBanda() {
     queryKey: ['user-banda', user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('user_bandas')
         .select('banda_id, bandas:banda_id(id, name, city)')
         .eq('user_id', user!.id)
@@ -45,23 +45,25 @@ export function useWeeklyRanking(bandaId: string | undefined) {
         .limit(10);
       if (eErr) throw eErr;
 
-      const userIds = (entries ?? []).map((e: any) => e.user_id);
+      const userIds = (entries ?? []).map((e) => e.user_id);
       const profiles: Record<string, { display_name: string; level: string }> = {};
 
       if (userIds.length > 0) {
         const { data: pData } = await supabase
-          .from('public_profiles' as any)
+          .from('public_profiles')
           .select('id, display_name, level')
           .in('id', userIds);
-        (pData ?? []).forEach((p: any) => {
-          profiles[p.id] = { display_name: p.display_name, level: p.level };
+        (pData ?? []).forEach((p) => {
+          if (p.id) {
+            profiles[p.id] = { display_name: p.display_name ?? '', level: p.level ?? 'Bronze' };
+          }
         });
       }
 
       return {
         weekStart: ranking.week_start,
         weekEnd: ranking.week_end,
-        entries: (entries ?? []).map((e: any) => ({
+        entries: (entries ?? []).map((e) => ({
           position: e.position,
           userId: e.user_id,
           displayName: profiles[e.user_id]?.display_name ?? 'Utilizador',

@@ -91,7 +91,7 @@ export default function Notifications() {
 
         const profileMap = new Map(senderProfiles?.map(p => [p.id, p]) || []);
 
-        friendRequests.forEach((req: any) => {
+        friendRequests.forEach((req) => {
           const sender = profileMap.get(req.sender_id);
           allNotifications.push({
             id: `fr_${req.id}`,
@@ -135,7 +135,7 @@ export default function Notifications() {
 
         const profileMap = new Map(receiverProfiles?.map(p => [p.id, p]) || []);
 
-        acceptedRequests.forEach((req: any) => {
+        acceptedRequests.forEach((req) => {
           const receiver = profileMap.get(req.receiver_id);
           allNotifications.push({
             id: `fa_${req.id}`,
@@ -180,7 +180,7 @@ export default function Notifications() {
 
           const profileMap = new Map(reactorProfiles?.map(p => [p.id, p]) || []);
 
-          postReactions.forEach((reaction: any) => {
+          postReactions.forEach((reaction) => {
             const reactor = profileMap.get(reaction.user_id);
             const reactionEmoji = AFRICAN_REACTIONS.find(r => r.type === reaction.reaction_type)?.icon || '💛';
             allNotifications.push({
@@ -218,7 +218,7 @@ export default function Notifications() {
 
           const profileMap = new Map(commenterProfiles?.map(p => [p.id, p]) || []);
 
-          comments.forEach((comment: any) => {
+          comments.forEach((comment) => {
             const commenter = profileMap.get(comment.user_id);
             allNotifications.push({
               id: `cm_${comment.id}`,
@@ -253,7 +253,7 @@ export default function Notifications() {
 
         const profileMap = new Map(callerProfiles?.map(p => [p.id, p]) || []);
 
-        missedCalls.forEach((call: any) => {
+        missedCalls.forEach((call) => {
           const caller = profileMap.get(call.caller_id);
           allNotifications.push({
             id: `mc_${call.id}`,
@@ -300,14 +300,14 @@ export default function Notifications() {
           const profileMap = new Map(viewerProfiles?.map(p => [p.id, p]) || []);
 
           // Group by viewer to avoid duplicates
-          const viewerMap = new Map();
-          statusViews.forEach((view: any) => {
+          const viewerMap = new Map<string, (typeof statusViews)[number]>();
+          statusViews.forEach((view) => {
             if (!viewerMap.has(view.viewer_id)) {
               viewerMap.set(view.viewer_id, view);
             }
           });
 
-          viewerMap.forEach((view: any) => {
+          viewerMap.forEach((view) => {
             const viewer = profileMap.get(view.viewer_id);
             allNotifications.push({
               id: `sv_${view.id}`,

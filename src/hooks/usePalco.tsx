@@ -103,7 +103,7 @@ export function useRodasList(filters?: { status?: string; theme?: string }) {
     queryKey: ['rodas', filters],
     queryFn: async () => {
       let query = supabase
-        .from('rodas' as any)
+        .from('rodas')
         .select(`
           *,
           organizer:profiles!organizer_id(id, display_name, avatar_url, is_verified)
@@ -473,14 +473,14 @@ export function useUpdatePalco() {
       const prevPalcos = queryClient.getQueryData(['palcos']);
 
       // Optimistically update single palco cache
-      queryClient.setQueryData(['palco', id], (old: any) =>
+      queryClient.setQueryData(['palco', id], (old: Palco | undefined) =>
         old ? { ...old, ...updates } : old
       );
 
       // Optimistically update list caches
-      const updateList = (old: any) =>
+      const updateList = (old: Palco[] | undefined) =>
         Array.isArray(old)
-          ? old.map((p: any) => (p.id === id ? { ...p, ...updates } : p))
+          ? old.map((p) => (p.id === id ? { ...p, ...updates } : p))
           : old;
       queryClient.setQueryData(['my-palcos'], updateList);
       queryClient.setQueryData(['palcos'], updateList);

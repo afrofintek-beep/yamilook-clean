@@ -18,7 +18,7 @@ export function useActiveLiveSession() {
       if (error) throw error;
       if (!data) return null;
 
-      const { data: host } = await (supabase as any)
+      const { data: host } = await supabase
         .from('public_profiles')
         .select('display_name')
         .eq('id', data.host_id)
@@ -43,7 +43,7 @@ export function useBandaActiveCount() {
     enabled: !!user,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data: ub } = await (supabase as any)
+      const { data: ub } = await supabase
         .from('user_bandas')
         .select('banda_id')
         .eq('user_id', user!.id)
@@ -53,7 +53,7 @@ export function useBandaActiveCount() {
 
       if (!ub?.banda_id) return 0;
 
-      const { count, error } = await (supabase as any)
+      const { count, error } = await supabase
         .from('user_bandas')
         .select('user_id', { count: 'exact', head: true })
         .eq('banda_id', ub.banda_id)
@@ -74,7 +74,7 @@ export function useNovidadesCount() {
     enabled: !!user,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data: ub } = await (supabase as any)
+      const { data: ub } = await supabase
         .from('user_bandas')
         .select('banda_id')
         .eq('user_id', user!.id)
@@ -107,7 +107,7 @@ export function useLiveSpaces() {
     enabled: !!user,
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data: ub } = await (supabase as any)
+      const { data: ub } = await supabase
         .from('user_bandas')
         .select('banda_id')
         .eq('user_id', user!.id)
@@ -150,7 +150,7 @@ export function useSpaceRodas(spaceKey: string) {
     enabled: !!user,
     refetchInterval: 15_000,
     queryFn: async () => {
-      const { data: ub } = await (supabase as any)
+      const { data: ub } = await supabase
         .from('user_bandas')
         .select('banda_id')
         .eq('user_id', user!.id)

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Enums } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
@@ -34,7 +35,7 @@ export function useAppeals() {
       .limit(100);
 
     if (status && status !== 'all') {
-      query = query.eq('status', status as any);
+      query = query.eq('status', status as Enums<'appeal_status'>);
     }
 
     const { data, error } = await query;
@@ -80,7 +81,7 @@ export function useAppeals() {
       report_id: params.reportId || null,
       evidence_text: params.evidenceText || null,
       evidence_url: params.evidenceUrl || null,
-    } as any);
+    });
 
     if (error) throw error;
     toast.success('Apelação submetida. Será revista em breve.');
@@ -104,7 +105,7 @@ export function useAppeals() {
     const { error } = await supabase
       .from('moderation_appeals')
       .update({
-        status: decision as any,
+        status: decision,
         reviewed_by: user.id,
         reviewed_at: new Date().toISOString(),
         resolution_note: note,
@@ -118,7 +119,7 @@ export function useAppeals() {
       await supabase
         .from('user_strikes')
         .update({
-          status: 'revoked' as any,
+          status: 'revoked',
           revoked_by: user.id,
           revoked_at: new Date().toISOString(),
           revoke_reason: `Apelação aprovada: ${note}`,
@@ -128,13 +129,13 @@ export function useAppeals() {
 
     // Notify user of result
     await supabase.from('moderation_notifications').insert({
-      user_id: appeal?.user_id,
+      user_id: appeal.user_id,
       notification_type: 'appeal_result',
       title: decision === 'approved' ? 'Apelação aprovada ✓' : 'Apelação rejeitada',
       message: note,
       related_appeal_id: appealId,
       action_url: '/settings',
-    } as any);
+    });
 
     toast.success(decision === 'approved' ? 'Apelação aprovada' : 'Apelação rejeitada');
   }, [user]);

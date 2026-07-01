@@ -1,7 +1,15 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Enums } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+
+interface PublicProfileLite {
+  id: string;
+  display_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+}
 
 export interface Strike {
   id: string;
@@ -74,12 +82,16 @@ export function useStrikes() {
         ...data.map(s => s.user_id),
         ...data.map(s => s.issued_by),
       ])];
-      const { data: profiles } = await (supabase as any)
+      const { data: profiles } = await supabase
         .from('public_profiles')
         .select('id, display_name, username, avatar_url')
         .in('id', allIds);
 
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      const profileMap = new Map<string, PublicProfileLite>(
+        (profiles ?? [])
+          .filter((p): p is typeof p & { id: string } => p.id !== null)
+          .map(p => [p.id, { id: p.id, display_name: p.display_name, username: p.username, avatar_url: p.avatar_url }])
+      );
 
       return data.map(s => ({
         ...s,
@@ -117,14 +129,14 @@ export function useStrikes() {
     const { error } = await supabase.from('user_strikes').insert({
       user_id: params.userId,
       issued_by: user.id,
-      violation_category: params.violationCategory as any,
+      violation_category: params.violationCategory as Enums<'violation_category'>,
       severity: params.severity,
       reason: params.reason,
       content_type: params.contentType || null,
       content_id: params.contentId || null,
       report_id: params.reportId || null,
       evidence_url: params.evidenceUrl || null,
-    } as any);
+    });
 
     if (error) throw error;
 
@@ -148,7 +160,7 @@ export function useStrikes() {
       title: `Strike ${strikeCount} — ${VIOLATION_LABELS[params.violationCategory] || params.violationCategory}`,
       message: params.reason,
       action_url: '/settings',
-    } as any);
+    });
 
     toast.success(`Strike #${strikeCount} aplicado`);
     return strikeCount;
@@ -170,7 +182,7 @@ export function useStrikes() {
 
     if (action_type === 'ban') {
       await supabase.from('profiles').update({
-        account_status: 'banned' as any,
+        account_status: 'banned',
         suspension_reason: `Auto-ban: ${reason} (5 strikes)`,
       }).eq('id', userId);
 
@@ -180,7 +192,7 @@ export function useStrikes() {
         title: 'Conta banida',
         message: 'A tua conta foi permanentemente banida devido a violações repetidas das normas da comunidade.',
         action_url: '/settings',
-      } as any);
+      });
       return;
     }
 
@@ -199,7 +211,7 @@ export function useStrikes() {
         title: `Conta suspensa (${threshold.description})`,
         message: `A tua conta foi suspensa automaticamente. Podes apelar desta decisão.`,
         action_url: '/settings',
-      } as any);
+      });
     }
   }, []);
 
@@ -209,7 +221,7 @@ export function useStrikes() {
     const { error } = await supabase
       .from('user_strikes')
       .update({
-        status: 'revoked' as any,
+        status: 'revoked',
         revoked_by: user.id,
         revoked_at: new Date().toISOString(),
         revoke_reason: reason,
