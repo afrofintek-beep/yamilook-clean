@@ -858,7 +858,6 @@ export default function Onboarding() {
           </motion.div>
         );
 
-      case 'welcome':
       case 'birthday':
         return (
           <motion.div
@@ -963,7 +962,6 @@ export default function Onboarding() {
           </motion.div>
         );
 
-      case 'welcome':
       case 'banda':
         return (
           <motion.div
