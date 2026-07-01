@@ -74,12 +74,29 @@ export function useContacts() {
 
       // Batch fetch all profiles at once
       const contactUserIds = contactsData.map(c => c.contact_user_id);
-      const { data: profiles } = await (supabase as any)
+      const { data: profiles } = await supabase
         .from('public_profiles')
-        .select('id, display_name, username, avatar_url, bio, is_online, last_seen, status_message, gender')
+        .select('id, display_name, username, avatar_url, bio, is_online, last_seen, status_message')
         .in('id', contactUserIds);
 
-      const profileMap = new Map((profiles as any[] ?? []).map((p: any) => [p.id, p]));
+      const profileMap = new Map<string, Contact['profile']>(
+        (profiles ?? [])
+          .filter((p): p is typeof p & { id: string } => p.id !== null)
+          .map((p) => [
+            p.id,
+            {
+              id: p.id,
+              display_name: p.display_name ?? '',
+              username: p.username ?? '',
+              avatar_url: p.avatar_url,
+              bio: p.bio,
+              is_online: p.is_online ?? false,
+              last_seen: p.last_seen,
+              status_message: p.status_message,
+              gender: null,
+            },
+          ])
+      );
 
       const contactsWithProfiles: Contact[] = contactsData.map(contact => ({
         ...contact,
@@ -89,8 +106,8 @@ export function useContacts() {
       }));
 
       setContacts(contactsWithProfiles);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   }, [user]);
 
@@ -116,12 +133,25 @@ export function useContacts() {
       const userIds = [...new Set(requestsData.flatMap(r => [r.sender_id, r.receiver_id]))];
 
       // Batch fetch all profiles
-      const { data: profiles } = await (supabase as any)
+      const { data: profiles } = await supabase
         .from('public_profiles')
         .select('id, display_name, username, avatar_url, bio')
         .in('id', userIds);
 
-      const profileMap = new Map((profiles as any[] ?? []).map((p: any) => [p.id, p]));
+      const profileMap = new Map<string, FriendRequest['sender_profile']>(
+        (profiles ?? [])
+          .filter((p): p is typeof p & { id: string } => p.id !== null)
+          .map((p) => [
+            p.id,
+            {
+              id: p.id,
+              display_name: p.display_name ?? '',
+              username: p.username ?? '',
+              avatar_url: p.avatar_url,
+              bio: p.bio,
+            },
+          ])
+      );
 
       const requestsWithProfiles: FriendRequest[] = requestsData.map(request => ({
         ...request,
@@ -131,8 +161,8 @@ export function useContacts() {
       }));
 
       setFriendRequests(requestsWithProfiles);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   }, [user]);
 
@@ -433,7 +463,7 @@ export function useContacts() {
   const searchUsers = async (query: string) => {
     if (!user || !query.trim()) return [];
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('public_profiles')
       .select('id, display_name, username, avatar_url, bio')
       .neq('id', user.id)
