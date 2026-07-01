@@ -44,7 +44,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useStatus, StatusWithUser, GroupedStatuses } from '@/hooks/useStatus';
+import { useStatus, StatusWithUser, GroupedStatuses, StatusView } from '@/hooks/useStatus';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -78,11 +78,11 @@ export function StatusViewer({
   const [progress, setProgress] = useState(0);
   const [replyText, setReplyText] = useState('');
   const [showViewers, setShowViewers] = useState(false);
-  const [viewers, setViewers] = useState<any[]>([]);
+  const [viewers, setViewers] = useState<StatusView[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [userReaction, setUserReaction] = useState<string | null>(null);
-  const [statusReactions, setStatusReactions] = useState<any[]>([]);
+  const [statusReactions, setStatusReactions] = useState<Awaited<ReturnType<typeof getStatusReactions>>>([]);
   
   const progressRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -187,7 +187,7 @@ export function StatusViewer({
     }
   };
 
-  const handleSwipe = (e: any, info: PanInfo) => {
+  const handleSwipe = (e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (Math.abs(info.offset.y) > 100) {
       onClose();
     } else if (info.offset.x > 100) {

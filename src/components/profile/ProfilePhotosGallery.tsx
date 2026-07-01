@@ -99,7 +99,7 @@ export function ProfilePhotosGallery({
 
       toast.success('Photo added!');
       onPhotosUpdate();
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Failed to upload photo');
     } finally {
       setUploading(false);
@@ -129,7 +129,7 @@ export function ProfilePhotosGallery({
       }
       
       onPhotosUpdate();
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Failed to delete photo');
     } finally {
       setDeleting(false);
@@ -154,7 +154,7 @@ export function ProfilePhotosGallery({
       await refreshProfile();
       
       onPhotosUpdate();
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Failed to set as profile photo');
     }
   };

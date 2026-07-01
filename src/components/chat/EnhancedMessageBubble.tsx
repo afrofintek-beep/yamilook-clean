@@ -41,38 +41,40 @@ interface Reaction {
   users: string[];
 }
 
-interface EnhancedMessageBubbleProps {
-  message: {
+interface BubbleMessage {
+  id: string;
+  content: string | null;
+  message_type: string;
+  media_url: string | null;
+  is_deleted: boolean;
+  is_edited: boolean;
+  created_at: string;
+  sender_id: string;
+  reply_to_id: string | null;
+  duration_seconds?: number;
+  is_view_once?: boolean;
+  forwarded_from_id?: string | null;
+  delivered_at?: string | null;
+  read_by?: unknown;
+  sender_profile?: {
+    id: string;
+    display_name: string;
+    username: string;
+    avatar_url: string | null;
+  };
+  reply_to?: {
     id: string;
     content: string | null;
     message_type: string;
-    media_url: string | null;
-    is_deleted: boolean;
-    is_edited: boolean;
-    created_at: string;
-    sender_id: string;
-    reply_to_id: string | null;
-    duration_seconds?: number;
-    is_view_once?: boolean;
-    forwarded_from_id?: string | null;
-    delivered_at?: string | null;
-    read_by?: unknown;
     sender_profile?: {
-      id: string;
       display_name: string;
-      username: string;
       avatar_url: string | null;
     };
-    reply_to?: {
-      id: string;
-      content: string | null;
-      message_type: string;
-      sender_profile?: {
-        display_name: string;
-        avatar_url: string | null;
-      };
-    };
   };
+}
+
+interface EnhancedMessageBubbleProps {
+  message: BubbleMessage;
   reactions: Reaction[];
   isOwn: boolean;
   isStarred: boolean;
@@ -82,7 +84,7 @@ interface EnhancedMessageBubbleProps {
   isGroupChat?: boolean;
   currentUserId: string;
   onDelete?: (id: string) => Promise<void>;
-  onReply?: (message: any) => void;
+  onReply?: (message: BubbleMessage) => void;
   onReact?: (messageId: string, emoji: string) => Promise<void>;
   onStar?: (messageId: string) => Promise<void>;
   onPin?: (messageId: string) => Promise<void>;
@@ -219,7 +221,7 @@ export function EnhancedMessageBubble({
   }, [selectionMode]);
 
   // Swipe to reply handler
-  const handleDrag = useCallback((_: any, info: PanInfo) => {
+  const handleDrag = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Trigger haptic feedback when threshold is reached
     if (info.offset.x > 50 && !replyTriggered.current) {
       replyTriggered.current = true;
@@ -231,7 +233,7 @@ export function EnhancedMessageBubble({
     }
   }, []);
 
-  const handleDragEnd = useCallback((_: any, info: PanInfo) => {
+  const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (info.offset.x > 50 && onReply) {
       onReply(message);
       if (navigator.vibrate) {

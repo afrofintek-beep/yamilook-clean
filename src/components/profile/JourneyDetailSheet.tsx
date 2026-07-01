@@ -144,7 +144,7 @@ export function JourneyDetailSheet({ open, onOpenChange, type, userId }: Journey
               .order('created_at', { ascending: false })
               .limit(20);
 
-            const formattedMessages = (messagesData || []).map((m: any) => ({
+            const formattedMessages = (messagesData || []).map((m) => ({
               id: m.id,
               conversation_name: m.conversations?.name || 'Conversa',
               last_message: m.content || '[Media]',
@@ -167,7 +167,7 @@ export function JourneyDetailSheet({ open, onOpenChange, type, userId }: Journey
               .order('joined_at', { ascending: false })
               .limit(20);
 
-            const callerIds = [...new Set((callsData || []).map((c: any) => c.calls?.caller_id).filter(Boolean))];
+            const callerIds = [...new Set((callsData || []).map((c) => c.calls?.caller_id).filter(Boolean))];
             const profileMap = new Map<string, string>();
             if (callerIds.length > 0) {
               const { data: profiles } = await supabase
@@ -177,7 +177,7 @@ export function JourneyDetailSheet({ open, onOpenChange, type, userId }: Journey
               profiles?.forEach(p => profileMap.set(p.id, p.display_name));
             }
 
-            const formattedCalls = (callsData || []).map((c: any) => ({
+            const formattedCalls = (callsData || []).map((c) => ({
               id: c.id,
               caller_name: profileMap.get(c.calls?.caller_id) || 'Utilizador',
               call_type: c.calls?.type || 'audio',

@@ -26,20 +26,22 @@ export function useLiveSessions() {
       const { data, error } = await query;
       if (error) throw error;
 
-      const sessions = data || [];
+      const sessions: LiveSession[] = data || [];
 
       if (sessions.length > 0) {
         const hostIds = [...new Set(sessions.map(s => s.host_id))];
-        const { data: hosts } = await (supabase as any)
+        const { data: hosts } = await supabase
           .from('public_profiles')
           .select('id, display_name, avatar_url')
           .in('id', hostIds);
 
         const hostMap: Record<string, { id: string; display_name: string; avatar_url: string | null }> = {};
-        (hosts ?? []).forEach((h: any) => { hostMap[h.id] = h; });
+        (hosts ?? []).forEach((h) => {
+          if (h.id) hostMap[h.id] = { id: h.id, display_name: h.display_name ?? '', avatar_url: h.avatar_url };
+        });
 
-        sessions.forEach((s: any) => {
-          s.host = hostMap[s.host_id] ?? null;
+        sessions.forEach((s) => {
+          s.host = hostMap[s.host_id] ?? undefined;
         });
       }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface Status {
   id: string;
@@ -12,7 +13,7 @@ export interface Status {
   music_url: string | null;
   music_title: string | null;
   caption: string | null;
-  stickers: any[];
+  stickers: Json;
   privacy: 'everyone' | 'contacts' | 'close_friends' | 'only_me';
   created_at: string;
   expires_at: string;
@@ -41,6 +42,18 @@ export interface GroupedStatuses {
   statuses: StatusWithUser[];
   has_unviewed: boolean;
   latest_at: string;
+}
+
+interface StatusViewerProfile {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+export interface StatusView {
+  viewer_id: string;
+  viewed_at: string;
+  viewer: StatusViewerProfile | null;
 }
 
 export function useStatus() {
@@ -218,7 +231,7 @@ export function useStatus() {
       mediaFile?: File;
       background?: string;
       caption?: string;
-      stickers?: any[];
+      stickers?: Json;
       privacy?: 'everyone' | 'contacts' | 'close_friends' | 'only_me';
     }
   ) => {
@@ -324,7 +337,7 @@ export function useStatus() {
   }, [user]);
 
   // Get status views
-  const getStatusViews = useCallback(async (statusId: string) => {
+  const getStatusViews = useCallback(async (statusId: string): Promise<StatusView[]> => {
     const { data } = await supabase
       .from('status_views')
       .select(`
@@ -342,7 +355,7 @@ export function useStatus() {
     return data?.map(v => ({
       viewer_id: v.viewer_id,
       viewed_at: v.viewed_at,
-      viewer: v.profiles as any,
+      viewer: Array.isArray(v.profiles) ? v.profiles[0] ?? null : v.profiles,
     })) || [];
   }, []);
 

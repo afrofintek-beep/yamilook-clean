@@ -186,8 +186,8 @@ export function GroupAdminSheet({
       toast({ title: 'Nome do grupo atualizado' });
       setEditingName(false);
       onGroupUpdated();
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
     } finally {
       setSavingName(false);
     }
@@ -230,8 +230,8 @@ export function GroupAdminSheet({
 
       toast({ title: 'Foto do grupo atualizada' });
       onGroupUpdated();
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
     } finally {
       setUploadingPhoto(false);
     }
@@ -255,8 +255,8 @@ export function GroupAdminSheet({
       toast({ title: 'Membro adicionado' });
       fetchParticipants();
       onGroupUpdated();
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
     } finally {
       setAddingMember(null);
     }
@@ -284,8 +284,8 @@ export function GroupAdminSheet({
           toast({ title: 'Membro removido' });
           fetchParticipants();
           onGroupUpdated();
-        } catch (err: any) {
-          toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+        } catch (err) {
+          toast({ title: 'Erro', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
         }
       },
     });
@@ -314,8 +314,8 @@ export function GroupAdminSheet({
 
           toast({ title: role === 'admin' ? 'Membro promovido a admin' : 'Admin removido' });
           fetchParticipants();
-        } catch (err: any) {
-          toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+        } catch (err) {
+          toast({ title: 'Erro', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
         }
       },
     });

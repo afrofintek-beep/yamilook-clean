@@ -43,7 +43,7 @@ interface Reaction {
   users: string[];
 }
 
-interface Conversation {
+export interface Conversation {
   id: string;
   type: string;
   name: string | null;
@@ -64,6 +64,10 @@ interface Conversation {
   }[];
   last_message?: Message;
   unread_count?: number;
+  // NOTE: is_pinned/is_muted live on conversation_participants, not conversations.
+  // They are currently NOT populated by useConversations (latent bug); typed as optional.
+  is_pinned?: boolean | null;
+  is_muted?: boolean | null;
 }
 
 interface TypingUser {

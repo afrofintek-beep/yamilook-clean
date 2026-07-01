@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import type { Tables } from '@/integrations/supabase/types';
 import { logger } from '@/lib/logger';
 
 interface UserStatus {
@@ -117,7 +118,7 @@ export function useOnlineStatus() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
         async (payload) => {
-          const newPref = (payload.new as any)?.show_online_status;
+          const newPref = (payload.new as Tables<'profiles'>)?.show_online_status;
           if (typeof newPref === 'boolean') {
             wantsOnlineRef.current = newPref;
             if (!newPref) {
@@ -215,7 +216,7 @@ export function useUserStatus(userId: string | null) {
           filter: `id=eq.${userId}`,
         },
         (payload) => {
-          const { is_online, last_seen, show_online_status, show_last_seen } = payload.new as any;
+          const { is_online, last_seen, show_online_status, show_last_seen } = payload.new as Tables<'profiles'>;
           setStatus({
             is_online: is_online ?? false,
             last_seen,
@@ -300,7 +301,7 @@ export function useMultipleUserStatus(userIds: string[]) {
           table: 'profiles',
         },
         (payload) => {
-          const { id, is_online, last_seen, show_online_status, show_last_seen } = payload.new as any;
+          const { id, is_online, last_seen, show_online_status, show_last_seen } = payload.new as Tables<'profiles'>;
           if (userIds.includes(id)) {
             setStatuses((prev) => ({
               ...prev,

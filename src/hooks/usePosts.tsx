@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { ReactionCounts, createEmptyReactionCounts, normalizeReactionType } from '@/lib/reactions';
+import type { Tables } from '@/integrations/supabase/types';
 
 export interface Post {
   id: string;
@@ -85,7 +86,7 @@ export function usePosts() {
   const [loading, setLoading] = useState(true);
 
   // Batch fetch posts with user data, likes, saves, reaction counts, and topics
-  const fetchPostsWithDetails = async (posts: any[]): Promise<PostWithUser[]> => {
+  const fetchPostsWithDetails = async (posts: Tables<'posts'>[]): Promise<PostWithUser[]> => {
     if (!posts.length) return [];
 
     // Get unique user IDs
@@ -97,7 +98,7 @@ export function usePosts() {
       p_ids: userIds,
     });
 
-    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
 
     // Batch fetch likes and saves for current user + all reactions for counts
     const likesMap = new Map<string, string>();
@@ -220,7 +221,7 @@ export function usePosts() {
 
     // Merge and deduplicate by id, then sort by created_at desc
     const seenIds = new Set<string>();
-    const merged: any[] = [];
+    const merged: Tables<'posts'>[] = [];
     for (const post of [...(contactsResult.data || []), ...(publicResult.data || [])]) {
       if (!seenIds.has(post.id)) {
         seenIds.add(post.id);
@@ -528,7 +529,7 @@ export function usePosts() {
     // Batch fetch all user profiles and reactions
     const userIds = [...new Set(data.map(c => c.user_id))];
     const [profilesResult, reactionsResult, myReactionsResult] = await Promise.all([
-      (supabase as any)
+      supabase
         .from('public_profiles')
         .select('id, display_name, avatar_url, username')
         .in('id', userIds),

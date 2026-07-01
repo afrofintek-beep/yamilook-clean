@@ -14,7 +14,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { useConversations } from '@/hooks/useChat';
+import { useConversations, type Conversation } from '@/hooks/useChat';
 import { SwipeableConversationItem } from '@/components/chat/SwipeableConversationItem';
 import { NewChatSheet } from '@/components/chat/NewChatSheet';
 import { GlobalSearch } from '@/components/chat/GlobalSearch';
@@ -194,7 +194,7 @@ export default function Home() {
     navigate(`/chat/${conversationId}?focus=input`);
   }, [navigate]);
 
-  const handleCopy = useCallback((conversation: any) => {
+  const handleCopy = useCallback((conversation: Conversation) => {
     const lastMessage = conversation.last_message?.content;
     if (lastMessage) {
       navigator.clipboard.writeText(lastMessage);
@@ -202,7 +202,7 @@ export default function Home() {
     }
   }, [toast]);
 
-  const handleForward = useCallback((conversation: any) => {
+  const handleForward = useCallback((conversation: Conversation) => {
     const lastMessage = conversation.last_message;
     if (lastMessage?.content) {
       setMessageToForward({
@@ -323,15 +323,15 @@ export default function Home() {
                     conversation={conversation}
                     currentUserId={user?.id || ''}
                     onClick={() => navigate(`/chat/${conversation.id}`)}
-                    isPinned={(conversation as any).is_pinned}
-                    isMuted={(conversation as any).is_muted}
+                    isPinned={conversation.is_pinned ?? undefined}
+                    isMuted={conversation.is_muted ?? undefined}
                     isSelectionMode={selectionMode}
                     isSelected={selectedIds.has(conversation.id)}
                     onSelect={toggleSelection}
                     onEnterSelectionMode={enterSelectionModeWithItem}
                     onDelete={() => handleDelete(conversation.id)}
-                    onPin={() => handlePin(conversation.id, (conversation as any).is_pinned)}
-                    onMute={() => handleMute(conversation.id, (conversation as any).is_muted)}
+                    onPin={() => handlePin(conversation.id, conversation.is_pinned ?? false)}
+                    onMute={() => handleMute(conversation.id, conversation.is_muted ?? false)}
                     onReply={() => handleReply(conversation.id)}
                     onCopy={() => handleCopy(conversation)}
                     onForward={() => handleForward(conversation)}

@@ -46,6 +46,7 @@ import {
   Archive,
   Calendar,
   MapPin,
+  type LucideIcon,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -302,7 +303,7 @@ export default function Settings() {
     badge,
     delay = 0,
   }: {
-    icon: any;
+    icon: LucideIcon;
     label: string;
     description?: string;
     onClick?: () => void;
@@ -1062,8 +1063,8 @@ export default function Settings() {
 
               <div className="px-4 pb-4">
                 <Select
-                  value={(settings as any)?.show_banda ?? 'everyone'}
-                  onValueChange={(v) => updateSettings({ show_banda: v } as any)}
+                  value={settings?.show_banda ?? 'everyone'}
+                  onValueChange={(v) => updateSettings({ show_banda: v })}
                 >
                   <SelectTrigger className="w-full">
                     <div className="flex items-center gap-2">
