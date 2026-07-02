@@ -21,6 +21,9 @@ const mockGetStatusViews = vi.fn().mockResolvedValue([
   },
 ]);
 const mockToggleMuteContact = vi.fn();
+const mockReactToStatus = vi.fn().mockResolvedValue(undefined);
+const mockGetStatusReactions = vi.fn().mockResolvedValue([]);
+const mockGetUserReaction = vi.fn().mockResolvedValue(null);
 
 vi.mock('@/hooks/useStatus', () => ({
   useStatus: vi.fn(() => ({
@@ -30,6 +33,9 @@ vi.mock('@/hooks/useStatus', () => ({
     archiveStatus: mockArchiveStatus,
     getStatusViews: mockGetStatusViews,
     toggleMuteContact: mockToggleMuteContact,
+    reactToStatus: mockReactToStatus,
+    getStatusReactions: mockGetStatusReactions,
+    getUserReaction: mockGetUserReaction,
   })),
 }));
 
@@ -178,7 +184,8 @@ describe('StatusViewer', () => {
 
     it('should show "Your Status" for own status', () => {
       renderStatusViewer({ isOwnStatus: true });
-      expect(screen.getByText('Your Status')).toBeInTheDocument();
+      // PT label for the current user's own status.
+      expect(screen.getByText('O Teu Estado')).toBeInTheDocument();
     });
   });
 
@@ -193,8 +200,8 @@ describe('StatusViewer', () => {
       });
       renderStatusViewer({ initialGroup: group, allGroups: [group] });
       
-      // Should have 3 progress bars
-      const progressBars = document.querySelectorAll('.bg-white\\/30');
+      // Should have 3 progress bar tracks (one per status).
+      const progressBars = document.querySelectorAll('.bg-white\\/40');
       expect(progressBars.length).toBe(3);
     });
   });
@@ -276,18 +283,19 @@ describe('StatusViewer', () => {
   describe('Reply Functionality', () => {
     it('should show reply input for contact status', () => {
       renderStatusViewer({ isOwnStatus: false });
-      expect(screen.getByPlaceholderText('Reply...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Responder...')).toBeInTheDocument();
     });
 
     it('should show views button for own status', () => {
       renderStatusViewer({ isOwnStatus: true });
-      expect(screen.getByText(/views/)).toBeInTheDocument();
+      // PT: "<count> visualizações"
+      expect(screen.getByText(/visualizações/)).toBeInTheDocument();
     });
 
     it('should call replyToStatus when sending reply', async () => {
       renderStatusViewer({ isOwnStatus: false });
       
-      const input = screen.getByPlaceholderText('Reply...');
+      const input = screen.getByPlaceholderText('Responder...');
       fireEvent.change(input, { target: { value: 'Nice status!' } });
       
       const sendButton = screen.getAllByRole('button').find(btn =>
@@ -317,14 +325,14 @@ describe('StatusViewer', () => {
   describe('Status Views', () => {
     it('should show view count for own status', () => {
       renderStatusViewer({ isOwnStatus: true });
-      expect(screen.getByText('10 views')).toBeInTheDocument();
+      expect(screen.getByText('10 visualizações')).toBeInTheDocument();
     });
 
     it('should open viewers sheet when clicking views', async () => {
       renderStatusViewer({ isOwnStatus: true });
-      
-      fireEvent.click(screen.getByText('10 views'));
-      
+
+      fireEvent.click(screen.getByText('10 visualizações'));
+
       await waitFor(() => {
         expect(mockGetStatusViews).toHaveBeenCalledWith('status-1');
       });

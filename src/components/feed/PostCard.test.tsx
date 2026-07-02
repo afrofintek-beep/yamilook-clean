@@ -4,10 +4,11 @@ import { render, screen, fireEvent, waitFor } from '@/test/test-utils';
 import { PostCard } from './PostCard';
 import { mockSupabaseClient, resetMocks } from '@/test/mocks/supabase';
 
-// Mock the supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabaseClient,
-}));
+// Mock the supabase client (async factory + dynamic import to avoid hoisting issues)
+vi.mock('@/integrations/supabase/client', async () => {
+  const { mockSupabaseClient } = await import('@/test/mocks/supabase');
+  return { supabase: mockSupabaseClient };
+});
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -124,8 +125,8 @@ describe('PostCard', () => {
 
   it('renders media image', () => {
     render(<PostCard post={mockPost} />);
-    const images = screen.getAllByRole('img');
-    const mediaImage = images.find(img => img.getAttribute('src') === 'https://example.com/image.jpg');
+    // Media images in the carousel use an empty alt (presentational), so query by src.
+    const mediaImage = document.querySelector('img[src="https://example.com/image.jpg"]');
     expect(mediaImage).toBeInTheDocument();
   });
 
@@ -142,7 +143,7 @@ describe('PostCard', () => {
     expect(images.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('shows +X overlay for more than 4 media items', () => {
+  it('renders all media items in a carousel with a counter', () => {
     const postWithManyMedia = {
       ...mockPost,
       media_urls: [
@@ -155,22 +156,28 @@ describe('PostCard', () => {
       ],
     };
     render(<PostCard post={postWithManyMedia} />);
-    expect(screen.getByText('+2')).toBeInTheDocument();
+    // The media carousel renders every item and shows an "index/total" counter.
+    const mediaImages = document.querySelectorAll('img[src^="https://example.com/image"]');
+    expect(mediaImages.length).toBe(6);
+    expect(screen.getByText('1/6')).toBeInTheDocument();
   });
 
   it('calls toggleLike when like button is clicked', async () => {
     render(<PostCard post={mockPost} />);
-    
-    // Find the heart button (like button)
+
+    // The like button contains the default reaction icon labelled "React".
     const buttons = screen.getAllByRole('button');
-    const likeButton = buttons.find(btn => btn.querySelector('svg'));
-    
-    if (likeButton) {
-      fireEvent.click(likeButton);
-      await waitFor(() => {
-        expect(mockToggleLike).toHaveBeenCalledWith('post-1', 'sankofa');
-      });
-    }
+    const likeButton = buttons.find(btn => btn.querySelector('[aria-label="React"]'));
+    expect(likeButton).toBeDefined();
+
+    // jsdom exposes `ontouchstart`, so the component treats it as a touch device
+    // and drives quick-react through touchStart/touchEnd (a short, non-long-press tap).
+    fireEvent.touchStart(likeButton!);
+    fireEvent.touchEnd(likeButton!);
+
+    await waitFor(() => {
+      expect(mockToggleLike).toHaveBeenCalledWith('post-1', 'sankofa');
+    });
   });
 
   it('shows filled bookmark when post is saved', () => {
@@ -207,42 +214,41 @@ describe('PostCard', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/profile/user-1');
   });
 
+  const openOptionsMenu = () => {
+    // The options menu trigger is the Radix dropdown button (aria-haspopup="menu").
+    const menuButton = screen.getAllByRole('button').find(
+      btn => btn.getAttribute('aria-haspopup') === 'menu'
+    );
+    expect(menuButton).toBeDefined();
+    // Radix DropdownMenu opens on pointerdown in jsdom.
+    fireEvent.pointerDown(
+      menuButton!,
+      new window.PointerEvent('pointerdown', { bubbles: true, button: 0 })
+    );
+    fireEvent.click(menuButton!);
+  };
+
   it('shows delete option for post owner', async () => {
     const ownPost = { ...mockPost, user_id: 'test-user-id' };
     render(<PostCard post={ownPost} />);
-    
-    // Find and click the more options button
-    const moreButton = screen.getByRole('button', { name: '' });
-    // Find button with MoreHorizontal icon
-    const buttons = screen.getAllByRole('button');
-    const menuButton = buttons.find(btn => 
-      btn.classList.contains('rounded-full') && !btn.textContent
-    );
-    
-    if (menuButton) {
-      fireEvent.click(menuButton);
-      
-      await waitFor(() => {
-        expect(screen.getByText('Delete post')).toBeInTheDocument();
-      });
-    }
+
+    openOptionsMenu();
+
+    await waitFor(() => {
+      // PT label for the delete action.
+      expect(screen.getByText('Apagar publicação')).toBeInTheDocument();
+    });
   });
 
   it('shows report option for non-owner', async () => {
     render(<PostCard post={mockPost} />);
-    
-    const buttons = screen.getAllByRole('button');
-    const menuButton = buttons.find(btn => 
-      btn.classList.contains('rounded-full') && !btn.textContent?.trim()
-    );
-    
-    if (menuButton) {
-      fireEvent.click(menuButton);
-      
-      await waitFor(() => {
-        expect(screen.getByText('Report')).toBeInTheDocument();
-      });
-    }
+
+    openOptionsMenu();
+
+    await waitFor(() => {
+      // PT label for the report action.
+      expect(screen.getByText('Denunciar')).toBeInTheDocument();
+    });
   });
 
   it('shows reaction emoji when post is liked', () => {

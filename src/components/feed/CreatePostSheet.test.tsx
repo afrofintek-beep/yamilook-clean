@@ -4,10 +4,11 @@ import { render, screen, fireEvent, waitFor } from '@/test/test-utils';
 import { CreatePostSheet } from './CreatePostSheet';
 import { mockSupabaseClient, resetMocks } from '@/test/mocks/supabase';
 
-// Mock the supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabaseClient,
-}));
+// Mock the supabase client (async factory + dynamic import to avoid hoisting issues)
+vi.mock('@/integrations/supabase/client', async () => {
+  const { mockSupabaseClient } = await import('@/test/mocks/supabase');
+  return { supabase: mockSupabaseClient };
+});
 
 // Mock usePosts
 const mockCreatePost = vi.fn();
@@ -32,6 +33,8 @@ const mockToast = vi.fn();
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
     toast: mockToast,
+    toasts: [],
+    dismiss: vi.fn(),
   }),
 }));
 
@@ -77,7 +80,7 @@ describe('CreatePostSheet', () => {
   it('publish button is enabled when content is entered', () => {
     render(<CreatePostSheet {...defaultProps} />);
     
-    const textarea = screen.getByPlaceholderText("What's on your mind?");
+    const textarea = screen.getByPlaceholderText("O que se passa na tua vizinhança?");
     fireEvent.change(textarea, { target: { value: 'Test post content' } });
     
     const publishButton = screen.getByText('Publicar');
@@ -100,7 +103,7 @@ describe('CreatePostSheet', () => {
 
   it('renders privacy selector', () => {
     render(<CreatePostSheet {...defaultProps} />);
-    expect(screen.getByText('Contacts')).toBeInTheDocument();
+    expect(screen.getByText('Contactos')).toBeInTheDocument();
   });
 
   it('renders character counter', () => {
@@ -111,17 +114,19 @@ describe('CreatePostSheet', () => {
   it('updates character counter as user types', () => {
     render(<CreatePostSheet {...defaultProps} />);
     
-    const textarea = screen.getByPlaceholderText("What's on your mind?");
+    const textarea = screen.getByPlaceholderText("O que se passa na tua vizinhança?");
     fireEvent.change(textarea, { target: { value: 'Hello' } });
     
     expect(screen.getByText('5/2000')).toBeInTheDocument();
   });
 
   it('renders media action buttons', () => {
-    const { container } = render(<CreatePostSheet {...defaultProps} />);
-    
-    // Should have image, video, location, and emoji buttons
-    const actionButtons = container.querySelectorAll('button[class*="ghost"]');
+    render(<CreatePostSheet {...defaultProps} />);
+
+    // Should have image, video, location, and emoji buttons.
+    // Sheet content is portaled to document.body, so query there.
+    const actionBar = document.body.querySelector('[data-testid="post-action-buttons"]');
+    const actionButtons = actionBar?.querySelectorAll('button') ?? [];
     expect(actionButtons.length).toBeGreaterThanOrEqual(4);
   });
 
@@ -138,7 +143,7 @@ describe('CreatePostSheet', () => {
     
     render(<CreatePostSheet {...defaultProps} />);
     
-    const textarea = screen.getByPlaceholderText("What's on your mind?");
+    const textarea = screen.getByPlaceholderText("O que se passa na tua vizinhança?");
     fireEvent.change(textarea, { target: { value: 'My new post' } });
     
     const publishButton = screen.getByText('Publicar');
@@ -153,7 +158,7 @@ describe('CreatePostSheet', () => {
     
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Posted!',
+        title: 'Publicado!',
       }));
     });
     
@@ -169,7 +174,7 @@ describe('CreatePostSheet', () => {
     
     render(<CreatePostSheet {...defaultProps} />);
     
-    const textarea = screen.getByPlaceholderText("What's on your mind?");
+    const textarea = screen.getByPlaceholderText("O que se passa na tua vizinhança?");
     fireEvent.change(textarea, { target: { value: 'Test post' } });
     
     const publishButton = screen.getByText('Publicar');
@@ -185,7 +190,7 @@ describe('CreatePostSheet', () => {
     
     render(<CreatePostSheet {...defaultProps} />);
     
-    const textarea = screen.getByPlaceholderText("What's on your mind?");
+    const textarea = screen.getByPlaceholderText("O que se passa na tua vizinhança?");
     fireEvent.change(textarea, { target: { value: 'Test post' } });
     
     const publishButton = screen.getByText('Publicar');
@@ -193,75 +198,97 @@ describe('CreatePostSheet', () => {
     
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Failed to post',
+        title: 'Falha ao publicar',
         variant: 'destructive',
       }));
     });
   });
 
+  // Set up geolocation + reverse-geocoding so location resolves to "San Francisco, CA".
+  const mockGeolocationSuccess = () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: (success: PositionCallback) =>
+          success({
+            coords: { latitude: 37.7749, longitude: -122.4194 },
+          } as GeolocationPosition),
+      },
+    });
+    Object.defineProperty(navigator, 'permissions', {
+      configurable: true,
+      value: {
+        query: vi.fn().mockResolvedValue({ state: 'granted' }),
+      },
+    });
+    global.fetch = vi.fn().mockResolvedValue({
+      json: async () => ({ address: { city: 'San Francisco', country: 'CA' } }),
+    } as Response);
+  };
+
   it('adds location when location button is clicked', async () => {
+    mockGeolocationSuccess();
     render(<CreatePostSheet {...defaultProps} />);
-    
+
     // Find location button (MapPin icon)
     const buttons = screen.getAllByRole('button');
-    const locationButton = buttons.find(btn => 
+    const locationButton = buttons.find(btn =>
       btn.querySelector('svg.text-red-500')
     );
-    
-    if (locationButton) {
-      fireEvent.click(locationButton);
-      
-      await waitFor(() => {
-        expect(screen.getByText('San Francisco, CA')).toBeInTheDocument();
-      });
-    }
+
+    expect(locationButton).toBeDefined();
+    fireEvent.click(locationButton!);
+
+    await waitFor(() => {
+      expect(screen.getByText('San Francisco, CA')).toBeInTheDocument();
+    });
   });
 
   it('removes location when X is clicked', async () => {
+    mockGeolocationSuccess();
     render(<CreatePostSheet {...defaultProps} />);
-    
+
     // First add location
     const buttons = screen.getAllByRole('button');
-    const locationButton = buttons.find(btn => 
+    const locationButton = buttons.find(btn =>
       btn.querySelector('svg.text-red-500')
     );
-    
-    if (locationButton) {
-      fireEvent.click(locationButton);
-      
-      await waitFor(() => {
-        expect(screen.getByText('San Francisco, CA')).toBeInTheDocument();
-      });
-      
-      // Find and click remove button
-      const removeButtons = screen.getAllByRole('button');
-      const removeLocationButton = removeButtons.find(btn => 
-        btn.classList.contains('w-5') && btn.classList.contains('h-5')
-      );
-      
-      if (removeLocationButton) {
-        fireEvent.click(removeLocationButton);
-        
-        await waitFor(() => {
-          expect(screen.queryByText('San Francisco, CA')).not.toBeInTheDocument();
-        });
-      }
-    }
+
+    expect(locationButton).toBeDefined();
+    fireEvent.click(locationButton!);
+
+    await waitFor(() => {
+      expect(screen.getByText('San Francisco, CA')).toBeInTheDocument();
+    });
+
+    // Find and click remove button
+    const removeButtons = screen.getAllByRole('button');
+    const removeLocationButton = removeButtons.find(btn =>
+      btn.classList.contains('w-5') && btn.classList.contains('h-5')
+    );
+
+    expect(removeLocationButton).toBeDefined();
+    fireEvent.click(removeLocationButton!);
+
+    await waitFor(() => {
+      expect(screen.queryByText('San Francisco, CA')).not.toBeInTheDocument();
+    });
   });
 
   it('has hidden file input for media uploads', () => {
-    const { container } = render(<CreatePostSheet {...defaultProps} />);
-    
-    const fileInput = container.querySelector('input[type="file"]');
+    render(<CreatePostSheet {...defaultProps} />);
+
+    // Sheet content is portaled to document.body, so query there.
+    const fileInput = document.body.querySelector('input[type="file"]');
     expect(fileInput).toBeInTheDocument();
     expect(fileInput).toHaveClass('hidden');
     expect(fileInput).toHaveAttribute('accept', 'image/*,video/*');
   });
 
   it('allows multiple file selection', () => {
-    const { container } = render(<CreatePostSheet {...defaultProps} />);
-    
-    const fileInput = container.querySelector('input[type="file"]');
+    render(<CreatePostSheet {...defaultProps} />);
+
+    const fileInput = document.body.querySelector('input[type="file"]');
     expect(fileInput).toHaveAttribute('multiple');
   });
 
@@ -273,14 +300,16 @@ describe('CreatePostSheet', () => {
   it('has auto focus on textarea', () => {
     render(<CreatePostSheet {...defaultProps} />);
     
-    const textarea = screen.getByPlaceholderText("What's on your mind?");
-    expect(textarea).toHaveAttribute('autofocus');
+    // React's autoFocus prop focuses the element on mount rather than emitting
+    // an `autofocus` HTML attribute, so assert focus instead.
+    const textarea = screen.getByPlaceholderText("O que se passa na tua vizinhança?");
+    expect(textarea).toHaveFocus();
   });
 
   it('shows privacy options in select', async () => {
     render(<CreatePostSheet {...defaultProps} />);
     
     // The default should be "Contacts"
-    expect(screen.getByText('Contacts')).toBeInTheDocument();
+    expect(screen.getByText('Contactos')).toBeInTheDocument();
   });
 });

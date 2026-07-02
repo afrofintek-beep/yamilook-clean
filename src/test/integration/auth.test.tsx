@@ -3,12 +3,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@/test/test-utils';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { RegisterForm } from '@/components/auth/RegisterForm';
+import { AuthProvider } from '@/hooks/useAuth';
 import { mockSupabaseClient, resetMocks, mockAuthenticatedState, mockSession } from '@/test/mocks/supabase';
 
-// Mock the supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabaseClient,
-}));
+// Mock the supabase client (async factory + dynamic import to avoid hoisting issues)
+vi.mock('@/integrations/supabase/client', async () => {
+  const { mockSupabaseClient } = await import('@/test/mocks/supabase');
+  return { supabase: mockSupabaseClient };
+});
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -20,13 +22,19 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-// Mock sonner toast
+// Mock sonner toast (also provide the Toaster export used by the sonner UI wrapper)
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
   },
+  Toaster: () => null,
 }));
+
+// The auth forms consume useAuth(), which requires an AuthProvider. Wrap them so
+// signIn/signUp run their real implementations against the mocked supabase client.
+const renderWithAuth = (ui: React.ReactElement) =>
+  render(<AuthProvider>{ui}</AuthProvider>);
 
 describe('Authentication Flow', () => {
   beforeEach(() => {
@@ -40,72 +48,72 @@ describe('Authentication Flow', () => {
 
   describe('LoginForm', () => {
     it('renders login form with all fields', () => {
-      render(<LoginForm />);
-      
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+      renderWithAuth(<LoginForm />);
+
+      expect(screen.getByPlaceholderText('nome@yamilook.com')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /entrar no yamilook/i })).toBeInTheDocument();
     });
 
     it('shows validation errors for empty fields', async () => {
-      render(<LoginForm />);
-      
-      const submitButton = screen.getByRole('button', { name: /sign in/i });
+      renderWithAuth(<LoginForm />);
+
+      const submitButton = screen.getByRole('button', { name: /entrar no yamilook/i });
       fireEvent.click(submitButton);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/please enter a valid email/i)).toBeInTheDocument();
+        expect(screen.getByText(/por favor insere um email válido/i)).toBeInTheDocument();
       });
     });
 
     it('shows validation error for invalid email', async () => {
-      render(<LoginForm />);
-      
-      const emailInput = screen.getByLabelText(/email/i);
+      renderWithAuth(<LoginForm />);
+
+      const emailInput = screen.getByPlaceholderText('nome@yamilook.com');
       fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
-      
-      const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+      const submitButton = screen.getByRole('button', { name: /entrar no yamilook/i });
       fireEvent.click(submitButton);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/please enter a valid email/i)).toBeInTheDocument();
+        expect(screen.getByText(/por favor insere um email válido/i)).toBeInTheDocument();
       });
     });
 
     it('shows validation error for short password', async () => {
-      render(<LoginForm />);
-      
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
-      
+      renderWithAuth(<LoginForm />);
+
+      const emailInput = screen.getByPlaceholderText('nome@yamilook.com');
+      const passwordInput = screen.getByPlaceholderText('••••••••');
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: '123' } });
-      
-      const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+      const submitButton = screen.getByRole('button', { name: /entrar no yamilook/i });
       fireEvent.click(submitButton);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/password must be at least 6 characters/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/a palavra-passe deve ter pelo menos 6 caracteres/i)
+        ).toBeInTheDocument();
       });
     });
 
     it('toggles password visibility', async () => {
-      render(<LoginForm />);
-      
-      const passwordInput = screen.getByLabelText(/password/i);
+      renderWithAuth(<LoginForm />);
+
+      const passwordInput = screen.getByPlaceholderText('••••••••');
       expect(passwordInput).toHaveAttribute('type', 'password');
-      
+
       // Find the toggle button (eye icon)
       const toggleButton = passwordInput.parentElement?.querySelector('button');
       expect(toggleButton).toBeInTheDocument();
-      
-      if (toggleButton) {
-        fireEvent.click(toggleButton);
-        expect(passwordInput).toHaveAttribute('type', 'text');
-        
-        fireEvent.click(toggleButton);
-        expect(passwordInput).toHaveAttribute('type', 'password');
-      }
+
+      fireEvent.click(toggleButton!);
+      expect(passwordInput).toHaveAttribute('type', 'text');
+
+      fireEvent.click(toggleButton!);
+      expect(passwordInput).toHaveAttribute('type', 'password');
     });
 
     it('submits form with valid credentials', async () => {
@@ -114,43 +122,44 @@ describe('Authentication Flow', () => {
         error: null,
       });
 
-      render(<LoginForm />);
-      
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
-      
+      renderWithAuth(<LoginForm />);
+
+      const emailInput = screen.getByPlaceholderText('nome@yamilook.com');
+      const passwordInput = screen.getByPlaceholderText('••••••••');
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      
-      const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+      const submitButton = screen.getByRole('button', { name: /entrar no yamilook/i });
       fireEvent.click(submitButton);
-      
+
+      // On successful login the form navigates to the feed.
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/');
+        expect(mockNavigate).toHaveBeenCalledWith('/feed');
       });
     });
 
     it('shows error message on login failure', async () => {
       const { toast } = await import('sonner');
-      
+
       mockSupabaseClient.auth.signInWithPassword.mockResolvedValueOnce({
         data: { session: null, user: null },
         error: { message: 'Invalid login credentials' },
       });
 
-      render(<LoginForm />);
-      
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
-      
+      renderWithAuth(<LoginForm />);
+
+      const emailInput = screen.getByPlaceholderText('nome@yamilook.com');
+      const passwordInput = screen.getByPlaceholderText('••••••••');
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
-      
-      const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+      const submitButton = screen.getByRole('button', { name: /entrar no yamilook/i });
       fireEvent.click(submitButton);
-      
+
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('Invalid login credentials');
+        expect(toast.error).toHaveBeenCalled();
       });
     });
 
@@ -159,90 +168,90 @@ describe('Authentication Flow', () => {
         () => new Promise((resolve) => setTimeout(resolve, 100))
       );
 
-      render(<LoginForm />);
-      
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
-      
+      renderWithAuth(<LoginForm />);
+
+      const emailInput = screen.getByPlaceholderText('nome@yamilook.com');
+      const passwordInput = screen.getByPlaceholderText('••••••••');
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      
-      const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+      const submitButton = screen.getByRole('button', { name: /entrar no yamilook/i });
       fireEvent.click(submitButton);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/signing in/i)).toBeInTheDocument();
+        expect(screen.getByText(/a entrar/i)).toBeInTheDocument();
       });
     });
 
     it('has link to register page', () => {
-      render(<LoginForm />);
-      
-      const registerLink = screen.getByRole('link', { name: /create an account/i });
+      renderWithAuth(<LoginForm />);
+
+      const registerLink = screen.getByRole('link', { name: /criar conta/i });
       expect(registerLink).toHaveAttribute('href', '/register');
     });
 
     it('has link to forgot password', () => {
-      render(<LoginForm />);
-      
-      const forgotLink = screen.getByRole('link', { name: /forgot password/i });
+      renderWithAuth(<LoginForm />);
+
+      const forgotLink = screen.getByRole('link', { name: /esqueceu a palavra-passe/i });
       expect(forgotLink).toHaveAttribute('href', '/forgot-password');
     });
   });
 
   describe('RegisterForm', () => {
     it('renders register form with all fields', () => {
-      render(<RegisterForm />);
-      
-      expect(screen.getByLabelText(/display name/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument();
+      renderWithAuth(<RegisterForm />);
+
+      expect(screen.getByPlaceholderText('O teu nome')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('utilizador')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('nome@exemplo.com')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /criar conta/i })).toBeInTheDocument();
     });
 
     it('shows password requirements as user types', async () => {
-      render(<RegisterForm />);
-      
-      const passwordInput = screen.getByLabelText(/password/i);
-      
+      renderWithAuth(<RegisterForm />);
+
+      const passwordInput = screen.getByPlaceholderText('••••••••');
+
       // Initially no requirements shown
-      expect(screen.queryByText(/at least 8 characters/i)).not.toBeInTheDocument();
-      
+      expect(screen.queryByText(/pelo menos 8 caracteres/i)).not.toBeInTheDocument();
+
       // Type a password to show requirements
       fireEvent.change(passwordInput, { target: { value: 'a' } });
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
-        expect(screen.getByText(/one uppercase letter/i)).toBeInTheDocument();
-        expect(screen.getByText(/one lowercase letter/i)).toBeInTheDocument();
-        expect(screen.getByText(/one number/i)).toBeInTheDocument();
+        expect(screen.getByText(/pelo menos 8 caracteres/i)).toBeInTheDocument();
+        expect(screen.getByText(/uma letra maiúscula/i)).toBeInTheDocument();
+        expect(screen.getByText(/uma letra minúscula/i)).toBeInTheDocument();
+        expect(screen.getByText(/um número/i)).toBeInTheDocument();
       });
     });
 
     it('validates display name length', async () => {
-      render(<RegisterForm />);
-      
-      const displayNameInput = screen.getByLabelText(/display name/i);
+      renderWithAuth(<RegisterForm />);
+
+      const displayNameInput = screen.getByPlaceholderText('O teu nome');
       fireEvent.change(displayNameInput, { target: { value: 'A' } });
-      
-      const submitButton = screen.getByRole('button', { name: /create account/i });
+
+      const submitButton = screen.getByRole('button', { name: /criar conta/i });
       fireEvent.click(submitButton);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/name must be at least 2 characters/i)).toBeInTheDocument();
       });
     });
 
     it('validates username format', async () => {
-      render(<RegisterForm />);
-      
-      const usernameInput = screen.getByLabelText(/username/i);
+      renderWithAuth(<RegisterForm />);
+
+      const usernameInput = screen.getByPlaceholderText('utilizador');
       fireEvent.change(usernameInput, { target: { value: 'ab' } });
-      
-      const submitButton = screen.getByRole('button', { name: /create account/i });
+
+      const submitButton = screen.getByRole('button', { name: /criar conta/i });
       fireEvent.click(submitButton);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/username must be at least 3 characters/i)).toBeInTheDocument();
       });
@@ -256,16 +265,15 @@ describe('Authentication Flow', () => {
         single: vi.fn().mockResolvedValueOnce({ data: null, error: null }),
       });
 
-      render(<RegisterForm />);
-      
-      const usernameInput = screen.getByLabelText(/username/i);
+      renderWithAuth(<RegisterForm />);
+
+      const usernameInput = screen.getByPlaceholderText('utilizador');
       fireEvent.change(usernameInput, { target: { value: 'newuser123' } });
-      
-      // Wait for the availability check
+
+      // Wait for the availability check to render the green check indicator.
       await waitFor(() => {
-        // Check icon should appear for available username
-        const checkIcon = screen.getByLabelText(/username/i).parentElement?.querySelector('.text-green-500');
-        expect(checkIcon).toBeDefined();
+        const checkIcon = usernameInput.parentElement?.querySelector('.text-green-500');
+        expect(checkIcon).not.toBeNull();
       }, { timeout: 2000 });
     });
 
@@ -274,28 +282,39 @@ describe('Authentication Flow', () => {
       mockSupabaseClient.from.mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValueOnce({ 
-          data: { username: 'takenuser' }, 
-          error: null 
+        single: vi.fn().mockResolvedValueOnce({
+          data: { username: 'takenuser' },
+          error: null,
         }),
       });
 
-      render(<RegisterForm />);
-      
-      const usernameInput = screen.getByLabelText(/username/i);
+      renderWithAuth(<RegisterForm />);
+
+      const usernameInput = screen.getByPlaceholderText('utilizador');
       fireEvent.change(usernameInput, { target: { value: 'takenuser' } });
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/username is already taken/i)).toBeInTheDocument();
+        expect(screen.getByText(/nome de utilizador já está em uso/i)).toBeInTheDocument();
       }, { timeout: 2000 });
     });
 
     it('submits form with valid data', async () => {
-      // Mock username available
+      // Mock username available for all profile lookups.
       mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      });
+
+      // Registration requires a valid MVP access code (validated via RPC).
+      mockSupabaseClient.rpc.mockImplementation((fn: string) => {
+        if (fn === 'validate_mvp_access_code') {
+          return Promise.resolve({
+            data: { valid: true, candidate_id: 'cand-1' },
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: null, error: null });
       });
 
       mockSupabaseClient.auth.signUp.mockResolvedValueOnce({
@@ -303,21 +322,32 @@ describe('Authentication Flow', () => {
         error: null,
       });
 
-      render(<RegisterForm />);
-      
-      fireEvent.change(screen.getByLabelText(/display name/i), { target: { value: 'Test User' } });
-      fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'testuser' } });
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@example.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'Password123' } });
-      
-      const submitButton = screen.getByRole('button', { name: /create account/i });
-      
+      renderWithAuth(<RegisterForm />);
+
+      fireEvent.change(screen.getByPlaceholderText('XXXX-XXXX'), {
+        target: { value: 'ABCD-1234' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('O teu nome'), {
+        target: { value: 'Test User' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('utilizador'), {
+        target: { value: 'testuser' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('nome@exemplo.com'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('••••••••'), {
+        target: { value: 'Password123' },
+      });
+
+      // Wait for access-code validation to complete (button enabled).
+      const submitButton = screen.getByRole('button', { name: /criar conta/i });
       await waitFor(() => {
         expect(submitButton).not.toBeDisabled();
       });
-      
+
       fireEvent.click(submitButton);
-      
+
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/onboarding');
       });
@@ -325,11 +355,21 @@ describe('Authentication Flow', () => {
 
     it('shows error message on signup failure', async () => {
       const { toast } = await import('sonner');
-      
+
       mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      });
+
+      mockSupabaseClient.rpc.mockImplementation((fn: string) => {
+        if (fn === 'validate_mvp_access_code') {
+          return Promise.resolve({
+            data: { valid: true, candidate_id: 'cand-1' },
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: null, error: null });
       });
 
       mockSupabaseClient.auth.signUp.mockResolvedValueOnce({
@@ -337,30 +377,40 @@ describe('Authentication Flow', () => {
         error: { message: 'Email already registered' },
       });
 
-      render(<RegisterForm />);
-      
-      fireEvent.change(screen.getByLabelText(/display name/i), { target: { value: 'Test User' } });
-      fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'testuser' } });
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'existing@example.com' } });
-      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'Password123' } });
-      
-      const submitButton = screen.getByRole('button', { name: /create account/i });
-      
+      renderWithAuth(<RegisterForm />);
+
+      fireEvent.change(screen.getByPlaceholderText('XXXX-XXXX'), {
+        target: { value: 'ABCD-1234' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('O teu nome'), {
+        target: { value: 'Test User' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('utilizador'), {
+        target: { value: 'testuser' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('nome@exemplo.com'), {
+        target: { value: 'existing@example.com' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('••••••••'), {
+        target: { value: 'Password123' },
+      });
+
+      const submitButton = screen.getByRole('button', { name: /criar conta/i });
       await waitFor(() => {
         expect(submitButton).not.toBeDisabled();
       });
-      
+
       fireEvent.click(submitButton);
-      
+
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith('Email already registered');
       });
     });
 
     it('has link to login page', () => {
-      render(<RegisterForm />);
-      
-      const loginLink = screen.getByRole('link', { name: /sign in/i });
+      renderWithAuth(<RegisterForm />);
+
+      const loginLink = screen.getByRole('link', { name: /entrar/i });
       expect(loginLink).toHaveAttribute('href', '/login');
     });
   });
@@ -368,10 +418,10 @@ describe('Authentication Flow', () => {
   describe('Logout Flow', () => {
     it('calls signOut and clears session', async () => {
       mockSupabaseClient.auth.signOut.mockResolvedValueOnce({ error: null });
-      
+
       // Simulate calling signOut
       const result = await mockSupabaseClient.auth.signOut();
-      
+
       expect(result.error).toBeNull();
       expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
     });

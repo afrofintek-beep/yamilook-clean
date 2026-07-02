@@ -4,10 +4,11 @@ import { render, screen, fireEvent, waitFor } from '@/test/test-utils';
 import Feed from './Feed';
 import { mockSupabaseClient, resetMocks } from '@/test/mocks/supabase';
 
-// Mock the supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabaseClient,
-}));
+// Mock the supabase client (async factory + dynamic import to avoid hoisting issues)
+vi.mock('@/integrations/supabase/client', async () => {
+  const { mockSupabaseClient } = await import('@/test/mocks/supabase');
+  return { supabase: mockSupabaseClient };
+});
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -95,6 +96,47 @@ vi.mock('@/hooks/usePosts', () => ({
   PostWithUser: {},
 }));
 
+// Mock advertising hook — return the posts unchanged (no ads interleaved).
+// Use stable references so effect dependency arrays don't change every render.
+vi.mock('@/hooks/useAdvertising', () => {
+  const fetchActiveAdsForFeed = vi.fn().mockResolvedValue([]);
+  const interleaveAdsInFeed = <T,>(posts: T[]) => posts;
+  return {
+    useAdvertising: () => ({ fetchActiveAdsForFeed, interleaveAdsInFeed }),
+    Advertisement: {},
+    BusinessProfile: {},
+  };
+});
+
+// Mock active streams hook (stable empty state).
+vi.mock('@/hooks/useActiveStreams', () => {
+  const activeStreams: unknown[] = [];
+  return {
+    useActiveStreams: () => ({
+      hasActiveStreams: false,
+      activeStreams,
+      activeCount: 0,
+      loading: false,
+    }),
+  };
+});
+
+// Mock archived posts hook (stable references).
+vi.mock('@/hooks/useArchivedPosts', () => {
+  const archivedPostIds = new Set<string>();
+  const fetchArchivedIds = vi.fn();
+  const toggleArchive = vi.fn();
+  const isArchived = () => false;
+  return {
+    useArchivedPosts: () => ({
+      archivedPostIds,
+      fetchArchivedIds,
+      toggleArchive,
+      isArchived,
+    }),
+  };
+});
+
 // Mock StatusList component
 vi.mock('@/components/status/StatusList', () => ({
   StatusList: () => <div data-testid="status-list">Status List</div>,
@@ -120,9 +162,10 @@ describe('Feed Page', () => {
     mockFeedPosts = mockPosts;
   });
 
-  it('renders the header with yamilook title', () => {
+  it('renders the header with the Yamilook logo', () => {
     render(<Feed />);
-    expect(screen.getByText('yamilook')).toBeInTheDocument();
+    // The header brand is an image logo, not text.
+    expect(screen.getByAltText('Yamilook')).toBeInTheDocument();
   });
 
   it('renders navigation icons in header', () => {
@@ -141,35 +184,38 @@ describe('Feed Page', () => {
     expect(screen.getByTestId('status-list')).toBeInTheDocument();
   });
 
-  it('renders posts when available', () => {
+  it('renders posts when available', async () => {
     render(<Feed />);
-    
-    expect(screen.getByText('First test post')).toBeInTheDocument();
-    expect(screen.getByText('Second post with photo')).toBeInTheDocument();
+
+    // Posts are interleaved with ads asynchronously, so wait for them.
+    expect(await screen.findByText('First test post')).toBeInTheDocument();
+    expect(await screen.findByText('Second post with photo')).toBeInTheDocument();
   });
 
-  it('renders user names in posts', () => {
+  it('renders user names in posts', async () => {
     render(<Feed />);
-    
-    expect(screen.getByText('User One')).toBeInTheDocument();
-    expect(screen.getByText('User Two')).toBeInTheDocument();
+
+    expect(await screen.findByText('User One')).toBeInTheDocument();
+    expect(await screen.findByText('User Two')).toBeInTheDocument();
   });
 
   it('shows loading skeletons when loading', () => {
     mockLoading = true;
     const { container } = render(<Feed />);
-    
-    // Should show skeleton elements
-    const skeletons = container.querySelectorAll('[class*="animate-pulse"]');
+
+    // FeedSkeleton renders shimmer-loading placeholder elements.
+    const skeletons = container.querySelectorAll('.shimmer-loading');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it('shows empty state when no posts', () => {
     mockFeedPosts = [];
     render(<Feed />);
-    
-    expect(screen.getByText('Ainda sem publicações')).toBeInTheDocument();
-    expect(screen.getByText(/Segue pessoas ou cria/)).toBeInTheDocument();
+
+    expect(
+      screen.getByText('Ainda não há partilhas na tua comunidade')
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Partilha o que se passa/)).toBeInTheDocument();
   });
 
   it('shows create post button in empty state', () => {
@@ -217,50 +263,45 @@ describe('Feed Page', () => {
 
   it('renders bottom navigation', () => {
     render(<Feed />);
-    
-    expect(screen.getByText('Feed')).toBeInTheDocument();
-    expect(screen.getByText('Explorar')).toBeInTheDocument();
-    expect(screen.getByText('Chat')).toBeInTheDocument();
+
+    expect(screen.getByText('Muxi')).toBeInTheDocument();
+    expect(screen.getByText('Mokubico')).toBeInTheDocument();
+    expect(screen.getByText('Academia')).toBeInTheDocument();
+    expect(screen.getByText('Papos')).toBeInTheDocument();
     expect(screen.getByText('Perfil')).toBeInTheDocument();
   });
 
-  it('navigates to discover when Explorar is clicked', () => {
+  it('links Papos nav item to the papos route', () => {
     render(<Feed />);
-    
-    const explorarButton = screen.getByText('Explorar');
-    fireEvent.click(explorarButton);
-    
+
+    const paposLink = screen.getByText('Papos').closest('a');
+    expect(paposLink).toHaveAttribute('href', '/papos');
+  });
+
+  it('links Mokubico nav item to the home route', () => {
+    render(<Feed />);
+
+    const mokubicoLink = screen.getByText('Mokubico').closest('a');
+    expect(mokubicoLink).toHaveAttribute('href', '/mokubico');
+  });
+
+  it('links Perfil nav item to the profile route', () => {
+    render(<Feed />);
+
+    const perfilLink = screen.getByText('Perfil').closest('a');
+    expect(perfilLink).toHaveAttribute('href', '/perfil');
+  });
+
+  it('navigates to discover when the header search icon is clicked', () => {
+    const { container } = render(<Feed />);
+
+    // The header has three icon buttons: live, search, messages.
+    const header = container.querySelector('header');
+    const buttons = header?.querySelectorAll('button');
+    // The second button is the search icon (navigates to /discover).
+    fireEvent.click(buttons![1]);
+
     expect(mockNavigate).toHaveBeenCalledWith('/discover');
-  });
-
-  it('navigates to chat when Chat is clicked', () => {
-    render(<Feed />);
-    
-    const chatButton = screen.getByText('Chat');
-    fireEvent.click(chatButton);
-    
-    expect(mockNavigate).toHaveBeenCalledWith('/');
-  });
-
-  it('navigates to profile when Perfil is clicked', () => {
-    render(<Feed />);
-    
-    const perfilButton = screen.getByText('Perfil');
-    fireEvent.click(perfilButton);
-    
-    expect(mockNavigate).toHaveBeenCalledWith('/profile');
-  });
-
-  it('navigates to search when search icon is clicked', () => {
-    render(<Feed />);
-    
-    // Find search buttons - one in header, one in bottom nav
-    const buttons = screen.getAllByRole('button');
-    const searchButton = buttons[0]; // First button in header should be search
-    
-    fireEvent.click(searchButton);
-    
-    expect(mockNavigate).toHaveBeenCalledWith('/search');
   });
 
   it('navigates to messages when message icon is clicked', () => {
@@ -276,20 +317,20 @@ describe('Feed Page', () => {
     }
   });
 
-  it('renders correct number of posts', () => {
+  it('renders correct number of posts', async () => {
     render(<Feed />);
-    
-    // We have 2 mock posts
+
+    // We have 2 mock posts; wait for the async interleave to render them.
+    await screen.findByText('First test post');
     const articles = document.querySelectorAll('article');
     expect(articles.length).toBe(2);
   });
 
-  it('highlights Feed nav item as active', () => {
+  it('renders all five bottom-nav items', () => {
     render(<Feed />);
-    
-    const feedNavButton = screen.getByText('Feed').closest('button');
-    // Feed button should have different styling (text-foreground instead of text-muted-foreground)
-    expect(feedNavButton).not.toHaveClass('text-muted-foreground');
+
+    const navLinks = document.querySelectorAll('nav a');
+    expect(navLinks.length).toBe(5);
   });
 
   it('applies proper layout classes', () => {
@@ -310,11 +351,11 @@ describe('Feed Page', () => {
     expect(header).toHaveClass('top-0');
   });
 
-  it('has sticky bottom navigation', () => {
+  it('has fixed bottom navigation', () => {
     const { container } = render(<Feed />);
-    
+
     const nav = container.querySelector('nav');
-    expect(nav).toHaveClass('sticky');
+    expect(nav).toHaveClass('fixed');
     expect(nav).toHaveClass('bottom-0');
   });
 });

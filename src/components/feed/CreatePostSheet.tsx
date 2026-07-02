@@ -451,7 +451,7 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
 
         {/* Bottom actions */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background safe-bottom">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" data-testid="post-action-buttons">
             <Button 
               variant="ghost" 
               size="icon"

@@ -27,6 +27,8 @@ const mockComments = [
       avatar_url: 'https://example.com/avatar1.jpg',
     },
     replies: [],
+    reactions: {},
+    my_reaction: null,
   },
   {
     id: 'comment-2',
@@ -43,6 +45,8 @@ const mockComments = [
       username: 'commenter2',
       avatar_url: null,
     },
+    reactions: {},
+    my_reaction: null,
     replies: [
       {
         id: 'reply-1',
@@ -60,8 +64,12 @@ const mockComments = [
           avatar_url: null,
         },
         replies: [],
+        reactions: {},
+        my_reaction: null,
       },
     ],
+    reactions: {},
+    my_reaction: null,
   },
 ];
 
@@ -155,10 +163,10 @@ describe('CommentsSheet', () => {
   it('shows loading state initially', () => {
     mockGetComments.mockImplementationOnce(() => new Promise(() => {})); // Never resolves
     
-    const { container } = render(<CommentsSheet {...defaultProps} />);
-    
-    // Should show loading skeletons
-    const skeletons = container.querySelectorAll('.animate-pulse');
+    render(<CommentsSheet {...defaultProps} />);
+
+    // Should show loading skeletons (Sheet content is rendered in a portal on document.body)
+    const skeletons = document.body.querySelectorAll('.animate-pulse');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
@@ -184,7 +192,8 @@ describe('CommentsSheet', () => {
     render(<CommentsSheet {...defaultProps} />);
     
     await waitFor(() => {
-      expect(screen.getByText(/Comments \(2\)/)).toBeInTheDocument();
+      // Header count includes top-level comments (2) plus nested replies (1) = 3
+      expect(screen.getByText(/Comments \(3\)/)).toBeInTheDocument();
     });
   });
 
@@ -404,19 +413,24 @@ describe('CommentsSheet', () => {
       expect(screen.getByText('This is a great post!')).toBeInTheDocument();
     });
     
-    // Find more options button (MoreHorizontal icon)
+    // Find the more-options dropdown trigger (Radix uses aria-haspopup="menu")
     const moreButtons = screen.getAllByRole('button');
-    const moreButton = moreButtons.find(btn => 
-      btn.querySelector('svg.w-4.h-4')
+    const moreButton = moreButtons.find(btn =>
+      btn.getAttribute('aria-haspopup') === 'menu'
     );
-    
-    if (moreButton) {
-      fireEvent.click(moreButton);
-      
-      await waitFor(() => {
-        expect(screen.getByText('Delete')).toBeInTheDocument();
-      });
-    }
+
+    expect(moreButton).toBeDefined();
+
+    // Radix DropdownMenu opens on pointerdown, not click, in jsdom
+    fireEvent.pointerDown(
+      moreButton!,
+      new window.PointerEvent('pointerdown', { bubbles: true, button: 0 })
+    );
+    fireEvent.click(moreButton!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
   });
 
   it('calls deleteComment when Delete is clicked', async () => {
