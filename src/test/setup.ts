@@ -5,6 +5,14 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import ptTranslation from '@/i18n/locales/pt.json';
 
+// canvas-confetti touches the canvas API (unavailable in jsdom) and throws an
+// unhandled error on success flows (login/register/reset). Stub the helpers so
+// tests exit cleanly.
+vi.mock('@/lib/confetti', () => ({
+  triggerSuccessConfetti: vi.fn(),
+  triggerCelebrationConfetti: vi.fn(),
+}));
+
 // Initialize i18next synchronously with Portuguese resources so components using
 // useTranslation() render real strings (matching the app's default language)
 // instead of raw translation keys during tests.
