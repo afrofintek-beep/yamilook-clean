@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Video, Users, MessageSquare } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReviewModal } from '../components/ReviewModal';
 import { ACADEMIA_COPY } from '../copy';
-import { getSession } from '../mocks';
 import { EmptyStateBack } from '@/components/common/EmptyStateBack';
 
 export default function AcademiaLiveRoom() {
@@ -15,9 +17,46 @@ export default function AcademiaLiveRoom() {
   const [ended, setEnded] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
 
-  const session = getSession(sessionId ?? '');
+  const { data: session, isLoading } = useQuery({
+    queryKey: ['academia-live-session', sessionId],
+    enabled: !!sessionId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('academia_sessions')
+        .select('*')
+        .eq('id', sessionId!)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return null;
+
+      const { data: profiles } = await supabase.rpc('get_public_profiles_by_ids', {
+        p_ids: [data.mentor_id],
+      });
+      const mentorName = profiles?.[0]?.display_name || 'Anónimo';
+
+      return { ...data, mentorName };
+    },
+  });
+
   // Mock: current user is mentor
   const isMentor = false;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40 px-4 pt-safe-top">
+          <div className="flex items-center gap-3 h-14">
+            <button onClick={() => navigate(-1)} className="p-1 -ml-1">
+              <ArrowLeft className="h-5 w-5 text-foreground" />
+            </button>
+            <Skeleton className="h-5 w-40" />
+          </div>
+        </header>
+        <div className="aspect-video bg-muted/30 border-b border-border/40" />
+      </div>
+    );
+  }
 
   if (!session) {
     return <EmptyStateBack message="Sessão não encontrada." fallbackRoute="/academia" />;

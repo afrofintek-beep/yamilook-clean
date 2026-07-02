@@ -1,22 +1,66 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, GraduationCap, Sparkles, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SessionCard } from '../components/SessionCard';
 import { MentorCard } from '../components/MentorCard';
 import { ACADEMIA_COPY } from '../copy';
-import { MOCK_MENTORS } from '../mocks';
-import { useAcademiaSessions } from '../hooks/useAcademia';
+import {
+  useAcademiaSessions,
+  useAcademiaMentors,
+  useIsMentor,
+  useBecomeMentor,
+} from '../hooks/useAcademia';
 import { motion } from 'framer-motion';
 
 export default function AcademiaHome() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('all');
   const { data: sessions = [], isLoading } = useAcademiaSessions();
+  const { data: mentors = [], isLoading: mentorsLoading } = useAcademiaMentors();
+  const { data: isMentor = false } = useIsMentor();
+  const becomeMentor = useBecomeMentor();
+
+  const [mentorSheetOpen, setMentorSheetOpen] = useState(false);
+  const [specialty, setSpecialty] = useState('');
+  const [mentorBio, setMentorBio] = useState('');
+
+  const handleBecomeMentor = () => {
+    if (!specialty.trim()) {
+      toast.error('Indica a tua especialidade.');
+      return;
+    }
+    becomeMentor.mutate(
+      { specialty: specialty.trim(), mentorBio: mentorBio.trim() },
+      {
+        onSuccess: () => {
+          toast.success('Bem-vindo(a) à academia como mentor!');
+          setMentorSheetOpen(false);
+          setSpecialty('');
+          setMentorBio('');
+        },
+        onError: (err) => {
+          toast.error('Erro ao tornar-te mentor: ' + (err as Error).message);
+        },
+      },
+    );
+  };
 
   const liveSessions = sessions.filter((s) => s.status === 'live');
 
@@ -78,7 +122,7 @@ export default function AcademiaHome() {
                 </div>
                 <div className="w-px h-3.5 bg-border" />
                 <span className="text-[11px] text-muted-foreground">
-                  <span className="text-foreground font-semibold tabular-nums">{MOCK_MENTORS.length}</span> mentores
+                  <span className="text-foreground font-semibold tabular-nums">{mentors.length}</span> mentores
                 </span>
                 {liveSessions.length > 0 && (
                   <>
@@ -139,16 +183,58 @@ export default function AcademiaHome() {
         >
           <div className="flex items-center justify-between px-4 mb-3">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{ACADEMIA_COPY.mentors}</h2>
-            <span className="text-[10px] text-muted-foreground/50">{MOCK_MENTORS.length} disponíveis</span>
+            <span className="text-[10px] text-muted-foreground/50">{mentors.length} disponíveis</span>
           </div>
-          <ScrollArea className="w-full">
+          {mentorsLoading ? (
             <div className="flex gap-3 pb-2 px-4">
-              {MOCK_MENTORS.map((m) => (
-                <MentorCard key={m.id} {...m} onPress={() => navigate(`/academia/mentor/${m.id}`)} />
-              ))}
+              <Skeleton className="h-40 w-[150px] rounded-2xl shrink-0" />
+              <Skeleton className="h-40 w-[150px] rounded-2xl shrink-0" />
             </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          ) : mentors.length === 0 ? (
+            <div className="mx-4 rounded-2xl border border-dashed border-border/40 bg-card/50 p-5 flex flex-col items-center text-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <GraduationCap className="h-6 w-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">Ainda sem mentores</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[240px]">
+                  Sê o primeiro a partilhar o teu talento e a ajudar a tua banda a crescer.
+                </p>
+              </div>
+              {!isMentor && (
+                <Button
+                  size="sm"
+                  className="rounded-full gap-1.5 h-8 text-xs"
+                  onClick={() => setMentorSheetOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Torna-te mentor
+                </Button>
+              )}
+            </div>
+          ) : (
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-2 px-4">
+                {mentors.map((m) => (
+                  <MentorCard key={m.id} {...m} onPress={() => navigate(`/academia/mentor/${m.id}`)} />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          )}
+          {!mentorsLoading && mentors.length > 0 && !isMentor && (
+            <div className="px-4 mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full rounded-full gap-1.5 h-9 text-xs"
+                onClick={() => setMentorSheetOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Torna-te mentor
+              </Button>
+            </div>
+          )}
         </motion.section>
 
         {/* Sessions */}
@@ -207,6 +293,51 @@ export default function AcademiaHome() {
           </Tabs>
         </motion.section>
       </div>
+
+      <Sheet open={mentorSheetOpen} onOpenChange={setMentorSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader className="text-left">
+            <SheetTitle>Torna-te mentor</SheetTitle>
+            <SheetDescription>
+              Partilha o teu talento e cria sessões para a tua banda.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="mentor-specialty" className="text-xs">Especialidade</Label>
+              <Input
+                id="mentor-specialty"
+                value={specialty}
+                onChange={(e) => setSpecialty(e.target.value)}
+                placeholder="Ex.: Música, Fotografia, Negócios"
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mentor-bio" className="text-xs">Bio (opcional)</Label>
+              <Textarea
+                id="mentor-bio"
+                value={mentorBio}
+                onChange={(e) => setMentorBio(e.target.value)}
+                placeholder="Conta um pouco sobre a tua experiência..."
+                className="rounded-xl resize-none"
+                rows={4}
+              />
+            </div>
+          </div>
+
+          <SheetFooter>
+            <Button
+              className="w-full rounded-full"
+              onClick={handleBecomeMentor}
+              disabled={becomeMentor.isPending}
+            >
+              {becomeMentor.isPending ? 'A processar...' : 'Confirmar'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       <BottomNav />
     </div>
