@@ -90,7 +90,8 @@
     "canNowLogin": "Já podes entrar com a tua nova palavra-passe",
     "invalidResetLink": "Link de recuperação inválido ou expirado",
     "currentPassword": "Palavra-passe atual",
-    "incorrectPassword": "Palavra-passe atual incorreta"
+    "incorrectPassword": "Palavra-passe atual incorreta",
+    "invalidCredentials": "Email ou palavra-passe incorretos"
   },
   "nav": {
     "home": "Início",

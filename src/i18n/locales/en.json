@@ -35,6 +35,7 @@
   },
   "auth": {
     "login": "Sign In",
+    "invalidCredentials": "Invalid email or password",
     "loginTitle": "Welcome to the hood",
     "loginSubtitle": "Real people. Stories from my place.",
     "register": "Sign Up",
