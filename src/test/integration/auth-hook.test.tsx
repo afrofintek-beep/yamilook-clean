@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
@@ -116,7 +115,7 @@ describe('useAuth Hook', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    let signUpResult: any;
+    let signUpResult: Awaited<ReturnType<typeof result.current.signUp>>;
     await act(async () => {
       signUpResult = await result.current.signUp(
         'newuser@test.com',
@@ -156,7 +155,7 @@ describe('useAuth Hook', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    let signUpResult: any;
+    let signUpResult: Awaited<ReturnType<typeof result.current.signUp>>;
     await act(async () => {
       signUpResult = await result.current.signUp('existing@test.com', 'Password123!');
     });
@@ -183,7 +182,7 @@ describe('useAuth Hook', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    let signInResult: any;
+    let signInResult: Awaited<ReturnType<typeof result.current.signIn>>;
     await act(async () => {
       signInResult = await result.current.signIn('test@test.com', 'password123');
     });
@@ -215,7 +214,7 @@ describe('useAuth Hook', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    let signInResult: any;
+    let signInResult: Awaited<ReturnType<typeof result.current.signIn>>;
     await act(async () => {
       signInResult = await result.current.signIn('test@test.com', 'wrongpassword');
     });
@@ -274,7 +273,7 @@ describe('useAuth Hook', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    let socialResult: any;
+    let socialResult: Awaited<ReturnType<typeof result.current.signInWithSocial>>;
     await act(async () => {
       socialResult = await result.current.signInWithSocial('google');
     });

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { StatusList } from './StatusList';
@@ -92,7 +91,7 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 vi.mock('./StatusViewer', () => ({
-  StatusViewer: ({ open, onClose, isOwnStatus }: any) =>
+  StatusViewer: ({ open, onClose, isOwnStatus }: { open: boolean; onClose: () => void; isOwnStatus?: boolean }) =>
     open ? (
       <div data-testid="status-viewer">
         <span data-testid="viewer-own-status">{isOwnStatus ? 'own' : 'contact'}</span>
@@ -102,7 +101,7 @@ vi.mock('./StatusViewer', () => ({
 }));
 
 vi.mock('./CreateStatusSheet', () => ({
-  CreateStatusSheet: ({ open, onOpenChange }: any) =>
+  CreateStatusSheet: ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) =>
     open ? (
       <div data-testid="create-status-sheet">
         <button onClick={() => onOpenChange(false)}>Close Create Sheet</button>
