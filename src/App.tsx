@@ -322,7 +322,7 @@ function AnimatedRoutes() {
 let _sharedAudioCtx: AudioContext | null = null;
 export function getSharedAudioContext(): AudioContext {
   if (!_sharedAudioCtx || _sharedAudioCtx.state === 'closed') {
-    _sharedAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    _sharedAudioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
   }
   return _sharedAudioCtx;
 }

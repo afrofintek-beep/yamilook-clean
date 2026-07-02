@@ -333,7 +333,7 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
                 <p className="font-medium text-sm text-foreground">
                   {profile?.display_name || t('feed.you')}
                 </p>
-                <Select value={privacy} onValueChange={(v: any) => setPrivacy(v)}>
+                <Select value={privacy} onValueChange={(v) => setPrivacy(v as typeof privacy)}>
                   <SelectTrigger className="h-7 w-auto text-xs border border-primary/30 rounded-full px-2 gap-1 bg-transparent">
                     {(() => {
                       const selected = privacyOptions.find(o => o.value === privacy);

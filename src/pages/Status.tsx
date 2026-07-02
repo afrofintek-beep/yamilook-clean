@@ -29,6 +29,7 @@ import { StatusRing } from '@/components/status/StatusRing';
 import { StatusViewer } from '@/components/status/StatusViewer';
 import { CreateStatusSheet } from '@/components/status/CreateStatusSheet';
 import { useStatus, GroupedStatuses } from '@/hooks/useStatus';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
@@ -49,7 +50,7 @@ export default function Status() {
   const [selectedGroup, setSelectedGroup] = useState<GroupedStatuses | null>(null);
   const [isViewingOwn, setIsViewingOwn] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [archivedStatuses, setArchivedStatuses] = useState<any[]>([]);
+  const [archivedStatuses, setArchivedStatuses] = useState<Tables<'statuses'>[]>([]);
   const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {

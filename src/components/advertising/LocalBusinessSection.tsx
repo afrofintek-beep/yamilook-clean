@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronRight, MapPin, Sparkles } from 'lucide-react';
-import { useAdvertising, LocationMarket } from '@/hooks/useAdvertising';
+import { useAdvertising, LocationMarket, Advertisement, BusinessProfile } from '@/hooks/useAdvertising';
 import { FeaturedBusinessCard } from './FeaturedBusinessCard';
 
 interface LocalBusinessSectionProps {
@@ -22,7 +22,7 @@ export function LocalBusinessSection({
 }: LocalBusinessSectionProps) {
   const { t } = useTranslation();
   const { fetchFeaturedBusinesses } = useAdvertising();
-  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [businesses, setBusinesses] = useState<(Advertisement & { business: BusinessProfile })[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchRef = useRef(fetchFeaturedBusinesses);

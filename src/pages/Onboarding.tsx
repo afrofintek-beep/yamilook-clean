@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { AFRICAN_LOCATIONS } from '@/lib/african-locations';
 import { findMatchingNeighborhood } from '@/lib/african-locations';
@@ -412,10 +413,11 @@ export default function Onboarding() {
       } else {
         toast.success('Localização obtida!');
       }
-    } catch (error: any) {
-      if (error.code === 1) {
+    } catch (error) {
+      const code = (error as GeolocationPositionError | null)?.code;
+      if (code === 1) {
         toast.error('Permissão de localização negada. Por favor, ativa nas definições.');
-      } else if (error.code === 2) {
+      } else if (code === 2) {
         toast.error('Não foi possível obter a localização. Verifica a tua conexão.');
       } else {
         toast.error('Tempo esgotado ao obter localização. Tenta novamente.');
@@ -719,7 +721,7 @@ export default function Onboarding() {
       }
 
       // Build profile update with all onboarding data
-      const profileUpdate: Record<string, any> = {
+      const profileUpdate: TablesUpdate<'profiles'> = {
         gender: selectedGender,
         onboarding_completed: true,
         app_tour_completed: true,

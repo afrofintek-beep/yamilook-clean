@@ -64,7 +64,7 @@ export function MediaGallery({ open, onOpenChange, conversationId }: MediaGaller
         const item: MediaItem = {
           id: msg.id,
           url: msg.media_url!,
-          type: msg.message_type as any,
+          type: msg.message_type as MediaItem['type'],
           name: msg.content || undefined,
           created_at: msg.created_at,
           sender_name: profile?.display_name,

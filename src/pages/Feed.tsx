@@ -16,7 +16,7 @@ import { preloadImages } from '@/components/ui/OptimizedImage';
 import { LiveIndicatorBadge } from '@/components/live/LiveIndicatorBadge';
 import { LivePreviewTooltip } from '@/components/live/LivePreviewTooltip';
 import { usePosts, PostWithUser } from '@/hooks/usePosts';
-import { useAdvertising } from '@/hooks/useAdvertising';
+import { useAdvertising, Advertisement, BusinessProfile } from '@/hooks/useAdvertising';
 import { useActiveStreams } from '@/hooks/useActiveStreams';
 import { useArchivedPosts } from '@/hooks/useArchivedPosts';
 import YamilookLogo from '@/components/brand/YamilookLogo';
@@ -32,7 +32,8 @@ export default function Feed() {
   const [createOpen, setCreateOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<PostWithUser | null>(null);
-  const [feedWithAds, setFeedWithAds] = useState<any[]>([]);
+  type FeedItem = PostWithUser | (Advertisement & { business: BusinessProfile; isAd: true });
+  const [feedWithAds, setFeedWithAds] = useState<FeedItem[]>([]);
 
   // Refresh feed when create sheet closes (different hook instances don't share state)
   const handleCreateOpenChange = (open: boolean) => {

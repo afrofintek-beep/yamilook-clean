@@ -115,7 +115,7 @@ export function CloseFriendsSheet({ open, onOpenChange }: CloseFriendsSheetProps
               return (
                 <button
                   key={contact.id}
-                  onClick={() => handleToggle(contact.contact_user_id, (contact.profile as any)?.gender)}
+                  onClick={() => handleToggle(contact.contact_user_id, contact.profile?.gender)}
                   disabled={togglingId === contact.contact_user_id}
                   className={cn(
                     "w-full flex items-center gap-3 p-3 rounded-xl transition-colors",

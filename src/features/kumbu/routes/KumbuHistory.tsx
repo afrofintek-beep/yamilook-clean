@@ -54,7 +54,7 @@ export default function KumbuHistory() {
         )}
 
         <div className="space-y-1">
-          {(ledger ?? []).map((entry: any, i: number) => {
+          {(ledger ?? []).map((entry, i) => {
             const isCredit = entry.amount > 0;
             return (
               <motion.div

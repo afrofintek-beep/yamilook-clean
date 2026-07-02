@@ -164,7 +164,7 @@ export function RitmoPlayer({
         webkit-playsinline=""
         preload={isActive ? 'auto' : 'metadata'}
         muted={isMuted}
-        poster={(ritmo as any).thumbnail_url || `${ritmo.video_url}#t=0.1`}
+        poster={(ritmo as Ritmo & { thumbnail_url?: string }).thumbnail_url || `${ritmo.video_url}#t=0.1`}
         onCanPlayThrough={() => setIsVideoReady(true)}
         onClick={handleVideoTap}
       />

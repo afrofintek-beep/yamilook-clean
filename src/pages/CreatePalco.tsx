@@ -56,7 +56,9 @@ const languages = [
   { code: 'FR', label: 'Français' },
 ];
 
-const visibilityOptions = [
+type PalcoVisibility = 'public' | 'private' | 'unlisted';
+
+const visibilityOptions: { value: PalcoVisibility; label: string; icon: typeof Globe; desc: string }[] = [
   { value: 'public', label: 'Público', icon: Globe, desc: 'Visível para todos' },
   { value: 'unlisted', label: 'Não listado', icon: EyeOff, desc: 'Apenas com link' },
   { value: 'private', label: 'Privado', icon: Lock, desc: 'Apenas convidados' },
@@ -103,7 +105,7 @@ export default function CreatePalco() {
   const [theme, setTheme] = useState('');
   const [description, setDescription] = useState('');
   const [language, setLanguage] = useState('PT');
-  const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>('public');
+  const [visibility, setVisibility] = useState<PalcoVisibility>('public');
   const [voiceTypes, setVoiceTypes] = useState(defaultVoiceTypes);
   const [allowCustomText, setAllowCustomText] = useState(true);
   const [tags, setTags] = useState<string[]>([]);
@@ -291,7 +293,7 @@ export default function CreatePalco() {
     setRodas(rodas.filter(r => r.id !== id));
   };
 
-  const handleUpdateRoda = (id: string, field: keyof RodaDraft, value: any) => {
+  const handleUpdateRoda = <K extends keyof RodaDraft>(id: string, field: K, value: RodaDraft[K]) => {
     setRodas(rodas.map(r => 
       r.id === id ? { ...r, [field]: value } : r
     ));
@@ -874,7 +876,7 @@ export default function CreatePalco() {
                 return (
                   <button
                     key={option.value}
-                    onClick={() => setVisibility(option.value as any)}
+                    onClick={() => setVisibility(option.value)}
                     className={cn(
                       "w-full flex items-center gap-3 p-4 rounded-[12px] border transition-all",
                       visibility === option.value

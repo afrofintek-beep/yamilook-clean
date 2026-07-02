@@ -20,7 +20,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAdvertising, Advertisement, LocationMarket } from '@/hooks/useAdvertising';
-import { usePosts } from '@/hooks/usePosts';
+import { usePosts, PostWithUser } from '@/hooks/usePosts';
 import { useAuth } from '@/hooks/useAuth';
 import { format, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -47,7 +47,7 @@ export function CreateAdSheet({ open, onOpenChange, preselectedPostId }: CreateA
   
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [userPosts, setUserPosts] = useState<PostWithUser[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
   

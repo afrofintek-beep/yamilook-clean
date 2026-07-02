@@ -36,7 +36,15 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const results: any[] = [];
+    interface SeedResult {
+      businessId: string;
+      name?: string;
+      status: "not_found" | "already_has_images" | "update_failed" | "updated";
+      error?: string;
+      logoUrl?: string;
+      coverUrl?: string;
+    }
+    const results: SeedResult[] = [];
 
     for (const [businessId, images] of Object.entries(businessImages)) {
       // Check if business exists and needs images

@@ -40,7 +40,7 @@ function installChunkLoadRecovery() {
   window.addEventListener(
     "error",
     (event) => {
-      const target = (event as unknown as { target?: any }).target;
+      const target = event.target as (Partial<HTMLScriptElement> & Partial<HTMLLinkElement>) | null;
       const src: string | undefined = target?.src || target?.href;
 
       if (!src) {
@@ -69,10 +69,11 @@ function installChunkLoadRecovery() {
   );
 
   window.addEventListener("unhandledrejection", (event) => {
-    const reason: any = (event as PromiseRejectionEvent).reason;
+    const reason: unknown = event.reason;
+    const reasonObj = reason as { message?: unknown; stack?: unknown } | null | undefined;
     const message =
-      typeof reason?.message === "string"
-        ? reason.message
+      typeof reasonObj?.message === "string"
+        ? reasonObj.message
         : typeof reason === "string"
           ? reason
           : "";
@@ -85,7 +86,7 @@ function installChunkLoadRecovery() {
       message.includes(".vite/deps/") ||
       message.includes("import.meta") ||
       // Safari-specific
-      (message.includes("Load failed") && (reason?.stack ?? "").includes("import"))
+      (message.includes("Load failed") && (typeof reasonObj?.stack === "string" ? reasonObj.stack : "").includes("import"))
     ) {
       event.preventDefault();
       reloadLimited(`dynamic_import:${message}`);

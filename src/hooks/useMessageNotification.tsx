@@ -53,7 +53,7 @@ export function useMessageNotification() {
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       return audioContextRef.current;
     }
-    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     console.log('[MessageNotification] 🔊 AudioContext created, state:', audioContextRef.current.state);
     return audioContextRef.current;
   }, []);

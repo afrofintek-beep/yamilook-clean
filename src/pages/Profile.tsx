@@ -226,7 +226,7 @@ export default function Profile() {
         .eq('user_id', targetUserId)
         .maybeSingle();
 
-      const visibility = (targetSettings as any)?.show_banda ?? 'everyone';
+      const visibility = targetSettings?.show_banda ?? 'everyone';
 
       if (visibility === 'nobody') return;
 

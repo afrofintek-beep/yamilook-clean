@@ -107,7 +107,7 @@ export function ConversationItem({
   
   const messagePreview = getLastMessagePreview();
   const hasUnread = (conversation.unread_count || 0) > 0;
-  const isPinned = (conversation as any).is_pinned;
+  const isPinned = conversation.is_pinned;
 
   return (
     <button

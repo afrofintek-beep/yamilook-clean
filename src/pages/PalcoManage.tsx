@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { PalcoIcon } from '@/components/icons/PalcoIcon';
 import YamilookLogo from '@/components/brand/YamilookLogo';
-import { usePalco, useRodasList, useCreateRoda, useStartRoda, useEndRoda, useVozes, useConfirmVozPayment, useMarkVozAnswered, Roda, Voz } from '@/hooks/usePalco';
+import { usePalco, useRodasList, useCreateRoda, useStartRoda, useEndRoda, useVozes, useConfirmVozPayment, useMarkVozAnswered, Roda, Voz, Palco } from '@/hooks/usePalco';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -587,7 +587,7 @@ function VozCard({ voz }: { voz: { id: string; type: string; status: string; use
 }
 
 // Stats Tab Content with currency conversion based on Palco location
-function StatsTabContent({ palco, endedRodasCount }: { palco: any; endedRodasCount: number }) {
+function StatsTabContent({ palco, endedRodasCount }: { palco: Palco; endedRodasCount: number }) {
   const { currencies } = useCurrencyRates();
   
   // Get currency based on Palco's location (country code from location string)

@@ -42,7 +42,7 @@ interface AdPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   ad: Advertisement;
   businessProfile: BusinessProfile | null;
-  onConfirmActivate: () => Promise<any>;
+  onConfirmActivate: () => Promise<unknown>;
   onViewCredits?: () => void;
   onViewBudget?: () => void;
 }

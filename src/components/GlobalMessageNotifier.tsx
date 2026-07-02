@@ -2,7 +2,8 @@ import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMessageNotification } from '@/hooks/useMessageNotification';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import type { Tables } from '@/integrations/supabase/types';
 
 /**
  * Global component that listens for new messages AND typing indicators
@@ -90,18 +91,20 @@ export function GlobalMessageNotifier() {
     // ── 2. Listen for typing indicators ────────────────────────
     // We listen to both INSERT and UPDATE because upsert generates UPDATE
     // when the record already exists (same user typing again).
-    const handleTypingEvent = (payload: any) => {
-      const indicator = (payload.new || payload.old) as { user_id: string; conversation_id: string } | null;
-      if (!indicator?.user_id || !indicator?.conversation_id) return;
+    const handleTypingEvent = (payload: RealtimePostgresChangesPayload<Tables<'typing_indicators'>>) => {
+      const indicator = ('new' in payload ? payload.new : null) || ('old' in payload ? payload.old : null);
+      const userId = (indicator as Partial<Tables<'typing_indicators'>> | null)?.user_id;
+      const conversationId = (indicator as Partial<Tables<'typing_indicators'>> | null)?.conversation_id;
+      if (!userId || !conversationId) return;
 
       // Only notify if:
       // - The typer is someone else
       // - We participate in that conversation
       // - We are NOT currently viewing that conversation
       if (
-        indicator.user_id !== user.id &&
-        participatingConversationsRef.current.has(indicator.conversation_id) &&
-        !isViewingConversation(indicator.conversation_id)
+        userId !== user.id &&
+        participatingConversationsRef.current.has(conversationId) &&
+        !isViewingConversation(conversationId)
       ) {
         notifyTyping();
       }

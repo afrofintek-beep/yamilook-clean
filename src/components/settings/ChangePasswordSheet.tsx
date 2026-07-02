@@ -111,11 +111,11 @@ export function ChangePasswordSheet({ open, onOpenChange }: ChangePasswordSheetP
 
       form.reset();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Password change error:', error);
       toast({
         title: t('errors.generic') || 'Error',
-        description: error.message || t('settings.passwordChangeFailed') || 'Failed to change password. Please try again.',
+        description: (error instanceof Error ? error.message : undefined) || t('settings.passwordChangeFailed') || 'Failed to change password. Please try again.',
         variant: 'destructive',
       });
     } finally {

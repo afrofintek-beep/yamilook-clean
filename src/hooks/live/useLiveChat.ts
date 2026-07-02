@@ -25,7 +25,7 @@ export function useLiveChat(sessionId: string | null, userId: string | null) {
         },
         async (payload) => {
           const newMessage = payload.new as LiveMessage;
-          const { data: userData } = await (supabase as any)
+          const { data: userData } = await supabase
             .from('public_profiles')
             .select('display_name, avatar_url')
             .eq('id', newMessage.user_id)

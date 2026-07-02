@@ -440,7 +440,10 @@ export const PostCard = memo(function PostCard({ post, onCommentClick, isArchive
           onOpenChange={setShowEdit}
           post={post}
           onSave={async (updates) => {
-            await updatePost(post.id, updates as any);
+            await updatePost(post.id, {
+              ...updates,
+              privacy: updates.privacy as 'everyone' | 'contacts' | 'close_friends' | 'only_me' | undefined,
+            });
             toast({
               title: t('feed.postEdited', 'Publicação editada'),
               description: t('feed.postEditedDesc', 'A tua publicação foi atualizada'),

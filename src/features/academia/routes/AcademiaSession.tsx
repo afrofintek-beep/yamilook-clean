@@ -93,8 +93,8 @@ export default function AcademiaSession() {
       queryClient.invalidateQueries({ queryKey: ['academia-reservation', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['academia-sessions'] });
     },
-    onError: (err: any) => {
-      if (err?.code === '23505') {
+    onError: (err: unknown) => {
+      if ((err as { code?: string } | null)?.code === '23505') {
         toast.error('Já reservaste esta sessão.');
       } else {
         toast.error('Erro ao reservar. Tenta novamente.');

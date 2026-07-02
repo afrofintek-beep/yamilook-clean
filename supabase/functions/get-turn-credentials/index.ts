@@ -16,6 +16,14 @@ interface ICEServersResponse {
   expiresAt: number;
 }
 
+// Shape of a single entry returned by the Metered TURN credentials API
+interface MeteredIceServer {
+  urls?: string | string[];
+  url?: string | string[];
+  username?: string;
+  credential?: string;
+}
+
 // Minimal STUN fallback
 const FALLBACK_STUN_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -110,16 +118,16 @@ Deno.serve(async (req: Request) => {
         if (Array.isArray(meteredCredentials) && meteredCredentials.length > 0) {
           expiresAt = Date.now() + 23 * 60 * 60 * 1000;
 
-          const validTurnServers: RTCIceServer[] = meteredCredentials
-            .filter((server: any) => {
+          const validTurnServers: RTCIceServer[] = (meteredCredentials as MeteredIceServer[])
+            .filter((server) => {
               if (server.urls && (
-                server.urls.startsWith('stun:') ||
+                (typeof server.urls === 'string' && server.urls.startsWith('stun:')) ||
                 (Array.isArray(server.urls) && server.urls.some((u: string) => u.startsWith('stun:')))
               )) return true;
-              return server.urls && server.username && server.credential;
+              return !!(server.urls && server.username && server.credential);
             })
-            .map((server: any) => ({
-              urls: server.urls || server.url,
+            .map((server) => ({
+              urls: server.urls || server.url || [],
               ...(server.username && { username: server.username }),
               ...(server.credential && { credential: server.credential }),
             }));
