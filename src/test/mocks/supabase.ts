@@ -37,6 +37,8 @@ export const mockSupabaseClient = {
     subscribe: vi.fn().mockReturnThis(),
     unsubscribe: vi.fn(),
   }),
+  removeChannel: vi.fn(),
+  rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
 };
 
 // Mock authenticated user
@@ -68,6 +70,8 @@ export const mockProfile = {
   bio: 'Test bio',
   is_online: true,
   last_seen: new Date().toISOString(),
+  onboarding_completed: true,
+  app_tour_completed: true,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };

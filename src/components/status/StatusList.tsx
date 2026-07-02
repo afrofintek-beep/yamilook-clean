@@ -79,6 +79,7 @@ export function StatusList() {
         <div className="flex gap-4 py-4 px-4">
           {/* My Status */}
           <motion.div
+            data-testid="my-status"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center gap-1 flex-shrink-0"
@@ -142,7 +143,7 @@ export function StatusList() {
               </motion.div>
             ))
           ) : (
-            <div className="flex items-center py-2 px-3 ml-2 border-l border-border">
+            <div data-testid="empty-contact-statuses" className="flex items-center py-2 px-3 ml-2 border-l border-border">
               <p className="text-xs text-muted-foreground leading-tight max-w-[180px]">
                 {t('status.noUpdatesDesc')}
               </p>

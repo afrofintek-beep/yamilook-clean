@@ -125,7 +125,7 @@ describe('StatusList', () => {
   describe('Rendering', () => {
     it('should render my status section', () => {
       renderStatusList();
-      expect(screen.getByText('My Status')).toBeInTheDocument();
+      expect(screen.getByTestId('my-status')).toBeInTheDocument();
     });
 
     it('should render contact statuses', () => {
@@ -181,7 +181,7 @@ describe('StatusList', () => {
       });
 
       renderStatusList();
-      expect(screen.getByText('No status updates from contacts')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-contact-statuses')).toBeInTheDocument();
     });
   });
 
@@ -204,34 +204,30 @@ describe('StatusList', () => {
       });
 
       renderStatusList();
-      
+
       // Click on my status ring
-      const myStatusLabel = screen.getByText('My Status');
-      const myStatusContainer = myStatusLabel.closest('.flex.flex-col');
-      const button = myStatusContainer?.querySelector('button');
-      
-      if (button) {
-        fireEvent.click(button);
-        await waitFor(() => {
-          expect(screen.getByTestId('create-status-sheet')).toBeInTheDocument();
-        });
-      }
+      const myStatusContainer = screen.getByTestId('my-status');
+      const button = myStatusContainer.querySelector('button');
+
+      expect(button).not.toBeNull();
+      fireEvent.click(button!);
+      await waitFor(() => {
+        expect(screen.getByTestId('create-status-sheet')).toBeInTheDocument();
+      });
     });
 
     it('should open viewer when clicking my status with existing statuses', async () => {
       renderStatusList();
-      
-      const myStatusLabel = screen.getByText('My Status');
-      const myStatusContainer = myStatusLabel.closest('.flex.flex-col');
-      const button = myStatusContainer?.querySelector('button');
-      
-      if (button) {
-        fireEvent.click(button);
-        await waitFor(() => {
-          expect(screen.getByTestId('status-viewer')).toBeInTheDocument();
-          expect(screen.getByTestId('viewer-own-status')).toHaveTextContent('own');
-        });
-      }
+
+      const myStatusContainer = screen.getByTestId('my-status');
+      const button = myStatusContainer.querySelector('button');
+
+      expect(button).not.toBeNull();
+      fireEvent.click(button!);
+      await waitFor(() => {
+        expect(screen.getByTestId('status-viewer')).toBeInTheDocument();
+        expect(screen.getByTestId('viewer-own-status')).toHaveTextContent('own');
+      });
     });
   });
 

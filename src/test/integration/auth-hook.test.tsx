@@ -6,10 +6,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { ReactNode } from 'react';
 
-// Mock the supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabaseClient,
-}));
+// Mock the supabase client.
+// The factory is hoisted above imports, so it cannot reference the top-level
+// `mockSupabaseClient` binding. Use an async factory with a dynamic import
+// (which resolves to the same singleton module instance the test imports).
+vi.mock('@/integrations/supabase/client', async () => {
+  const { mockSupabaseClient } = await import('@/test/mocks/supabase');
+  return { supabase: mockSupabaseClient };
+});
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -282,7 +286,7 @@ describe('useAuth Hook', () => {
     expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}/feed`,
       },
     });
   });
