@@ -64,8 +64,8 @@ export interface Conversation {
   }[];
   last_message?: Message;
   unread_count?: number;
-  // NOTE: is_pinned/is_muted live on conversation_participants, not conversations.
-  // They are currently NOT populated by useConversations (latent bug); typed as optional.
+  // is_pinned/is_muted live on the current user's conversation_participants row
+  // (not on conversations); useConversations merges them into each object.
   is_pinned?: boolean | null;
   is_muted?: boolean | null;
 }
@@ -122,7 +122,7 @@ export function useConversations() {
           .order('created_at', { ascending: false }),
         supabase
           .from('conversation_participants')
-          .select('conversation_id, last_read_at')
+          .select('conversation_id, last_read_at, is_pinned, is_muted')
           .eq('user_id', user.id)
           .in('conversation_id', conversationIds)
       ]);
@@ -161,10 +161,15 @@ export function useConversations() {
         }
       });
 
-      // Get user's last_read_at per conversation
+      // Get user's last_read_at + pin/mute state per conversation (these live on
+      // the current user's conversation_participants row, not on conversations).
       const lastReadByConv = new Map<string, string | null>();
+      const pinnedByConv = new Map<string, boolean>();
+      const mutedByConv = new Map<string, boolean>();
       userParticipations.forEach(p => {
         lastReadByConv.set(p.conversation_id, p.last_read_at);
+        pinnedByConv.set(p.conversation_id, p.is_pinned ?? false);
+        mutedByConv.set(p.conversation_id, p.is_muted ?? false);
       });
 
       // Calculate unread counts
@@ -187,6 +192,8 @@ export function useConversations() {
         participants: participantsByConv.get(conv.id) || [],
         last_message: lastMessageByConv.get(conv.id),
         unread_count: unreadCounts.get(conv.id) || 0,
+        is_pinned: pinnedByConv.get(conv.id) ?? false,
+        is_muted: mutedByConv.get(conv.id) ?? false,
       }));
 
       // Deduplicate DM conversations: keep only the most recent per other participant
