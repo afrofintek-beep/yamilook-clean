@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -66,7 +67,7 @@ export function RecordingControls({ callId, participants }: RecordingControlsPro
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const consent = payload.new as any;
+          const consent = payload.new as Tables<'recording_consents'>;
           if (!consent.consented) {
             // We're being asked for consent
             setPendingRecordingId(consent.recording_id);
@@ -163,9 +164,9 @@ export function RecordingControls({ callId, participants }: RecordingControlsPro
           filter: `recording_id=eq.${recId}`,
         },
         async (payload) => {
-          const consent = payload.new as any;
-          
-          setConsentStatuses(prev => prev.map(c => 
+          const consent = payload.new as Tables<'recording_consents'>;
+
+          setConsentStatuses(prev => prev.map(c =>
             c.userId === consent.user_id 
               ? { ...c, consented: consent.consented }
               : c

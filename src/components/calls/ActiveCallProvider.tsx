@@ -72,13 +72,13 @@ function formatCallError(err: unknown) {
 
   if (err instanceof Error) return err.message;
 
-  const anyErr = err as any;
-  if (anyErr && typeof anyErr === 'object' && typeof anyErr.message === 'string') {
+  if (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string') {
+    const errObj = err as { message: string; code?: unknown; details?: unknown };
     const extra = [
-      typeof anyErr.code === 'string' ? `code=${anyErr.code}` : null,
-      typeof anyErr.details === 'string' ? anyErr.details : null,
+      typeof errObj.code === 'string' ? `code=${errObj.code}` : null,
+      typeof errObj.details === 'string' ? errObj.details : null,
     ].filter(Boolean).join(' · ');
-    return extra ? `${anyErr.message} (${extra})` : anyErr.message;
+    return extra ? `${errObj.message} (${extra})` : errObj.message;
   }
 
   return 'Erro desconhecido';

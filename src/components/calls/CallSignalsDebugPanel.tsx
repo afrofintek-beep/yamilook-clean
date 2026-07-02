@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 
 type DebugEvent = {
@@ -18,7 +19,7 @@ export function CallSignalsDebugPanel() {
 
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectError, setSelectError] = useState<string | null>(null);
-  const [signals, setSignals] = useState<any[]>([]);
+  const [signals, setSignals] = useState<Tables<'call_signals'>[]>([]);
 
   const [listenStatus, setListenStatus] = useState<'idle' | 'subscribing' | 'subscribed' | 'error'>('idle');
   const [events, setEvents] = useState<DebugEvent[]>([]);

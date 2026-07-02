@@ -1,6 +1,7 @@
 /* @refresh reset */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 import { useIncomingCallSignals } from './useIncomingCallSignals';
 import { logger } from '@/lib/logger';
@@ -199,7 +200,18 @@ export function useCalls() {
       if (participations) {
         const callsWithParticipants = await Promise.all(
           participations.map(async (p) => {
-            const call = p.calls as any;
+            const call = p.calls as {
+              id: string;
+              type: string;
+              status: string;
+              started_at: string | null;
+              ended_at: string | null;
+              duration_seconds: number | null;
+              is_group_call: boolean;
+              caller_id: string | null;
+              callee_id: string | null;
+              initiator_id: string;
+            } | null;
             if (!call) return null;
 
             // First try to get participants from call_participants table
@@ -440,7 +452,11 @@ export function useCalls() {
     if (!data) return null;
 
     const stats = data.reduce((acc, p) => {
-      const call = p.calls as any;
+      const call = p.calls as {
+        type: string;
+        duration_seconds: number | null;
+        created_at: string;
+      } | null;
       if (!call) return acc;
 
       acc.totalCalls++;
@@ -493,7 +509,7 @@ export function useCalls() {
           filter: `id=eq.${incomingCall.id}`,
         },
         (payload) => {
-          const newStatus = (payload.new as any)?.status;
+          const newStatus = (payload.new as Partial<Tables<'calls'>>)?.status;
           logger.debug('Incoming call status changed', 'useCalls', newStatus);
           if (newStatus && ['ended', 'declined', 'failed', 'cancelled'].includes(newStatus)) {
             logger.debug('Clearing incoming call - caller hung up', 'useCalls');

@@ -1,6 +1,7 @@
 /* @refresh reset */
 import { useCallback, useRef, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 import { logger } from '@/lib/logger';
 
@@ -158,7 +159,7 @@ export function useWebRTCSignaling({
     }
 
     if (data && data.length > 0) {
-      const last = data[data.length - 1] as any;
+      const last = data[data.length - 1] as Tables<'call_signals'>;
       if (last?.created_at) lastFetchedAtRef.current = String(last.created_at);
     }
 

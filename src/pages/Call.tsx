@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { VideoCall } from '@/components/calls/VideoCall';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useActiveCallRequired } from '@/components/calls/ActiveCallProvider';
 
 interface CallInfo {
@@ -133,7 +134,7 @@ export default function Call() {
           filter: `id=eq.${callId}`,
         },
         (payload) => {
-          const newStatus = (payload.new as any)?.status;
+          const newStatus = (payload.new as Partial<Tables<'calls'>>)?.status;
           if (newStatus === 'ended' || newStatus === 'declined' || newStatus === 'failed') {
             console.log('[Call] Call status changed to', newStatus, '- redirecting');
             navigate('/calls');

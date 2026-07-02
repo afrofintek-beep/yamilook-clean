@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 
 interface CallSettings {
@@ -91,11 +92,11 @@ export function CallEffects({ onClose }: CallEffectsProps) {
     if (!user) return;
 
     // Map to database columns
-    const dbUpdates: Record<string, any> = {};
-    if (key === 'beautyMode') dbUpdates.beauty_mode_enabled = value;
-    if (key === 'lowLightBoost') dbUpdates.low_light_enhancement = value;
-    if (key === 'noiseSuppression') dbUpdates.noise_suppression_enabled = value;
-    if (key === 'echoCancellation') dbUpdates.echo_cancellation_enabled = value;
+    const dbUpdates: TablesUpdate<'user_call_settings'> = {};
+    if (key === 'beautyMode') dbUpdates.beauty_mode_enabled = Boolean(value);
+    if (key === 'lowLightBoost') dbUpdates.low_light_enhancement = Boolean(value);
+    if (key === 'noiseSuppression') dbUpdates.noise_suppression_enabled = Boolean(value);
+    if (key === 'echoCancellation') dbUpdates.echo_cancellation_enabled = Boolean(value);
 
     if (Object.keys(dbUpdates).length > 0) {
       await supabase

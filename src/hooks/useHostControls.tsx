@@ -329,7 +329,7 @@ export function useHostControls(callId: string) {
 
         const participantDetails = await Promise.all(
           (participants || []).map(async (p) => {
-            const { data: profile } = await (supabase as any)
+            const { data: profile } = await supabase
               .from('public_profiles')
               .select('display_name, avatar_url')
               .eq('id', p.user_id)

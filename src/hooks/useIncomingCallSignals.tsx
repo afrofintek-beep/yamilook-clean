@@ -1,6 +1,7 @@
 /* @refresh reset */
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
 
@@ -52,16 +53,7 @@ export function useIncomingCallSignals({ onOfferReceived }: UseIncomingCallSigna
           table: 'call_signals',
         },
         (payload) => {
-          const signal = payload.new as {
-            id: string;
-            call_id: string;
-            signal_type: string;
-            from_user_id: string;
-            to_user_id: string;
-            payload: any;
-            processed: boolean;
-            created_at?: string;
-          };
+          const signal = payload.new as Tables<'call_signals'>;
           
           // Client-side filter: only process signals for this user
           if (signal.to_user_id !== userId) return;
@@ -82,7 +74,7 @@ export function useIncomingCallSignals({ onOfferReceived }: UseIncomingCallSigna
           processedOffers.current.add(signal.id);
 
           // Extract call type from payload or default to voice
-          const sdpPayload = signal.payload as RTCSessionDescriptionInit | null;
+          const sdpPayload = signal.payload as unknown as RTCSessionDescriptionInit | null;
 
           // Determine call type from SDP content (video calls have video in SDP)
           let callType: 'voice' | 'video' = 'voice';
