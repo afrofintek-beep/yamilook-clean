@@ -583,7 +583,9 @@ export function useAdvertising() {
       query = query.eq('target_city', userCity);
     }
     
-    let { data, error } = await query.limit(limit);
+    const initial = await query.limit(limit);
+    let data = initial.data;
+    const error = initial.error;
     
     if (error) {
       console.error('Error fetching featured businesses:', error);
