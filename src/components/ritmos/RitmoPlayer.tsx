@@ -164,7 +164,9 @@ export function RitmoPlayer({
         webkit-playsinline=""
         preload={isActive ? 'auto' : 'metadata'}
         muted={isMuted}
-        poster={(ritmo as Ritmo & { thumbnail_url?: string }).thumbnail_url || `${ritmo.video_url}#t=0.1`}
+        // A tabela ritmos não tem coluna de thumbnail; usamos o primeiro frame
+        // do vídeo (#t=0.1) como poster.
+        poster={`${ritmo.video_url}#t=0.1`}
         onCanPlayThrough={() => setIsVideoReady(true)}
         onClick={handleVideoTap}
       />
