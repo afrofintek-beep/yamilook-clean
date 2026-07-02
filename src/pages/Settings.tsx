@@ -293,7 +293,19 @@ export default function Settings() {
     });
   };
 
-  const SettingItem = ({
+  const SettingItem = React.forwardRef<
+    HTMLButtonElement,
+    {
+      icon: LucideIcon;
+      label: string;
+      description?: string;
+      onClick?: () => void;
+      rightElement?: React.ReactNode;
+      danger?: boolean;
+      badge?: string;
+      delay?: number;
+    }
+  >(({
     icon: Icon,
     label,
     description,
@@ -302,16 +314,7 @@ export default function Settings() {
     danger,
     badge,
     delay = 0,
-  }: {
-    icon: LucideIcon;
-    label: string;
-    description?: string;
-    onClick?: () => void;
-    rightElement?: React.ReactNode;
-    danger?: boolean;
-    badge?: string;
-    delay?: number;
-  }) => {
+  }, ref) => {
     // Check if there's a rightElement with interactive controls
     const hasInteractiveRightElement = rightElement !== undefined;
     
@@ -352,6 +355,7 @@ export default function Settings() {
     if (onClick && !hasInteractiveRightElement) {
       return (
         <motion.button
+          ref={ref}
           type="button"
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -389,7 +393,8 @@ export default function Settings() {
         {content}
       </motion.div>
     );
-  };
+  });
+  SettingItem.displayName = 'SettingItem';
 
   const SectionHeader = ({ title, delay = 0 }: { title: string; delay?: number }) => (
     <motion.div
