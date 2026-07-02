@@ -142,17 +142,17 @@ export default function Apply() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nome completo *</FormLabel>
-                        <FormControl>
                           <div className="relative">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              {...field}
-                              placeholder="O teu nome"
-                              className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
-                              disabled={isLoading}
-                            />
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="O teu nome"
+                                className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
+                                disabled={isLoading}
+                              />
+                            </FormControl>
                           </div>
-                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -165,18 +165,18 @@ export default function Apply() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Email *</FormLabel>
-                        <FormControl>
                           <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              {...field}
-                              type="email"
-                              placeholder="nome@exemplo.com"
-                              className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
-                              disabled={isLoading}
-                            />
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="email"
+                                placeholder="nome@exemplo.com"
+                                className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
+                                disabled={isLoading}
+                              />
+                            </FormControl>
                           </div>
-                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -190,17 +190,17 @@ export default function Apply() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Telefone</FormLabel>
-                          <FormControl>
                             <div className="relative">
                               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                              <Input
-                                {...field}
-                                placeholder="+244 9xx..."
-                                className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
-                                disabled={isLoading}
-                              />
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="+244 9xx..."
+                                  className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
+                                  disabled={isLoading}
+                                />
+                              </FormControl>
                             </div>
-                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -211,17 +211,17 @@ export default function Apply() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Cidade</FormLabel>
-                          <FormControl>
                             <div className="relative">
                               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                              <Input
-                                {...field}
-                                placeholder="Luanda..."
-                                className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
-                                disabled={isLoading}
-                              />
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="Luanda..."
+                                  className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
+                                  disabled={isLoading}
+                                />
+                              </FormControl>
                             </div>
-                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -235,17 +235,17 @@ export default function Apply() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Instagram / TikTok</FormLabel>
-                        <FormControl>
                           <div className="relative">
                             <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              {...field}
-                              placeholder="@o_teu_username"
-                              className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
-                              disabled={isLoading}
-                            />
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="@o_teu_username"
+                                className="pl-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary"
+                                disabled={isLoading}
+                              />
+                            </FormControl>
                           </div>
-                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -258,17 +258,17 @@ export default function Apply() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Porque queres fazer parte do MVP? *</FormLabel>
-                        <FormControl>
                           <div className="relative">
                             <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                            <Textarea
-                              {...field}
-                              placeholder="Conta-nos o que te motiva a fazer parte desta fase inicial do Yamilook..."
-                              className="pl-10 min-h-[120px] rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary resize-none"
-                              disabled={isLoading}
-                            />
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                placeholder="Conta-nos o que te motiva a fazer parte desta fase inicial do Yamilook..."
+                                className="pl-10 min-h-[120px] rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary resize-none"
+                                disabled={isLoading}
+                              />
+                            </FormControl>
                           </div>
-                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

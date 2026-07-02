@@ -123,18 +123,18 @@ export default function ForgotPassword() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormControl>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder={t('auth.email')}
-                        className="pl-10"
-                        disabled={isLoading}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder={t('auth.email')}
+                          className="pl-10"
+                          disabled={isLoading}
+                        />
+                      </FormControl>
                     </div>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

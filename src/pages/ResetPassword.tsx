@@ -136,16 +136,17 @@ export default function ResetPassword() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormControl>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder={t('auth.newPassword')}
-                        className="pl-10 pr-10"
-                        disabled={isLoading}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder={t('auth.newPassword')}
+                          className="pl-10 pr-10"
+                          disabled={isLoading}
+                        />
+                      </FormControl>
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
@@ -154,7 +155,6 @@ export default function ResetPassword() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -194,16 +194,17 @@ export default function ResetPassword() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormControl>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder={t('auth.confirmPassword')}
-                        className="pl-10 pr-10"
-                        disabled={isLoading}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder={t('auth.confirmPassword')}
+                          className="pl-10 pr-10"
+                          disabled={isLoading}
+                        />
+                      </FormControl>
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -212,7 +213,6 @@ export default function ResetPassword() {
                         {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

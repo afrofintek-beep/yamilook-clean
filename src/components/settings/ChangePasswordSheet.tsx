@@ -142,14 +142,15 @@ export function ChangePasswordSheet({ open, onOpenChange }: ChangePasswordSheetP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('auth.currentPassword') || 'Current Password'}</FormLabel>
-                  <FormControl>
                     <div className="relative">
-                      <Input
-                        {...field}
-                        type={showCurrentPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        className="pr-10"
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type={showCurrentPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          className="pr-10"
+                        />
+                      </FormControl>
                       <Button
                         type="button"
                         variant="ghost"
@@ -164,7 +165,6 @@ export function ChangePasswordSheet({ open, onOpenChange }: ChangePasswordSheetP
                         )}
                       </Button>
                     </div>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -177,14 +177,15 @@ export function ChangePasswordSheet({ open, onOpenChange }: ChangePasswordSheetP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('auth.newPassword') || 'New Password'}</FormLabel>
-                  <FormControl>
                     <div className="relative">
-                      <Input
-                        {...field}
-                        type={showNewPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        className="pr-10"
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type={showNewPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          className="pr-10"
+                        />
+                      </FormControl>
                       <Button
                         type="button"
                         variant="ghost"
@@ -199,7 +200,6 @@ export function ChangePasswordSheet({ open, onOpenChange }: ChangePasswordSheetP
                         )}
                       </Button>
                     </div>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -242,14 +242,15 @@ export function ChangePasswordSheet({ open, onOpenChange }: ChangePasswordSheetP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('auth.confirmPassword')}</FormLabel>
-                  <FormControl>
                     <div className="relative">
-                      <Input
-                        {...field}
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        className="pr-10"
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          className="pr-10"
+                        />
+                      </FormControl>
                       <Button
                         type="button"
                         variant="ghost"
@@ -264,7 +265,6 @@ export function ChangePasswordSheet({ open, onOpenChange }: ChangePasswordSheetP
                         )}
                       </Button>
                     </div>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

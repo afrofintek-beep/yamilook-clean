@@ -116,23 +116,23 @@ export function LoginForm() {
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>{t('auth.email')}</FormLabel>
-                <FormControl>
                   <div className={fieldState.error ? "animate-shake" : ""}>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder="nome@yamilook.com"
-                        className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && isEmailValid(field.value) ? 'ring-2 ring-green-500' : ''}`}
-                        disabled={isLoading}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder="nome@yamilook.com"
+                          className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && isEmailValid(field.value) ? 'ring-2 ring-green-500' : ''}`}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
                       {!fieldState.error && field.value && isEmailValid(field.value) && (
                         <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500 transition-all duration-300" />
                       )}
                     </div>
                   </div>
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -154,17 +154,18 @@ export function LoginForm() {
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>{t('auth.password')}</FormLabel>
-                <FormControl>
                   <div className={fieldState.error ? "animate-shake" : ""}>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        className={`pl-10 pr-16 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && isPasswordValid(field.value) ? 'ring-2 ring-green-500' : ''}`}
-                        disabled={isLoading}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          className={`pl-10 pr-16 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && isPasswordValid(field.value) ? 'ring-2 ring-green-500' : ''}`}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                         {!fieldState.error && field.value && isPasswordValid(field.value) && (
                           <Check className="w-5 h-5 text-green-500 transition-all duration-300" />
@@ -184,14 +185,13 @@ export function LoginForm() {
                       </div>
                     </div>
                   </div>
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </motion.div>
 
-        <motion.div 
+        <motion.div
           className="flex justify-end"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

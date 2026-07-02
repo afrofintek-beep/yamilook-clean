@@ -189,25 +189,26 @@ export function RegisterForm() {
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>Código de Acesso MVP *</FormLabel>
-                <FormControl>
                   <div className={fieldState.error ? "animate-shake" : ""}>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        placeholder="XXXX-XXXX"
-                        className={cn(
-                          "pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary font-mono tracking-widest uppercase",
-                          codeValid === true && "ring-2 ring-green-500",
-                          codeValid === false && "ring-2 ring-destructive",
-                          fieldState.error && "ring-2 ring-destructive"
-                        )}
-                        disabled={isLoading}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          checkAccessCode(e.target.value);
-                        }}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="XXXX-XXXX"
+                          className={cn(
+                            "pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary font-mono tracking-widest uppercase",
+                            codeValid === true && "ring-2 ring-green-500",
+                            codeValid === false && "ring-2 ring-destructive",
+                            fieldState.error && "ring-2 ring-destructive"
+                          )}
+                          disabled={isLoading}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            checkAccessCode(e.target.value);
+                          }}
+                        />
+                      </FormControl>
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         {checkingCode ? (
                           <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
@@ -219,7 +220,6 @@ export function RegisterForm() {
                       </div>
                     </div>
                   </div>
-                </FormControl>
                 {codeValid === false && (
                   <p className="text-sm text-destructive">Código inválido ou já utilizado</p>
                 )}
@@ -243,22 +243,22 @@ export function RegisterForm() {
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>{t('auth.displayName')}</FormLabel>
-                <FormControl>
                   <div className={fieldState.error ? "animate-shake" : ""}>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        placeholder={t('auth.displayNamePlaceholder')}
-                        className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && field.value.length >= 2 ? 'ring-2 ring-green-500' : ''}`}
-                        disabled={isLoading}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder={t('auth.displayNamePlaceholder')}
+                          className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && field.value.length >= 2 ? 'ring-2 ring-green-500' : ''}`}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
                       {!fieldState.error && field.value && field.value.length >= 2 && (
                         <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500 transition-all duration-300" />
                       )}
                     </div>
                   </div>
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -276,25 +276,26 @@ export function RegisterForm() {
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>{t('auth.username')}</FormLabel>
-                <FormControl>
                   <div className={fieldState.error ? "animate-shake" : ""}>
                     <div className="relative">
                       <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        placeholder={t('auth.usernamePlaceholder')}
-                        className={cn(
-                          "pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary",
-                          usernameAvailable === true && "ring-2 ring-green-500",
-                          usernameAvailable === false && "ring-2 ring-red-500",
-                          fieldState.error && "ring-2 ring-destructive"
-                        )}
-                        disabled={isLoading}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          checkUsernameAvailability(e.target.value);
-                        }}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder={t('auth.usernamePlaceholder')}
+                          className={cn(
+                            "pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary",
+                            usernameAvailable === true && "ring-2 ring-green-500",
+                            usernameAvailable === false && "ring-2 ring-red-500",
+                            fieldState.error && "ring-2 ring-destructive"
+                          )}
+                          disabled={isLoading}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            checkUsernameAvailability(e.target.value);
+                          }}
+                        />
+                      </FormControl>
                       {field.value.length >= 3 && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                           {isCheckingUsername ? (
@@ -308,7 +309,6 @@ export function RegisterForm() {
                       )}
                     </div>
                   </div>
-                </FormControl>
                 <FormMessage />
                 {usernameAvailable === false && (
                   <p className="text-sm text-destructive">{t('auth.usernameTaken')}</p>
@@ -329,23 +329,23 @@ export function RegisterForm() {
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>{t('auth.email')}</FormLabel>
-                <FormControl>
                   <div className={fieldState.error ? "animate-shake" : ""}>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder="nome@exemplo.com"
-                        className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && isEmailValid(field.value) ? 'ring-2 ring-green-500' : ''}`}
-                        disabled={isLoading}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder="nome@exemplo.com"
+                          className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''} ${!fieldState.error && field.value && isEmailValid(field.value) ? 'ring-2 ring-green-500' : ''}`}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
                       {!fieldState.error && field.value && isEmailValid(field.value) && (
                         <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500 transition-all duration-300" />
                       )}
                     </div>
                   </div>
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -363,17 +363,18 @@ export function RegisterForm() {
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>{t('auth.password')}</FormLabel>
-                <FormControl>
                   <div className={fieldState.error ? "animate-shake" : ""}>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''}`}
-                        disabled={isLoading}
-                      />
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          className={`pl-10 pr-10 h-12 rounded-xl bg-secondary/50 border-0 focus:ring-2 focus:ring-primary ${fieldState.error ? 'ring-2 ring-destructive' : ''}`}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
@@ -387,7 +388,6 @@ export function RegisterForm() {
                       </button>
                     </div>
                   </div>
-                </FormControl>
                 {password && (
                   <div className="mt-3 space-y-2">
                     {passwordRequirements.map((req, i) => {
