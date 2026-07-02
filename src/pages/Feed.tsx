@@ -16,6 +16,7 @@ import { preloadImages } from '@/components/ui/OptimizedImage';
 import { LiveIndicatorBadge } from '@/components/live/LiveIndicatorBadge';
 import { LivePreviewTooltip } from '@/components/live/LivePreviewTooltip';
 import { usePosts, PostWithUser } from '@/hooks/usePosts';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useAdvertising, Advertisement, BusinessProfile } from '@/hooks/useAdvertising';
 import { useActiveStreams } from '@/hooks/useActiveStreams';
 import { useArchivedPosts } from '@/hooks/useArchivedPosts';
@@ -86,6 +87,12 @@ export default function Feed() {
     const vp = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
     vp?.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Pull-to-refresh on the feed viewport
+  const { pullDistance, refreshing: refreshingFeed } = usePullToRefresh({
+    onRefresh: () => fetchFeedPosts(),
+    getScrollElement: () => scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null,
+  });
 
   // Infinite scroll: observe a sentinel at the bottom of the (Radix ScrollArea)
   // list and load the next page as it approaches the viewport.
@@ -160,6 +167,16 @@ export default function Feed() {
       )}
 
       <ScrollArea ref={scrollRef} className="flex-1">
+        {/* Pull-to-refresh indicator */}
+        <div
+          className="flex items-start justify-center overflow-hidden"
+          style={{ height: refreshingFeed ? 44 : pullDistance, transition: 'height 0.2s ease' }}
+        >
+          <Loader2
+            className={`w-5 h-5 text-muted-foreground mt-3 ${refreshingFeed ? 'animate-spin' : ''}`}
+            style={refreshingFeed ? undefined : { opacity: Math.min(pullDistance / 70, 1), transform: `rotate(${pullDistance * 3}deg)` }}
+          />
+        </div>
         {/* Status stories */}
         <div className="border-b border-border">
           <StatusList />
