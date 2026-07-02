@@ -2,7 +2,18 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useMessageNotification } from './useMessageNotification';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import type { Tables } from '@/integrations/supabase/types';
+
+// Subset of the `public_profiles` view columns this hook selects.
+interface PublicProfile {
+  id: string | null;
+  display_name: string | null;
+  username?: string | null;
+  avatar_url: string | null;
+  is_online?: boolean | null;
+  last_seen?: string | null;
+}
 
 interface Message {
   id: string;
@@ -138,12 +149,12 @@ export function useConversations() {
 
       // Get unique participant user IDs and fetch all profiles
       const participantUserIds = [...new Set(allParticipants.map(p => p.user_id))];
-      const { data: profiles } = await (supabase as any)
+      const { data: profiles } = await supabase
         .from('public_profiles')
         .select('id, display_name, username, avatar_url, is_online, last_seen')
         .in('id', participantUserIds);
 
-      const profileMap = new Map((profiles as any[] ?? []).map((p: any) => [p.id, p]));
+      const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
       // Group participants by conversation
       const participantsByConv = new Map<string, { user_id: string; profile?: typeof profiles[0] }[]>();
@@ -204,7 +215,7 @@ export function useConversations() {
       const seen = new Map<string, number>();
       const deduped = enrichedConversations.filter((conv, idx) => {
         if (conv.type !== 'direct') return true;
-        const other = conv.participants?.find((p: any) => p.user_id !== user.id);
+        const other = conv.participants?.find((p) => p.user_id !== user.id);
         if (!other) return true;
         const key = other.user_id;
         if (seen.has(key)) {
@@ -353,7 +364,7 @@ export function useMessages(conversationId: string | null) {
 
       // Batch fetch profiles, reactions, starred, pinned, reply messages, and view-once views in parallel
       const [profilesResult, reactionsResult, starredResult, pinnedResult, replyMessagesResult, viewOnceResult] = await Promise.all([
-        (supabase as any)
+        supabase
           .from('public_profiles')
           .select('id, display_name, username, avatar_url')
           .in('id', senderIds),
@@ -383,18 +394,18 @@ export function useMessages(conversationId: string | null) {
           .in('message_id', messageIds),
       ]);
 
-      const profileMap = new Map<string, any>((profilesResult.data as any[] ?? []).map((p: any) => [p.id, p]));
+      const profileMap = new Map<string | null, PublicProfile>((profilesResult.data ?? []).map((p) => [p.id, p]));
       const replyMessages = replyMessagesResult.data || [];
       const replyMessageMap = new Map(replyMessages.map(m => [m.id, m]));
 
       // Fetch profiles for reply senders if not already fetched
       const replySenderIds = [...new Set(replyMessages.map(m => m.sender_id).filter(id => !profileMap.has(id)))];
       if (replySenderIds.length > 0) {
-        const { data: replyProfiles } = await (supabase as any)
+        const { data: replyProfiles } = await supabase
           .from('public_profiles')
           .select('id, display_name, username, avatar_url')
           .in('id', replySenderIds);
-        (replyProfiles as any[] ?? []).forEach((p: any) => profileMap.set(p.id, p));
+        (replyProfiles ?? []).forEach((p) => profileMap.set(p.id, p));
       }
 
       // Build messages with profiles
@@ -434,7 +445,7 @@ export function useMessages(conversationId: string | null) {
             media_url: keepLocalBlob ? prevMedia : m.media_url,
             // keep any enriched fields if they exist
             sender_profile: m.sender_profile ?? prevMsg.sender_profile,
-            reply_to: (m as any).reply_to ?? (prevMsg as any).reply_to,
+            reply_to: m.reply_to ?? prevMsg.reply_to,
           };
         });
       });
@@ -481,9 +492,9 @@ export function useMessages(conversationId: string | null) {
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
-        }, async (payload) => {
+        }, async (payload: RealtimePostgresChangesPayload<Tables<'messages'>>) => {
           const newMessage = payload.new as Message;
-          
+
           // For own messages, merge by id (we generate the UUID client-side for optimistic messages)
           if (newMessage.sender_id === user.id) {
             setMessages((prev) => {
@@ -502,7 +513,7 @@ export function useMessages(conversationId: string | null) {
                     ...newMessage,
                     media_url: keepLocalBlob ? prevMedia : nextMedia,
                     sender_profile: m.sender_profile,
-                    reply_to: (m as any).reply_to,
+                    reply_to: m.reply_to,
                   };
                 });
               }
@@ -520,7 +531,7 @@ export function useMessages(conversationId: string | null) {
                   m.id.startsWith('temp-') &&
                   m.content === newMessage.content &&
                   m.message_type === newMessage.message_type
-                    ? { ...newMessage, sender_profile: m.sender_profile, reply_to: (m as any).reply_to }
+                    ? { ...newMessage, sender_profile: m.sender_profile, reply_to: m.reply_to }
                     : m
                 );
               }
@@ -543,7 +554,7 @@ export function useMessages(conversationId: string | null) {
           }
           
           // For other users' messages, fetch profile (non-blocking pattern)
-          const { data: profile } = await (supabase as any)
+          const { data: profile } = await supabase
             .from('public_profiles')
             .select('id, display_name, username, avatar_url')
             .eq('id', newMessage.sender_id)
@@ -576,7 +587,7 @@ export function useMessages(conversationId: string | null) {
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
-        }, (payload) => {
+        }, (payload: RealtimePostgresChangesPayload<Tables<'messages'>>) => {
           const updatedMessage = payload.new as Message;
           // Merge all updated fields (e.g. media_url after voice upload), but keep enriched joins
           setMessages((prev) =>
@@ -592,7 +603,7 @@ export function useMessages(conversationId: string | null) {
                 ...updatedMessage,
                 media_url: keepLocalBlob ? prevMedia : updatedMessage.media_url,
                 sender_profile: m.sender_profile,
-                reply_to: (m as any).reply_to,
+                reply_to: m.reply_to,
               };
             })
           );
@@ -609,13 +620,13 @@ export function useMessages(conversationId: string | null) {
           schema: 'public',
           table: 'typing_indicators',
           filter: `conversation_id=eq.${conversationId}`,
-        }, async (payload) => {
+        }, async (payload: RealtimePostgresChangesPayload<Tables<'typing_indicators'>>) => {
           // REPLICA IDENTITY FULL ensures payload.new has all columns on UPDATE/DELETE
-          const eventType = payload.eventType as string;
+          const eventType = payload.eventType;
           // For DELETE events, the data is in payload.old; for INSERT/UPDATE it's in payload.new
           const row = (eventType === 'DELETE'
-            ? (payload as any).old
-            : (payload as any).new) as { user_id?: string; updated_at?: string } | null;
+            ? payload.old
+            : payload.new) as { user_id?: string; updated_at?: string } | null;
 
           if (!row?.user_id || row.user_id === user.id) return;
 
@@ -625,7 +636,7 @@ export function useMessages(conversationId: string | null) {
 
           // Fetch profile if not cached (before updating state)
           if (!typingProfileCacheRef.current.has(typingUserId) && eventType !== 'DELETE') {
-            const { data } = await (supabase as any)
+            const { data } = await supabase
               .from('public_profiles')
               .select('display_name, avatar_url')
               .eq('id', typingUserId)
@@ -639,7 +650,7 @@ export function useMessages(conversationId: string | null) {
           setTypingUsers((prev) => {
             // Preserve existing timestamps correctly
             const prevMap = new Map<string, number>(
-              prev.map((u) => [u.user_id, (u as any)._ts ?? now])
+              prev.map((u) => [u.user_id, (u as TypingUser & { _ts?: number })._ts ?? now])
             );
 
             if (eventType === 'DELETE') {
@@ -701,7 +712,7 @@ export function useMessages(conversationId: string | null) {
           if (displayName) {
             typingProfileCacheRef.current.set(typingUserId, { display_name: displayName, avatar_url: avatarUrl });
           } else {
-            const { data } = await (supabase as any)
+            const { data } = await supabase
               .from('public_profiles')
               .select('display_name, avatar_url')
               .eq('id', typingUserId)
@@ -978,7 +989,7 @@ export function useMessages(conversationId: string | null) {
     // React StrictMode double-invoking cleanup (which resets typingChannelReadyRef to false
     // even after the channel has already joined).
     const ch = typingChannelRef.current;
-    const isJoined = ch && (ch as any).state === 'joined';
+    const isJoined = ch && ch.state === 'joined';
 
     if (isJoined) {
       ch.send({
@@ -999,7 +1010,7 @@ export function useMessages(conversationId: string | null) {
     // Schedule "stopped typing" broadcast after 5s of inactivity
     typingTimeoutRef.current = setTimeout(() => {
       const chNow = typingChannelRef.current;
-      const joinedNow = chNow && (chNow as any).state === 'joined';
+      const joinedNow = chNow && chNow.state === 'joined';
       if (joinedNow) {
         chNow.send({
           type: 'broadcast',
