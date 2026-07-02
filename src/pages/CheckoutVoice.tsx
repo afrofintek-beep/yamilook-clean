@@ -6,9 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { usePalco } from '@/hooks/usePalco';
+import { usePalco, useVozes, useConfirmVozPayment } from '@/hooks/usePalco';
 import { useCurrencyRates } from '@/hooks/useCurrencyRates';
-import { toast } from 'sonner';
 
 const paymentMethods = [
   { id: 'multicaixa', label: 'Multicaixa Express', icon: Smartphone, popular: true },
@@ -17,14 +16,7 @@ const paymentMethods = [
   { id: 'mobile', label: 'Mobile Money', icon: Smartphone, popular: false },
 ];
 
-// Mock voice data
-const mockVoz = {
-  id: '1',
-  question: 'Como começar um negócio em Angola sem capital inicial?',
-  type: 'highlight' as const,
-  typeLabel: 'Destaque',
-  price: 7,
-};
+const VOICE_TYPE_LABELS: Record<string, string> = { email: 'Email', live: 'Live', highlight: 'Destaque' };
 
 export default function CheckoutVoice() {
   const { palcoId, rodaId } = useParams();
@@ -37,12 +29,17 @@ export default function CheckoutVoice() {
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { data: palco } = usePalco(palcoId);
-  const { selectedCurrency, formatMoney, creditsToMoney } = useCurrencyRates();
-  
-  const voz = mockVoz; // Will be fetched from API
-  
-  // Calculate local amount (mock FX rate)
-  const baseAmountUSD = voz.price;
+  const { data: vozes, isLoading: vozesLoading } = useVozes(rodaId);
+  const { selectedCurrency } = useCurrencyRates();
+  const confirmPayment = useConfirmVozPayment();
+
+  const voz = vozes?.find((v) => v.id === vozId);
+  const priceInfo = palco?.voice_types?.find((vt) => vt.voice_type === voz?.voice_type);
+  const question = voz?.custom_text || customText;
+  const typeLabel = voz ? (VOICE_TYPE_LABELS[voz.voice_type] ?? voz.voice_type) : '';
+
+  // Calculate local amount from the real voice-type price
+  const baseAmountUSD = priceInfo?.price ?? 0;
   const fxRate = selectedCurrency?.rate_to_usd || 1;
   const localAmount = baseAmountUSD / fxRate;
   const formattedLocalAmount = selectedCurrency 
@@ -50,15 +47,42 @@ export default function CheckoutVoice() {
     : `$${baseAmountUSD}`;
 
   const handleConfirmPayment = async () => {
+    if (!voz || !vozId || !rodaId) return;
     setIsProcessing(true);
-    
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsProcessing(false);
-    toast.success('Pagamento confirmado!');
-    navigate(`/palco/${palcoId}/roda/${rodaId}/success?type=voice`);
+    try {
+      await confirmPayment.mutateAsync({
+        vozId,
+        rodaId,
+        amountPaid: baseAmountUSD,
+        currency: priceInfo?.currency ?? selectedCurrency?.currency_code,
+        paymentMethod: selectedMethod,
+      });
+      navigate(`/palco/${palcoId}/roda/${rodaId}/success?type=voice`);
+    } catch {
+      // error toast handled by the mutation's onError
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  if (vozesLoading) {
+    return (
+      <div className="min-h-screen bg-palco-bg flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-palco-accent" />
+      </div>
+    );
+  }
+
+  if (!voz) {
+    return (
+      <div className="min-h-screen bg-palco-bg flex flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="text-palco-text">Voz não encontrada.</p>
+        <Button variant="ghost" onClick={() => navigate(-1)} className="text-palco-accent">
+          Voltar
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-palco-bg flex flex-col">
@@ -93,12 +117,12 @@ export default function CheckoutVoice() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-palco-text-secondary">Voz</span>
                 <span className="text-sm font-medium text-palco-text line-clamp-1 max-w-[200px] text-right">
-                  {voz.question.substring(0, 40)}...
+                  {question.substring(0, 40)}{question.length > 40 ? '…' : ''}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-palco-text-secondary">Tipo</span>
-                <span className="text-sm font-medium text-palco-text">{voz.typeLabel}</span>
+                <span className="text-sm font-medium text-palco-text">{typeLabel}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-palco-text-secondary">Preço (USD)</span>

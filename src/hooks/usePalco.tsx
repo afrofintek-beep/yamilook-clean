@@ -564,12 +564,14 @@ export function useConfirmVozPayment() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ vozId, rodaId }: { vozId: string; rodaId: string }) => {
+    mutationFn: async ({ vozId, rodaId, amountPaid, currency, paymentMethod }: { vozId: string; rodaId: string; amountPaid?: number; currency?: string; paymentMethod?: string }) => {
       const { data, error } = await supabase
         .from('vozes')
         .update({
           status: 'paid',
-          payment_method: 'manual',
+          payment_method: paymentMethod ?? 'manual',
+          ...(amountPaid !== undefined ? { amount_paid: amountPaid } : {}),
+          ...(currency ? { currency } : {}),
         })
         .eq('id', vozId)
         .select()
