@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { ReactionCounts, createEmptyReactionCounts, normalizeReactionType } from '@/lib/reactions';
 import type { Tables } from '@/integrations/supabase/types';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 const FEED_PAGE_SIZE = 20;
 
@@ -93,6 +94,9 @@ export function usePosts() {
   const feedCursorRef = useRef<string | null>(null); // created_at of the last loaded post
   const contactIdsRef = useRef<string[]>([]);
   const feedPaginatedRef = useRef(false); // true once the user has scrolled past page 1
+  const [newPostsCount, setNewPostsCount] = useState(0);
+  const newestCreatedAtRef = useRef<string | null>(null); // created_at of the top post
+  const userIdRef = useRef<string | null>(null);
 
   // Batch fetch posts with user data, likes, saves, reaction counts, and topics
   const fetchPostsWithDetails = async (posts: Tables<'posts'>[]): Promise<PostWithUser[]> => {
@@ -213,6 +217,7 @@ export function usePosts() {
     const contactIds = contacts?.map(c => c.contact_user_id) || [];
     contactIds.push(user.id); // Include own posts
     contactIdsRef.current = contactIds;
+    userIdRef.current = user.id;
 
     const { data } = await supabase
       .from('posts')
@@ -223,7 +228,9 @@ export function usePosts() {
 
     const posts = data || [];
     feedCursorRef.current = posts.length ? posts[posts.length - 1].created_at : null;
+    newestCreatedAtRef.current = posts.length ? posts[0].created_at : null;
     feedPaginatedRef.current = false;
+    setNewPostsCount(0);
     setHasMoreFeed(posts.length === FEED_PAGE_SIZE);
     setFeedPosts(posts.length ? await fetchPostsWithDetails(posts) : []);
     setLoading(false);
@@ -815,9 +822,21 @@ export function usePosts() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'posts' },
-        () => {
-          // Don't reset an in-progress infinite scroll — only refresh page 1
-          // while the user hasn't paginated further down.
+        (payload: RealtimePostgresChangesPayload<Tables<'posts'>>) => {
+          // A qualifying new post from someone else → surface a "new posts" pill
+          // instead of silently replacing the feed (keeps the scroll position).
+          if (payload.eventType === 'INSERT') {
+            const p = payload.new;
+            const qualifies = p.privacy === 'everyone' || contactIdsRef.current.includes(p.user_id);
+            const isOwn = p.user_id === userIdRef.current;
+            const isNewer = !newestCreatedAtRef.current || p.created_at > newestCreatedAtRef.current;
+            if (qualifies && !isOwn && isNewer) {
+              setNewPostsCount(c => c + 1);
+              fetchDiscoverPosts();
+              return;
+            }
+          }
+          // Edits/deletes (or own posts): refresh page 1 while not paginated.
           if (!feedPaginatedRef.current) fetchFeedPosts();
           fetchDiscoverPosts();
         }
@@ -852,5 +871,6 @@ export function usePosts() {
     loadMoreFeedPosts,
     hasMoreFeed,
     loadingMoreFeed,
+    newPostsCount,
   };
 }

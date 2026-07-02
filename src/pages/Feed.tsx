@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Plus, Search, MessageCircle, Radio, Loader2 } from 'lucide-react';
+import { Plus, Search, MessageCircle, Radio, Loader2, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PostCard } from '@/components/feed/PostCard';
@@ -24,7 +24,7 @@ import YamilookLogo from '@/components/brand/YamilookLogo';
 export default function Feed() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { feedPosts, loading, fetchFeedPosts, loadMoreFeedPosts, hasMoreFeed, loadingMoreFeed } = usePosts();
+  const { feedPosts, loading, fetchFeedPosts, loadMoreFeedPosts, hasMoreFeed, loadingMoreFeed, newPostsCount } = usePosts();
   const { fetchActiveAdsForFeed, interleaveAdsInFeed } = useAdvertising();
   const { hasActiveStreams, activeStreams } = useActiveStreams();
   const { archivedPostIds, fetchArchivedIds, toggleArchive, isArchived } = useArchivedPosts();
@@ -78,6 +78,13 @@ export default function Feed() {
   const handleCommentClick = (post: PostWithUser) => {
     setSelectedPost(post);
     setCommentsOpen(true);
+  };
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const handleShowNewPosts = () => {
+    fetchFeedPosts();
+    const vp = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    vp?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Infinite scroll: observe a sentinel at the bottom of the (Radix ScrollArea)
@@ -137,7 +144,22 @@ export default function Feed() {
         </div>
       </header>
 
-      <ScrollArea className="flex-1">
+      {/* New-posts pill (realtime) */}
+      {newPostsCount > 0 && (
+        <div className="fixed left-1/2 -translate-x-1/2 top-16 z-40">
+          <motion.button
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={handleShowNewPosts}
+            className="flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg"
+          >
+            <ArrowUp className="w-3.5 h-3.5" />
+            {newPostsCount} {newPostsCount === 1 ? 'novo post' : 'novos posts'}
+          </motion.button>
+        </div>
+      )}
+
+      <ScrollArea ref={scrollRef} className="flex-1">
         {/* Status stories */}
         <div className="border-b border-border">
           <StatusList />
