@@ -92,12 +92,16 @@ export function useConversations() {
     try {
       const { data: participations, error: partError } = await supabase
         .from('conversation_participants')
-        .select('conversation_id')
+        .select('conversation_id, is_archived')
         .eq('user_id', user.id);
 
       if (partError) throw partError;
 
-      const conversationIds = participations?.map((p) => p.conversation_id) || [];
+      // Excluir conversas que o utilizador arquivou — essas aparecem apenas no
+      // ArchivedChatsSheet, não na lista principal.
+      const conversationIds = (participations || [])
+        .filter((p) => !p.is_archived)
+        .map((p) => p.conversation_id);
       if (conversationIds.length === 0) {
         setConversations([]);
         setLoading(false);
