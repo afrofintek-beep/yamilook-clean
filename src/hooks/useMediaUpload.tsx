@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -15,6 +15,13 @@ export function useVoiceRecorder() {
   const pendingBlobRef = useRef<{ blob: Blob; duration: number } | null>(null);
   const uploadQueueRef = useRef<Array<{ blob: Blob; duration: number; resolve: (result: { blob: Blob; duration: number } | null) => void }>>([]);
   const isProcessingQueueRef = useRef(false);
+  // Live mirror of recordingTime so non-React handlers (e.g. the recorder's
+  // default onstop, which fires on auto-stop) read the current value instead of
+  // the stale one captured when startRecording was memoized.
+  const recordingTimeRef = useRef(0);
+  useEffect(() => {
+    recordingTimeRef.current = recordingTime;
+  }, [recordingTime]);
 
   const cleanup = useCallback(() => {
     if (timerRef.current) {
@@ -77,7 +84,7 @@ export function useVoiceRecorder() {
           const actualMimeType = mediaRecorder.mimeType || mimeType || 'audio/webm';
           const blob = new Blob(chunksRef.current, { type: actualMimeType });
           // Store the blob in a ref so it can be retrieved immediately
-          pendingBlobRef.current = { blob, duration: recordingTime };
+          pendingBlobRef.current = { blob, duration: recordingTimeRef.current };
           setAudioBlob(blob);
         }
         cleanup();
