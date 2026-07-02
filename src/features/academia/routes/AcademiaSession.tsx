@@ -81,20 +81,49 @@ export default function AcademiaSession() {
   const reserveMutation = useMutation({
     mutationFn: async () => {
       if (!user || !sessionId) throw new Error('Not authenticated');
+
+      // Secure the seat first — the unique constraint guards double-booking.
       const { error } = await supabase.from('academia_reservations').insert({
         session_id: sessionId,
         user_id: user.id,
       });
       if (error) throw error;
+
+      // Premium sessions cost Kumbu — charge after the seat is reserved,
+      // rolling the reservation back if the balance is insufficient.
+      if (session?.isPremium && session.priceCoins > 0) {
+        const { data: result, error: spendError } = await supabase.rpc('kumbu_spend', {
+          p_amount: session.priceCoins,
+          p_action_type: 'academia_reservation',
+          p_description: `Reserva: ${session.title}`,
+          p_reference_id: sessionId,
+          p_source: 'academia',
+        });
+        let spendFailed = !!spendError;
+        if (!spendFailed && result !== null && typeof result === 'object' && !Array.isArray(result)) {
+          if ((result as Record<string, unknown>).success === false) spendFailed = true;
+        }
+        if (spendFailed) {
+          await supabase
+            .from('academia_reservations')
+            .delete()
+            .eq('session_id', sessionId)
+            .eq('user_id', user.id);
+          throw new Error('kumbu_insufficient');
+        }
+      }
     },
     onSuccess: () => {
       toast.success('Lugar reservado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['academia-session', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['academia-reservation', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['academia-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['kumbu-ledger'] });
     },
     onError: (err: unknown) => {
-      if ((err as { code?: string } | null)?.code === '23505') {
+      if (err instanceof Error && err.message === 'kumbu_insufficient') {
+        toast.error('Kumbu insuficiente para reservar esta sessão.');
+      } else if ((err as { code?: string } | null)?.code === '23505') {
         toast.error('Já reservaste esta sessão.');
       } else {
         toast.error('Erro ao reservar. Tenta novamente.');
