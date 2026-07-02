@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Plus, Search, MessageCircle, Radio } from 'lucide-react';
+import { Plus, Search, MessageCircle, Radio, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PostCard } from '@/components/feed/PostCard';
@@ -24,7 +24,7 @@ import YamilookLogo from '@/components/brand/YamilookLogo';
 export default function Feed() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { feedPosts, loading, fetchFeedPosts } = usePosts();
+  const { feedPosts, loading, fetchFeedPosts, loadMoreFeedPosts, hasMoreFeed, loadingMoreFeed } = usePosts();
   const { fetchActiveAdsForFeed, interleaveAdsInFeed } = useAdvertising();
   const { hasActiveStreams, activeStreams } = useActiveStreams();
   const { archivedPostIds, fetchArchivedIds, toggleArchive, isArchived } = useArchivedPosts();
@@ -79,6 +79,23 @@ export default function Feed() {
     setSelectedPost(post);
     setCommentsOpen(true);
   };
+
+  // Infinite scroll: observe a sentinel at the bottom of the (Radix ScrollArea)
+  // list and load the next page as it approaches the viewport.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMoreFeed) return;
+    const root = sentinel.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMoreFeedPosts();
+      },
+      { root, rootMargin: '400px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreFeed, loadMoreFeedPosts, feedWithAds.length]);
 
   return (
     <div className="min-h-screen bg-card flex flex-col">
@@ -165,6 +182,12 @@ export default function Feed() {
                   )}
                 </div>
               ))}
+              {hasMoreFeed && <div ref={sentinelRef} className="h-px" aria-hidden="true" />}
+              {loadingMoreFeed && (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
             </>
           )}
         </div>

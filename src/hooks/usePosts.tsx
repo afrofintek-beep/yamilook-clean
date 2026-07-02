@@ -4,6 +4,8 @@ import { useAuth } from './useAuth';
 import { ReactionCounts, createEmptyReactionCounts, normalizeReactionType } from '@/lib/reactions';
 import type { Tables } from '@/integrations/supabase/types';
 
+const FEED_PAGE_SIZE = 20;
+
 export interface Post {
   id: string;
   user_id: string;
@@ -84,6 +86,13 @@ export function usePosts() {
   const [discoverPosts, setDiscoverPosts] = useState<PostWithUser[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
+  // Feed pagination (infinite scroll)
+  const [loadingMoreFeed, setLoadingMoreFeed] = useState(false);
+  const [hasMoreFeed, setHasMoreFeed] = useState(true);
+  const loadingMoreRef = useRef(false);
+  const feedCursorRef = useRef<string | null>(null); // created_at of the last loaded post
+  const contactIdsRef = useRef<string[]>([]);
+  const feedPaginatedRef = useRef(false); // true once the user has scrolled past page 1
 
   // Batch fetch posts with user data, likes, saves, reaction counts, and topics
   const fetchPostsWithDetails = async (posts: Tables<'posts'>[]): Promise<PostWithUser[]> => {
@@ -191,7 +200,8 @@ export function usePosts() {
     }));
   };
 
-  // Fetch feed posts (contacts' visible posts + all public posts, merged & deduped)
+  // Fetch the first page of the feed: contacts' visible posts + all public
+  // posts, as a single cursor-paginatable query (user_id in contacts OR public).
   const fetchFeedPosts = useCallback(async () => {
     if (!user) return;
 
@@ -202,42 +212,52 @@ export function usePosts() {
 
     const contactIds = contacts?.map(c => c.contact_user_id) || [];
     contactIds.push(user.id); // Include own posts
+    contactIdsRef.current = contactIds;
 
-    // Fetch contacts' posts AND public posts in parallel
-    const [contactsResult, publicResult] = await Promise.all([
-      supabase
-        .from('posts')
-        .select('*')
-        .in('user_id', contactIds)
-        .order('created_at', { ascending: false })
-        .limit(50),
-      supabase
-        .from('posts')
-        .select('*')
-        .eq('privacy', 'everyone')
-        .order('created_at', { ascending: false })
-        .limit(50),
-    ]);
+    const { data } = await supabase
+      .from('posts')
+      .select('*')
+      .or(`user_id.in.(${contactIds.join(',')}),privacy.eq.everyone`)
+      .order('created_at', { ascending: false })
+      .limit(FEED_PAGE_SIZE);
 
-    // Merge and deduplicate by id, then sort by created_at desc
-    const seenIds = new Set<string>();
-    const merged: Tables<'posts'>[] = [];
-    for (const post of [...(contactsResult.data || []), ...(publicResult.data || [])]) {
-      if (!seenIds.has(post.id)) {
-        seenIds.add(post.id);
-        merged.push(post);
-      }
-    }
-    merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    const limited = merged.slice(0, 50);
-
-    if (limited.length > 0) {
-      const postsWithUsers = await fetchPostsWithDetails(limited);
-      setFeedPosts(postsWithUsers);
-    } else {
-      setFeedPosts([]);
-    }
+    const posts = data || [];
+    feedCursorRef.current = posts.length ? posts[posts.length - 1].created_at : null;
+    feedPaginatedRef.current = false;
+    setHasMoreFeed(posts.length === FEED_PAGE_SIZE);
+    setFeedPosts(posts.length ? await fetchPostsWithDetails(posts) : []);
     setLoading(false);
+  }, [user]);
+
+  // Load the next page (posts older than the current cursor) and append.
+  const loadMoreFeedPosts = useCallback(async () => {
+    if (!user || loadingMoreRef.current || !feedCursorRef.current) return;
+    loadingMoreRef.current = true;
+    feedPaginatedRef.current = true;
+    setLoadingMoreFeed(true);
+    try {
+      const { data } = await supabase
+        .from('posts')
+        .select('*')
+        .or(`user_id.in.(${contactIdsRef.current.join(',')}),privacy.eq.everyone`)
+        .lt('created_at', feedCursorRef.current)
+        .order('created_at', { ascending: false })
+        .limit(FEED_PAGE_SIZE);
+
+      const posts = data || [];
+      setHasMoreFeed(posts.length === FEED_PAGE_SIZE);
+      if (posts.length) {
+        feedCursorRef.current = posts[posts.length - 1].created_at;
+        const enriched = await fetchPostsWithDetails(posts);
+        setFeedPosts(prev => {
+          const seen = new Set(prev.map(p => p.id));
+          return [...prev, ...enriched.filter(p => !seen.has(p.id))];
+        });
+      }
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMoreFeed(false);
+    }
   }, [user]);
 
   // Fetch discover posts (public posts)
@@ -796,7 +816,9 @@ export function usePosts() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'posts' },
         () => {
-          fetchFeedPosts();
+          // Don't reset an in-progress infinite scroll — only refresh page 1
+          // while the user hasn't paginated further down.
+          if (!feedPaginatedRef.current) fetchFeedPosts();
           fetchDiscoverPosts();
         }
       )
@@ -827,5 +849,8 @@ export function usePosts() {
     getPostsByTopic,
     fetchFeedPosts,
     fetchDiscoverPosts,
+    loadMoreFeedPosts,
+    hasMoreFeed,
+    loadingMoreFeed,
   };
 }
