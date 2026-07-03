@@ -3,7 +3,7 @@ import { EmptyStateBack } from '@/components/common/EmptyStateBack';
 import { ArrowLeft, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PalcoMockCard } from '../components/PalcoMockCard';
+import { PalcoCard } from '../components/PalcoCard';
 import { SPACES, MOKUBICO_COPY } from '../copy';
 import { useSpaceRodas } from '../hooks/useMokubicoData';
 import BottomNav from '@/components/BottomNav';
@@ -65,7 +65,7 @@ export default function MokubicoSpace() {
           </div>
         ) : (
           rodas.map((r) => (
-            <PalcoMockCard
+            <PalcoCard
               key={r.id}
               palco={{
                 id: r.id,

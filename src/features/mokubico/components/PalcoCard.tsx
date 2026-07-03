@@ -2,11 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Radio, Users, Headphones } from 'lucide-react';
+import { Headphones } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MOKUBICO_COPY } from '../copy';
 
-export interface PalcoMockItem {
+export interface PalcoItem {
   id: string;
   title: string;
   hostName: string;
@@ -15,12 +15,12 @@ export interface PalcoMockItem {
   palcoId?: string;
 }
 
-interface PalcoMockCardProps {
-  palco: PalcoMockItem;
+interface PalcoCardProps {
+  palco: PalcoItem;
   index?: number;
 }
 
-export function PalcoMockCard({ palco, index = 0 }: PalcoMockCardProps) {
+export function PalcoCard({ palco, index = 0 }: PalcoCardProps) {
   const navigate = useNavigate();
 
   const handleJoin = () => {
@@ -73,7 +73,7 @@ export function PalcoMockCard({ palco, index = 0 }: PalcoMockCardProps) {
         ) : (
           <span className="text-xs text-muted-foreground/50">Sê o primeiro</span>
         )}
-        
+
         <Button
           size="sm"
           variant={palco.isLive ? 'destructive' : 'secondary'}
