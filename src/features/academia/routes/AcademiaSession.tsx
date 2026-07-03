@@ -20,7 +20,7 @@ import { pt } from 'date-fns/locale';
 export default function AcademiaSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const [reviewOpen, setReviewOpen] = useState(false);
 
@@ -140,12 +140,39 @@ export default function AcademiaSession() {
         .eq('session_id', sessionId)
         .eq('user_id', user.id);
       if (error) throw error;
+
+      // Premium sessions are charged on reserve — give the Kumbu back.
+      // kumbu_refund is idempotent (it nets ledger debits against prior
+      // refunds), so a double cancel never double-refunds. Best-effort:
+      // the reservation is already gone, so a refund hiccup must not fail
+      // the cancel.
+      let refunded = false;
+      if (session?.isPremium && session.priceCoins > 0) {
+        const { data, error: refundError } = await supabase.rpc('kumbu_refund', {
+          p_reference_id: sessionId,
+          p_source: 'academia',
+          p_description: `Reembolso: ${session.title}`,
+        });
+        if (
+          !refundError &&
+          data !== null &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          (data as Record<string, unknown>).success === true &&
+          Number((data as Record<string, unknown>).refunded) > 0
+        ) {
+          refunded = true;
+        }
+      }
+      return { refunded };
     },
-    onSuccess: () => {
-      toast.success('Reserva cancelada.');
+    onSuccess: ({ refunded }) => {
+      toast.success(refunded ? 'Reserva cancelada. Kumbu devolvido.' : 'Reserva cancelada.');
       queryClient.invalidateQueries({ queryKey: ['academia-session', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['academia-reservation', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['academia-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['kumbu-ledger'] });
+      if (refunded) void refreshProfile();
     },
     onError: () => {
       toast.error('Erro ao cancelar. Tenta novamente.');

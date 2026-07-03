@@ -5640,6 +5640,14 @@ export type Database = {
         }
         Returns: Json
       }
+      kumbu_refund: {
+        Args: {
+          p_description?: string
+          p_reference_id: string
+          p_source?: string
+        }
+        Returns: Json
+      }
       kumbu_spend: {
         Args: {
           p_action_type?: string
