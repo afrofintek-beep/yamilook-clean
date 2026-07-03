@@ -94,7 +94,7 @@ export default function AcademiaSession() {
       if (session?.isPremium && session.priceCoins > 0) {
         const { data: result, error: spendError } = await supabase.rpc('kumbu_spend', {
           p_amount: session.priceCoins,
-          p_action_type: 'academia_reservation',
+          p_action_type: 'spend',
           p_description: `Reserva: ${session.title}`,
           p_reference_id: sessionId,
           p_source: 'academia',
