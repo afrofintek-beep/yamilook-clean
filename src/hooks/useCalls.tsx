@@ -633,8 +633,11 @@ export function useCalls() {
 
           // Handle new ringing status
           if (participant?.status === 'ringing') {
+            // Don't re-surface the overlay if a call is already ringing (mirrors
+            // the poll guard); avoids re-entering answerCall on a stale offer.
+            if (incomingCallRef.current) return;
             logger.debug('Realtime: participant ringing', 'useCalls', participant.call_id);
-            
+
             const { data: call } = await supabase
               .from('calls')
               .select('*')

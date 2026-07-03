@@ -522,25 +522,10 @@ export function useMessages(conversationId: string | null) {
                 });
               }
 
-              // 2) Backwards compat: replace temp optimistic message if present
-              const hasTempVersion = prev.some(
-                (m) =>
-                  m.id.startsWith('temp-') &&
-                  m.content === newMessage.content &&
-                  m.message_type === newMessage.message_type
-              );
-
-              if (hasTempVersion) {
-                return prev.map((m) =>
-                  m.id.startsWith('temp-') &&
-                  m.content === newMessage.content &&
-                  m.message_type === newMessage.message_type
-                    ? { ...newMessage, sender_profile: m.sender_profile, reply_to: m.reply_to }
-                    : m
-                );
-              }
-
-              // 3) No match: append
+              // 2) No id match → append. There is deliberately no content-based
+              // fallback: optimistic messages always carry a client UUID (see
+              // sendMessage), so matching two same-text messages by content could
+              // replace the wrong one.
               return [
                 ...prev,
                 {
