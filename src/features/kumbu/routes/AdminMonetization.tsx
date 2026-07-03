@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShieldAlert, Users, Banknote, FileText } from 'lucide-react';
+import { ShieldAlert, Users, Banknote, FileText, ShieldCheck } from 'lucide-react';
 
 export default function AdminMonetization() {
   const navigate = useNavigate();
 
   const links = [
     { label: 'Candidaturas de Criadores', icon: Users, path: '/admin/applications' },
+    { label: 'Certificações AFROLOC', icon: ShieldCheck, path: '/admin/afroloc-certifications' },
     { label: 'Pedidos de Payout', icon: Banknote, path: '/admin/payouts' },
   ];
 

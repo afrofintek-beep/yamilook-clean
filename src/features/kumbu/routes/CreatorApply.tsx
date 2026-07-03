@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Upload, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { AfrolocCertificationGate } from '../components/AfrolocCertificationGate';
 
 type AppStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
@@ -113,8 +114,11 @@ export default function CreatorApply() {
           <p className="text-sm text-muted-foreground text-center py-8">A carregar…</p>
         )}
 
+        {!loading && (
+          <AfrolocCertificationGate action="te candidatares a criador">
+
         {/* Existing application status */}
-        {!loading && status !== 'none' && (
+        {status !== 'none' && (
           <Card className="border-none shadow-sm">
             <CardContent className="p-5 space-y-3">
               <div className="flex items-center gap-2">
@@ -145,7 +149,7 @@ export default function CreatorApply() {
         )}
 
         {/* Application form (only if no existing) */}
-        {!loading && status === 'none' && (
+        {status === 'none' && (
           <Card className="border-none shadow-sm">
             <CardContent className="p-5 space-y-4">
               <div className="space-y-1.5">
@@ -195,6 +199,9 @@ export default function CreatorApply() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+          </AfrolocCertificationGate>
         )}
       </main>
     </div>

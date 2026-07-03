@@ -80,6 +80,7 @@ const CreatorApply = lazy(() => import("./features/kumbu/routes/CreatorApply"));
 const KumbuPayouts = lazy(() => import("./features/kumbu/routes/Payouts"));
 const AdminMonetization = lazy(() => import("./features/kumbu/routes/AdminMonetization"));
 const AdminApplications = lazy(() => import("./features/kumbu/routes/AdminApplications"));
+const AdminAfrolocCertifications = lazy(() => import("./features/kumbu/routes/AdminAfrolocCertifications"));
 const AdminPayoutsPage = lazy(() => import("./features/kumbu/routes/AdminPayouts"));
 
 // Minimal loading fallback (ultra fast perception)
@@ -260,6 +261,7 @@ function AnimatedRoutes() {
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
           <Route path="/admin/monetization" element={<ProtectedRoute><AdminMonetization /></ProtectedRoute>} />
           <Route path="/admin/applications" element={<ProtectedRoute><AdminApplications /></ProtectedRoute>} />
+          <Route path="/admin/afroloc-certifications" element={<ProtectedRoute><AdminAfrolocCertifications /></ProtectedRoute>} />
           <Route path="/admin/payouts" element={<ProtectedRoute><AdminPayoutsPage /></ProtectedRoute>} />
           <Route path="/moderation" element={<ProtectedRoute><Moderation /></ProtectedRoute>} />
           <Route path="/advertising" element={<ProtectedRoute><Advertising /></ProtectedRoute>} />

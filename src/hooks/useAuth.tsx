@@ -28,6 +28,10 @@ interface Profile {
   kumbu_available: number;
   kumbu_lifetime: number;
   level: string;
+  afroloc_code: string | null;
+  afroloc_certification_status: 'none' | 'pending' | 'certified' | 'rejected';
+  afroloc_certified_at: string | null;
+  afroloc_certified_by: string | null;
   created_at: string;
   updated_at: string;
 }

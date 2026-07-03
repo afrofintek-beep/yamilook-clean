@@ -3457,6 +3457,9 @@ export type Database = {
       profiles: {
         Row: {
           account_status: Database["public"]["Enums"]["account_status"] | null
+          afroloc_certification_status: string
+          afroloc_certified_at: string | null
+          afroloc_certified_by: string | null
           afroloc_code: string | null
           app_tour_completed: boolean | null
           avatar_url: string | null
@@ -3497,6 +3500,9 @@ export type Database = {
         }
         Insert: {
           account_status?: Database["public"]["Enums"]["account_status"] | null
+          afroloc_certification_status?: string
+          afroloc_certified_at?: string | null
+          afroloc_certified_by?: string | null
           afroloc_code?: string | null
           app_tour_completed?: boolean | null
           avatar_url?: string | null
@@ -3537,6 +3543,9 @@ export type Database = {
         }
         Update: {
           account_status?: Database["public"]["Enums"]["account_status"] | null
+          afroloc_certification_status?: string
+          afroloc_certified_at?: string | null
+          afroloc_certified_by?: string | null
           afroloc_code?: string | null
           app_tour_completed?: boolean | null
           avatar_url?: string | null
@@ -5534,12 +5543,20 @@ export type Database = {
         Returns: string
       }
       generate_afroloc_code: { Args: { p_user_id: string }; Returns: string }
+      request_afroloc_certification: { Args: never; Returns: Json }
+      set_afroloc_certification: {
+        Args: { p_certified: boolean; p_user_id: string }
+        Returns: Json
+      }
       generate_invite_code: { Args: never; Returns: string }
       generate_mvp_access_code: { Args: never; Returns: string }
       get_my_profile: {
         Args: never
         Returns: {
           account_status: Database["public"]["Enums"]["account_status"] | null
+          afroloc_certification_status: string
+          afroloc_certified_at: string | null
+          afroloc_certified_by: string | null
           afroloc_code: string | null
           app_tour_completed: boolean | null
           avatar_url: string | null

@@ -20,6 +20,8 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { AfrolocCertificationGate } from '../components/AfrolocCertificationGate';
+import { useAfrolocCertification } from '../hooks/useAfrolocCertification';
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
   pending: { label: 'Pendente', variant: 'secondary' },
@@ -31,6 +33,7 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
 export default function Payouts() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { isCertified } = useAfrolocCertification();
   const [eligible, setEligible] = useState<boolean | null>(null);
   const [payouts, setPayouts] = useState<Tables<'payout_requests'>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,6 +131,24 @@ export default function Payouts() {
           <Button variant="secondary" onClick={() => navigate('/creator/apply')}>
             Candidatar-me como criador
           </Button>
+        </main>
+      </div>
+    );
+  }
+
+  if (!isCertified) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b px-4 py-3 flex items-center gap-3 safe-top">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Payouts</h1>
+        </header>
+        <main className="max-w-lg mx-auto px-4 pt-4">
+          <AfrolocCertificationGate action="pedir payout">
+            <span />
+          </AfrolocCertificationGate>
         </main>
       </div>
     );
