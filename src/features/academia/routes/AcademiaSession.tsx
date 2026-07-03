@@ -324,11 +324,22 @@ export default function AcademiaSession() {
         </div>
 
         {isEnded && (
-          <Alert className="bg-muted/50 border-border/50">
-            <AlertDescription className="text-xs font-medium text-muted-foreground">
-              {ACADEMIA_COPY.sessionEndedInfo}
-            </AlertDescription>
-          </Alert>
+          <>
+            <Alert className="bg-muted/50 border-border/50">
+              <AlertDescription className="text-xs font-medium text-muted-foreground">
+                {ACADEMIA_COPY.sessionEndedInfo}
+              </AlertDescription>
+            </Alert>
+            {!isMentor && (
+              <Button
+                variant="outline"
+                className="w-full rounded-full mt-3"
+                onClick={() => setReviewOpen(true)}
+              >
+                {ACADEMIA_COPY.reviewMentor}
+              </Button>
+            )}
+          </>
         )}
 
         {isLateRegistration && (
