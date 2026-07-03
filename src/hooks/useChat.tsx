@@ -333,7 +333,7 @@ export function useMessages(conversationId: string | null) {
   // Per-user timeouts to auto-clear stale typing states
   const typingUserTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  const fetchMessages = useCallback(async () => {
+  const fetchMessages = useCallback(async (markRead = true) => {
     if (!conversationId || !user) {
       setMessages([]);
       setLoading(false);
@@ -468,12 +468,16 @@ export function useMessages(conversationId: string | null) {
       setPinnedIds(new Set((pinnedResult.data || []).map((p) => p.message_id)));
       setViewOnceViewedIds(new Set((viewOnceResult.data || []).map((v) => v.message_id)));
 
-      // Mark as read
-      await supabase
-        .from('conversation_participants')
-        .update({ last_read_at: new Date().toISOString() })
-        .eq('conversation_id', conversationId)
-        .eq('user_id', user.id);
+      // Mark as read — only on an explicit open/refresh, not on incidental
+      // refetches (e.g. a reaction elsewhere), which would wrongly clear the
+      // unread badge.
+      if (markRead) {
+        await supabase
+          .from('conversation_participants')
+          .update({ last_read_at: new Date().toISOString() })
+          .eq('conversation_id', conversationId)
+          .eq('user_id', user.id);
+      }
     } catch (err) {
       console.error('Error fetching messages:', err);
     } finally {
@@ -613,7 +617,7 @@ export function useMessages(conversationId: string | null) {
           schema: 'public',
           table: 'message_reactions',
         }, () => {
-          fetchMessages();
+          fetchMessages(false);
         })
         .on('postgres_changes', {
           event: '*',

@@ -77,6 +77,9 @@ export function useCalls() {
   const { user } = useAuth();
   const [incomingCall, setIncomingCall] = useState<Call | null>(null);
   const incomingCallRef = useRef<Call | null>(null);
+  // Per-instance suffix so multiple mounted useCalls() (ActiveCallProvider,
+  // CallsTabContent, Calls page…) don't collide on one shared realtime topic.
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2));
   const [callHistory, setCallHistory] = useState<CallHistory[]>([]);
   const [scheduledCalls, setScheduledCalls] = useState<ScheduledCall[]>([]);
   const [loading, setLoading] = useState(true);
@@ -250,7 +253,7 @@ export function useCalls() {
                   .from('profiles')
                   .select('id, display_name, avatar_url')
                   .eq('id', otherUserId)
-                  .single();
+                  .maybeSingle();
 
                 if (profile) {
                   participantsList = [{
@@ -596,7 +599,7 @@ export function useCalls() {
           .from('calls')
           .select('*')
           .eq('id', participant.call_id)
-          .single();
+          .maybeSingle();
 
         if (call && call.status === 'ringing') {
           logger.debug('Setting incoming call from poll', 'useCalls', call.id);
@@ -615,7 +618,7 @@ export function useCalls() {
 
     // Also subscribe to Realtime for faster detection when available
     const channel = supabase
-      .channel(`incoming-calls-${user.id}`)
+      .channel(`incoming-calls-${user.id}-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         {
@@ -636,7 +639,7 @@ export function useCalls() {
               .from('calls')
               .select('*')
               .eq('id', participant.call_id)
-              .single();
+              .maybeSingle();
 
             if (call && call.status === 'ringing') {
               logger.debug('Setting incoming call from Realtime', 'useCalls', call.id);
