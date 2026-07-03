@@ -45,6 +45,9 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
+  /** Optimistically patch the in-memory profile without a DB write. Use for
+   *  instant UI feedback; reconcile with refreshProfile()/realtime after. */
+  patchProfile: (patch: Partial<Profile>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -105,6 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const profileData = await fetchProfile(currentUser.id);
       setProfile(profileData);
     }
+  }, []);
+
+  const patchProfile = useCallback((patch: Partial<Profile>) => {
+    setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
   }, []);
 
   const userRef = useRef<User | null>(null);
@@ -286,6 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     updateProfile,
     refreshProfile,
+    patchProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

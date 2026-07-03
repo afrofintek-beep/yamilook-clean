@@ -21,7 +21,7 @@ import { pt } from 'date-fns/locale';
 export default function AcademiaSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, patchProfile } = useAuth();
   const queryClient = useQueryClient();
   const [reviewOpen, setReviewOpen] = useState(false);
 
@@ -142,24 +142,58 @@ export default function AcademiaSession() {
       // refunds), so a double cancel never double-refunds. Best-effort:
       // the reservation is already gone, so a refund hiccup must not fail
       // the cancel.
-      let refunded = false;
       if (session?.isPremium && session.priceCoins > 0) {
         const refund = await kumbuRefund({
           referenceId: sessionId,
           source: 'academia',
           description: `Reembolso: ${session.title}`,
         });
-        refunded = refund.success && (refund.refunded ?? 0) > 0;
+        if (refund.success && (refund.refunded ?? 0) > 0) {
+          return {
+            refunded: true,
+            amount: refund.refunded as number,
+            available: refund.available ?? null,
+          };
+        }
       }
-      return { refunded };
+      return { refunded: false, amount: 0, available: null };
     },
-    onSuccess: ({ refunded }) => {
+    onSuccess: ({ refunded, amount, available }) => {
       toast.success(refunded ? 'Reserva cancelada. Kumbu devolvido.' : 'Reserva cancelada.');
       queryClient.invalidateQueries({ queryKey: ['academia-session', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['academia-reservation', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['academia-sessions'] });
+
+      if (refunded && user && sessionId) {
+        // 1) Instant balance: the RPC returned the authoritative new balance,
+        //    so patch app state now instead of waiting for a refetch.
+        if (available !== null) {
+          patchProfile({ kumbu_available: available });
+        }
+
+        // 2) Instant ledger: prepend the refund entry to the credit/all views
+        //    so it shows immediately; invalidate then reconciles with the real
+        //    row (id/created_at) from the server.
+        const optimisticRow = {
+          id: `optimistic-refund-${sessionId}`,
+          user_id: user.id,
+          amount,
+          action_type: 'spend',
+          source: 'academia',
+          reference_id: sessionId,
+          description: `Reembolso: ${session.title}`,
+          created_at: new Date().toISOString(),
+        };
+        for (const dir of ['all', 'credit'] as const) {
+          queryClient.setQueryData(
+            ['kumbu-ledger', user.id, dir],
+            (old: unknown) => (Array.isArray(old) ? [optimisticRow, ...old] : old),
+          );
+        }
+        void refreshProfile();
+      }
+
       queryClient.invalidateQueries({ queryKey: ['kumbu-ledger'] });
-      if (refunded) void refreshProfile();
     },
     onError: () => {
       toast.error('Erro ao cancelar. Tenta novamente.');
