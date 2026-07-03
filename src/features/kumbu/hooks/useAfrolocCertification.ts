@@ -30,5 +30,17 @@ export function useAfrolocCertification() {
     return res;
   };
 
-  return { status, isCertified, hasAddress, afrolocCode, requestCertification };
+  /**
+   * Auto-verify against the AFROLOC partner API (by phone). On success the
+   * profile is certified server-side; we then refresh it locally.
+   */
+  const verifyWithAfroloc = async (): Promise<{ certified: boolean; reason?: string }> => {
+    const { data, error } = await supabase.functions.invoke('afroloc-verify');
+    if (error) return { certified: false, reason: 'error' };
+    const res = (data ?? {}) as { certified?: boolean; reason?: string };
+    if (res.certified) await refreshProfile();
+    return { certified: !!res.certified, reason: res.reason };
+  };
+
+  return { status, isCertified, hasAddress, afrolocCode, requestCertification, verifyWithAfroloc };
 }

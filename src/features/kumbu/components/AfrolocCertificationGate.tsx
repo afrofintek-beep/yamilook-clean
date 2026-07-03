@@ -19,11 +19,28 @@ export function AfrolocCertificationGate({
   action: string;
   children: ReactNode;
 }) {
-  const { status, isCertified, hasAddress, afrolocCode, requestCertification } =
+  const { status, isCertified, hasAddress, afrolocCode, requestCertification, verifyWithAfroloc } =
     useAfrolocCertification();
   const [submitting, setSubmitting] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   if (isCertified) return <>{children}</>;
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    const res = await verifyWithAfroloc();
+    setVerifying(false);
+    if (res.certified) {
+      toast.success('Endereço AFROLOC certificado verificado ✓');
+      return;
+    }
+    const msg: Record<string, string> = {
+      no_phone: 'Não tens telefone no teu perfil.',
+      no_afroloc_account: 'Sem conta AFROLOC com este telefone. Cria o teu endereço na app AFROLOC.',
+      no_certified_address: 'O teu endereço AFROLOC ainda não está certificado (fá-lo na app AFROLOC).',
+    };
+    toast.error(msg[res.reason ?? ''] ?? 'Não foi possível verificar com o AFROLOC.');
+  };
 
   const handleRequest = async () => {
     setSubmitting(true);
@@ -77,19 +94,30 @@ export function AfrolocCertificationGate({
           </p>
         )}
 
+        {/* Primary: automatic verification against the AFROLOC partner API (by phone). */}
+        <Button className="w-full" disabled={verifying} onClick={handleVerify}>
+          {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+          Verificar com AFROLOC
+        </Button>
+
+        {/* Fallback: manual authority review. */}
         {status === 'pending' ? (
-          <p className="text-xs text-muted-foreground">
-            O teu pedido está a ser analisado por uma autoridade. Recebes o resultado em breve.
+          <p className="text-xs text-muted-foreground text-center">
+            Pedido de validação manual em análise por uma autoridade.
           </p>
         ) : (
-          <Button className="w-full" disabled={!hasAddress || submitting} onClick={handleRequest}>
-            {submitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ShieldCheck className="h-4 w-4" />
-            )}
-            {status === 'rejected' ? 'Pedir certificação de novo' : 'Pedir certificação'}
-          </Button>
+          <button
+            type="button"
+            className="w-full text-xs text-muted-foreground underline underline-offset-2 disabled:opacity-50"
+            disabled={!hasAddress || submitting}
+            onClick={handleRequest}
+          >
+            {submitting
+              ? 'A enviar…'
+              : status === 'rejected'
+                ? 'Ou pedir validação manual de novo'
+                : 'Ou pedir validação manual'}
+          </button>
         )}
       </CardContent>
     </Card>
