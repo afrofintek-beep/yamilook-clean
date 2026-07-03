@@ -576,15 +576,10 @@ export function useMessages(conversationId: string | null) {
             .eq('conversation_id', conversationId)
             .eq('user_id', user.id);
 
-          // Update read_by on the message itself  
-          supabase
-            .from('messages')
-            .update({ 
-              read_by: JSON.stringify([user.id]),
-              delivered_at: new Date().toISOString()
-            })
-            .eq('id', newMessage.id)
-            .then(() => {});
+          // Append this reader to read_by atomically (server-side jsonb append,
+          // de-duplicated) so group receipts accumulate and the value stays a
+          // real array the UI can read.
+          void supabase.rpc('mark_message_read', { p_message_id: newMessage.id });
         })
         .on('postgres_changes', {
           event: 'UPDATE',

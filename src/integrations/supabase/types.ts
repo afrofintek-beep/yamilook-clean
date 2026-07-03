@@ -5658,6 +5658,10 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_message_read: {
+        Args: { p_message_id: string }
+        Returns: undefined
+      }
       reject_mvp_candidate: {
         Args: { p_candidate_id: string; p_reason?: string }
         Returns: Json
