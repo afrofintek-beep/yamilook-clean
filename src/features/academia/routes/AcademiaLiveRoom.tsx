@@ -11,6 +11,7 @@ import { ReviewModal } from '../components/ReviewModal';
 import { ACADEMIA_COPY } from '../copy';
 import { EmptyStateBack } from '@/components/common/EmptyStateBack';
 import { useSubmitAcademiaReview } from '../hooks/useAcademia';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 export default function AcademiaLiveRoom() {
@@ -19,6 +20,7 @@ export default function AcademiaLiveRoom() {
   const [ended, setEnded] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const submitReview = useSubmitAcademiaReview();
+  const { user } = useAuth();
 
   const { data: session, isLoading } = useQuery({
     queryKey: ['academia-live-session', sessionId],
@@ -143,6 +145,11 @@ export default function AcademiaLiveRoom() {
         onOpenChange={setReviewOpen}
         onSubmit={(rating, comment) => {
           if (!sessionId || !session) return;
+          if (user?.id === session.mentor_id) {
+            toast.error('Não podes avaliar a tua própria sessão.');
+            setReviewOpen(false);
+            return;
+          }
           submitReview.mutate(
             { sessionId, mentorId: session.mentor_id, rating, comment },
             {

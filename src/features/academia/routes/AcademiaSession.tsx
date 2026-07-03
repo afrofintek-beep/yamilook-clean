@@ -392,6 +392,11 @@ export default function AcademiaSession() {
         onOpenChange={setReviewOpen}
         onSubmit={(rating, comment) => {
           if (!sessionId) return;
+          if (user?.id === session.mentorId) {
+            toast.error('Não podes avaliar a tua própria sessão.');
+            setReviewOpen(false);
+            return;
+          }
           submitReview.mutate(
             { sessionId, mentorId: session.mentorId, rating, comment },
             {
