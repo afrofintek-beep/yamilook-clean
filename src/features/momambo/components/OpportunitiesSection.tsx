@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MOMAMBO_COPY } from '../copy';
-import { mockOpportunities } from '../mocks';
+import { useOpportunities } from '../hooks/useMomamboData';
 
 const URGENCY_STYLES = {
   high: 'border-primary/30 bg-gradient-to-r from-primary/8 to-card',
@@ -12,6 +12,9 @@ const URGENCY_STYLES = {
 
 export default function OpportunitiesSection() {
   const navigate = useNavigate();
+  const { data: opportunities = [] } = useOpportunities();
+
+  if (opportunities.length === 0) return null;
 
   return (
     <section className="space-y-3">
@@ -20,7 +23,7 @@ export default function OpportunitiesSection() {
       </h2>
 
       <div className="space-y-2.5">
-        {mockOpportunities.map((opp, i) => (
+        {opportunities.map((opp, i) => (
           <motion.button
             key={opp.id}
             className={`w-full rounded-2xl border p-4 text-left transition-all active:scale-[0.98] ${URGENCY_STYLES[opp.urgency]}`}

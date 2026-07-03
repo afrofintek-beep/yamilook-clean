@@ -1,31 +1,32 @@
 import { motion } from 'framer-motion';
-import { Eye, UserPlus, Heart, MessageCircle, Share2, Coins, TrendingUp, TrendingDown } from 'lucide-react';
+import { UserPlus, Heart, MessageCircle, Share2, Coins, TrendingUp, TrendingDown } from 'lucide-react';
 import { MOMAMBO_COPY } from '../copy';
-import { mockPerformance } from '../mocks';
-
-const CARDS = [
-  { key: 'views', label: MOMAMBO_COPY.labels.views, icon: Eye, value: mockPerformance.views, delta: mockPerformance.viewsDelta },
-  { key: 'followers', label: MOMAMBO_COPY.labels.newFollowers, icon: UserPlus, value: mockPerformance.newFollowers, delta: mockPerformance.followersDelta },
-  { key: 'likes', label: MOMAMBO_COPY.labels.likes, icon: Heart, value: mockPerformance.likes, delta: mockPerformance.likesDelta },
-  { key: 'comments', label: MOMAMBO_COPY.labels.comments, icon: MessageCircle, value: mockPerformance.comments, delta: mockPerformance.commentsDelta },
-  { key: 'shares', label: MOMAMBO_COPY.labels.shares, icon: Share2, value: mockPerformance.shares, delta: mockPerformance.sharesDelta },
-  { key: 'kumbu', label: MOMAMBO_COPY.labels.kumbuEarned, icon: Coins, value: mockPerformance.kumbuEarned, delta: mockPerformance.kumbuDelta },
-] as const;
+import { usePerformanceStats } from '../hooks/useMomamboData';
 
 function formatNumber(n: number) {
-  if (n >= 10_000) return `${(n / 1000).toFixed(1)}k`;
   if (n >= 1_000) return `${(n / 1000).toFixed(1)}k`;
   return n.toString();
 }
 
 export default function PerformanceCards() {
+  const { data, isLoading } = usePerformanceStats();
+
+  // NOTE: no "Visualizações" (views) card — there is no views data in the DB.
+  const cards = [
+    { key: 'followers', label: MOMAMBO_COPY.labels.newFollowers, icon: UserPlus, value: data?.newFollowers ?? 0, delta: data?.followersDelta ?? 0 },
+    { key: 'likes', label: MOMAMBO_COPY.labels.likes, icon: Heart, value: data?.likes ?? 0, delta: data?.likesDelta ?? 0 },
+    { key: 'comments', label: MOMAMBO_COPY.labels.comments, icon: MessageCircle, value: data?.comments ?? 0, delta: data?.commentsDelta ?? 0 },
+    { key: 'shares', label: MOMAMBO_COPY.labels.shares, icon: Share2, value: data?.shares ?? 0, delta: data?.sharesDelta ?? 0 },
+    { key: 'kumbu', label: MOMAMBO_COPY.labels.kumbuEarned, icon: Coins, value: data?.kumbuEarned ?? 0, delta: data?.kumbuDelta ?? 0 },
+  ];
+
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60 px-1">
         {MOMAMBO_COPY.sections.performance}
       </h2>
       <div className="grid grid-cols-2 gap-3">
-        {CARDS.map((card, i) => {
+        {cards.map((card, i) => {
           const Icon = card.icon;
           const isPositive = card.delta >= 0;
           const isKumbu = card.key === 'kumbu';
@@ -52,20 +53,22 @@ export default function PerformanceCards() {
                 }`}>
                   <Icon className={`w-4 h-4 ${isKumbu ? 'text-primary' : 'text-muted-foreground'}`} strokeWidth={1.8} />
                 </div>
-                <div className={`flex items-center gap-0.5 text-[11px] font-semibold ${
-                  isPositive ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {isPositive ? (
-                    <TrendingUp className="w-3 h-3" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3" />
-                  )}
-                  {isPositive ? '+' : ''}{card.delta}%
-                </div>
+                {card.delta !== 0 && (
+                  <div className={`flex items-center gap-0.5 text-[11px] font-semibold ${
+                    isPositive ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {isPositive ? (
+                      <TrendingUp className="w-3 h-3" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3" />
+                    )}
+                    {isPositive ? '+' : ''}{card.delta}%
+                  </div>
+                )}
               </div>
 
               <p className="relative text-2xl font-bold text-foreground tabular-nums leading-none mb-1">
-                {formatNumber(card.value)}
+                {isLoading ? '–' : formatNumber(card.value)}
               </p>
               <p className="relative text-[11px] text-muted-foreground/60">
                 {card.label}

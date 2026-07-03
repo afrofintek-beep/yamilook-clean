@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Heart, Mic, Radio, GraduationCap, FileText } from 'lucide-react';
+import { Heart, Mic, Radio, GraduationCap, FileText, Eye, Users } from 'lucide-react';
 import { MOMAMBO_COPY } from '../copy';
-import { mockTopPerformance } from '../mocks';
+import { useTopPerformance, type TopItem } from '../hooks/useMomamboData';
 
 const TABS = [
   { key: 'posts', label: MOMAMBO_COPY.labels.posts, icon: FileText },
@@ -25,9 +25,39 @@ const TYPE_ICONS: Record<string, string> = {
   academy: '🎓',
 };
 
+/** Real secondary-metric badge: likes for posts, viewers for lives, participants for academy. */
+function MetricBadge({ item }: { item: TopItem }) {
+  if (item.metricLabel === 'likes') {
+    return (
+      <div className="flex items-center gap-1">
+        <Heart className="w-3 h-3 text-muted-foreground/50" />
+        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{formatNumber(item.likes)}</span>
+      </div>
+    );
+  }
+  if (item.metricLabel === 'viewers') {
+    return (
+      <div className="flex items-center gap-1">
+        <Eye className="w-3 h-3 text-muted-foreground/50" />
+        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{formatNumber(item.metric)}</span>
+      </div>
+    );
+  }
+  if (item.metricLabel === 'participants') {
+    return (
+      <div className="flex items-center gap-1">
+        <Users className="w-3 h-3 text-muted-foreground/50" />
+        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{formatNumber(item.metric)}</span>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function TopPerformanceSection() {
   const [activeTab, setActiveTab] = useState<TabKey>('posts');
-  const items = mockTopPerformance[activeTab];
+  const { data } = useTopPerformance();
+  const items: TopItem[] = data?.[activeTab] ?? [];
 
   return (
     <section className="space-y-3">
@@ -85,14 +115,7 @@ export default function TopPerformanceSection() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
                     <div className="flex items-center gap-4 mt-1.5">
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-3 h-3 text-muted-foreground/50" />
-                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{formatNumber(item.views)}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Heart className="w-3 h-3 text-muted-foreground/50" />
-                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{formatNumber(item.likes)}</span>
-                      </div>
+                      <MetricBadge item={item} />
                     </div>
                   </div>
                 </div>
