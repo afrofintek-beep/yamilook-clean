@@ -13,6 +13,7 @@ import { ACADEMIA_COPY } from '../copy';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { kumbuSpend, kumbuRefund } from '@/features/kumbu/kumbuApi';
+import { useSubmitAcademiaReview } from '../hooks/useAcademia';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -23,6 +24,7 @@ export default function AcademiaSession() {
   const navigate = useNavigate();
   const { user, refreshProfile, patchProfile } = useAuth();
   const queryClient = useQueryClient();
+  const submitReview = useSubmitAcademiaReview();
   const [reviewOpen, setReviewOpen] = useState(false);
 
   const { data: session, isLoading } = useQuery({
@@ -377,7 +379,19 @@ export default function AcademiaSession() {
       <ReviewModal
         open={reviewOpen}
         onOpenChange={setReviewOpen}
-        onSubmit={(r, c) => console.log('[Academia] review', { rating: r, comment: c })}
+        onSubmit={(rating, comment) => {
+          if (!sessionId) return;
+          submitReview.mutate(
+            { sessionId, mentorId: session.mentorId, rating, comment },
+            {
+              onSuccess: () => {
+                toast.success('Avaliação enviada. Obrigado!');
+                setReviewOpen(false);
+              },
+              onError: () => toast.error('Erro ao enviar avaliação. Tenta novamente.'),
+            },
+          );
+        }}
       />
     </div>
   );

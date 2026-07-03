@@ -90,7 +90,7 @@ export default function SpaceView() {
             <Button
               variant="default"
               className="rounded-full mt-2 gap-1.5"
-              onClick={() => console.log('[Mokubico] open roda in', config.key)}
+              onClick={() => navigate('/palco/create')}
             >
               <Plus className="h-4 w-4" />
               {MOKUBICO_COPY.openRoda}
@@ -106,7 +106,7 @@ export default function SpaceView() {
         <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px)+0.75rem)] left-0 right-0 z-40 p-4">
           <Button
             className="w-full rounded-full shadow-glow gap-1.5"
-            onClick={() => console.log('[Mokubico] open roda in', config.key)}
+            onClick={() => navigate('/palco/create')}
           >
             <Plus className="h-4 w-4" />
             {MOKUBICO_COPY.openRoda}

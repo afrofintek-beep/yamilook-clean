@@ -116,6 +116,48 @@ export function useCreateAcademiaSession() {
 
 const MENTORS_QUERY_KEY = ['academia-mentors'];
 
+/**
+ * Submit (or update) the current user's review for a session.
+ * Upserts on the (session_id, reviewer_id) unique key so re-reviewing a
+ * session overwrites the previous rating rather than erroring.
+ */
+export function useSubmitAcademiaReview() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      sessionId: string;
+      mentorId: string;
+      rating: number;
+      comment: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('academia_reviews')
+        .upsert(
+          {
+            session_id: input.sessionId,
+            mentor_id: input.mentorId,
+            reviewer_id: user.id,
+            rating: input.rating,
+            comment: input.comment.trim() || null,
+          },
+          { onConflict: 'session_id,reviewer_id' },
+        );
+
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      // Refresh the mentor's aggregate rating and any session views.
+      queryClient.invalidateQueries({ queryKey: MENTORS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['mentor-profile', variables.mentorId] });
+      queryClient.invalidateQueries({ queryKey: ['academia-session', variables.sessionId] });
+    },
+  });
+}
+
 export function useAcademiaMentors() {
   return useQuery({
     queryKey: MENTORS_QUERY_KEY,

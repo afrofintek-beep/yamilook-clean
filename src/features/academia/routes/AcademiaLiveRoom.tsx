@@ -10,12 +10,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReviewModal } from '../components/ReviewModal';
 import { ACADEMIA_COPY } from '../copy';
 import { EmptyStateBack } from '@/components/common/EmptyStateBack';
+import { useSubmitAcademiaReview } from '../hooks/useAcademia';
+import { toast } from 'sonner';
 
 export default function AcademiaLiveRoom() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [ended, setEnded] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const submitReview = useSubmitAcademiaReview();
 
   const { data: session, isLoading } = useQuery({
     queryKey: ['academia-live-session', sessionId],
@@ -138,7 +141,19 @@ export default function AcademiaLiveRoom() {
       <ReviewModal
         open={reviewOpen}
         onOpenChange={setReviewOpen}
-        onSubmit={(r, c) => console.log('[Academia] review', { rating: r, comment: c })}
+        onSubmit={(rating, comment) => {
+          if (!sessionId || !session) return;
+          submitReview.mutate(
+            { sessionId, mentorId: session.mentor_id, rating, comment },
+            {
+              onSuccess: () => {
+                toast.success('Avaliação enviada. Obrigado!');
+                setReviewOpen(false);
+              },
+              onError: () => toast.error('Erro ao enviar avaliação. Tenta novamente.'),
+            },
+          );
+        }}
       />
     </div>
   );
