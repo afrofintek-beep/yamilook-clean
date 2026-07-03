@@ -12,6 +12,7 @@ import { EmptyStateBack } from '@/components/common/EmptyStateBack';
 import { ACADEMIA_COPY } from '../copy';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { kumbuSpend, kumbuRefund } from '@/features/kumbu/kumbuApi';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -92,18 +93,13 @@ export default function AcademiaSession() {
       // Premium sessions cost Kumbu — charge after the seat is reserved,
       // rolling the reservation back if the balance is insufficient.
       if (session?.isPremium && session.priceCoins > 0) {
-        const { data: result, error: spendError } = await supabase.rpc('kumbu_spend', {
-          p_amount: session.priceCoins,
-          p_action_type: 'spend',
-          p_description: `Reserva: ${session.title}`,
-          p_reference_id: sessionId,
-          p_source: 'academia',
+        const spend = await kumbuSpend({
+          amount: session.priceCoins,
+          source: 'academia',
+          referenceId: sessionId,
+          description: `Reserva: ${session.title}`,
         });
-        let spendFailed = !!spendError;
-        if (!spendFailed && result !== null && typeof result === 'object' && !Array.isArray(result)) {
-          if ((result as Record<string, unknown>).success === false) spendFailed = true;
-        }
-        if (spendFailed) {
+        if (!spend.success) {
           await supabase
             .from('academia_reservations')
             .delete()
@@ -148,21 +144,12 @@ export default function AcademiaSession() {
       // the cancel.
       let refunded = false;
       if (session?.isPremium && session.priceCoins > 0) {
-        const { data, error: refundError } = await supabase.rpc('kumbu_refund', {
-          p_reference_id: sessionId,
-          p_source: 'academia',
-          p_description: `Reembolso: ${session.title}`,
+        const refund = await kumbuRefund({
+          referenceId: sessionId,
+          source: 'academia',
+          description: `Reembolso: ${session.title}`,
         });
-        if (
-          !refundError &&
-          data !== null &&
-          typeof data === 'object' &&
-          !Array.isArray(data) &&
-          (data as Record<string, unknown>).success === true &&
-          Number((data as Record<string, unknown>).refunded) > 0
-        ) {
-          refunded = true;
-        }
+        refunded = refund.success && (refund.refunded ?? 0) > 0;
       }
       return { refunded };
     },

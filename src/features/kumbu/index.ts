@@ -11,3 +11,6 @@ export { default as AdminPayouts } from './routes/AdminPayouts';
 export { useKumbuBalance } from './hooks/useKumbuBalance';
 export { useKumbuHistory } from './hooks/useKumbuHistory';
 export { useUserBanda, useWeeklyRanking, useRankingHistory } from './hooks/useRanking';
+
+// RPC service
+export { kumbuSpend, kumbuRefund, type KumbuTxResult } from './kumbuApi';
