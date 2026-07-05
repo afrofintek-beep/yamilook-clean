@@ -67,6 +67,7 @@ interface ProfileData {
   last_seen: string;
   profile_theme_color: string;
   created_at: string;
+  founder_number?: number | null;
   show_last_seen: boolean;
   show_online_status: boolean;
   show_read_receipts: boolean;
@@ -457,8 +458,9 @@ export default function Profile() {
   // Build badges based on profile
   const getBadges = () => {
     const badges: { type: string; label: string }[] = [];
-    if (userRole === 'founder') {
-      badges.push({ type: 'founder', label: 'Fundador' });
+    // First 100 members of the network — "Fundador #N" (see founder_number).
+    if (profileData?.founder_number) {
+      badges.push({ type: 'founder', label: `Fundador #${profileData.founder_number}` });
     }
     if (userRole === 'verified_creator') {
       badges.push({ type: 'verified', label: 'Verificado' });
