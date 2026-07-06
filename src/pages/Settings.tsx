@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { VISIBILITY_OPTIONS } from '@/lib/visibility-options';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
