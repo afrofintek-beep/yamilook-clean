@@ -100,7 +100,38 @@ function PageLoader() {
   );
 }
 
+// Detects the "stale service worker" state: a returning user's cached app shell
+// references chunk filenames that no longer exist after a new deploy, so the
+// dynamic import() rejects with a network/loading error.
+function isChunkLoadError(error: unknown): boolean {
+  const msg = String((error as Error)?.message || error || "");
+  return /loading chunk|dynamically imported module|importing a module script failed|failed to fetch dynamically/i.test(
+    msg
+  );
+}
+
+// Self-heal: unregister the (stale) service worker, drop its caches, then reload
+// so the browser fetches the current deploy fresh. Guarded against reload loops.
+async function clearCachesAndReload() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch (e) {
+    console.error("[clearCachesAndReload]", e);
+  } finally {
+    window.location.reload();
+  }
+}
+
 // Error boundary to catch lazy-load (chunk) failures and prevent blank screen
+
+const CHUNK_RECOVERY_KEY = "sw-chunk-recovery-at";
 
 class LazyLoadErrorBoundary extends Component<
   { children: ReactNode },
@@ -117,6 +148,15 @@ class LazyLoadErrorBoundary extends Component<
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[LazyLoadErrorBoundary]", error, info);
+    // A chunk-load failure on a returning user is almost always a stale service
+    // worker pointing at deleted chunks. Auto-recover once (avoid reload loops).
+    if (isChunkLoadError(error)) {
+      const last = Number(sessionStorage.getItem(CHUNK_RECOVERY_KEY) || 0);
+      if (Date.now() - last > 20000) {
+        sessionStorage.setItem(CHUNK_RECOVERY_KEY, String(Date.now()));
+        clearCachesAndReload();
+      }
+    }
   }
 
   handleRetry = () => {
@@ -124,7 +164,9 @@ class LazyLoadErrorBoundary extends Component<
   };
 
   handleReload = () => {
-    window.location.reload();
+    // Thorough reload: clear the stale SW + caches so we don't reload the same
+    // broken shell.
+    clearCachesAndReload();
   };
 
   render() {
