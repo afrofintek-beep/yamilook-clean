@@ -196,13 +196,11 @@ export function useUserStatus(userId: string | null) {
 
     fetchStatus();
 
-    // Also listen to the presence channel for real-time updates
-    const channel = supabase.channel('online-presence');
-    channel.on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState();
-      const isPresent = !!state[userId]?.length;
-      setStatus(prev => ({ ...prev, is_online: isPresent }));
-    });
+    // Online state comes from the DB (is_online), kept live by the
+    // postgres_changes subscription below. We intentionally do NOT add a
+    // presence listener here: the shared 'online-presence' channel is owned
+    // and already subscribed by useOnlineStatus, and adding an .on() after
+    // subscribe() throws on the current Realtime server.
 
     // DB subscription for privacy setting changes
     const dbChannel = supabase
@@ -275,20 +273,10 @@ export function useMultipleUserStatus(userIds: string[]) {
 
     fetchStatuses();
 
-    // Listen to presence channel for real-time online state
-    const channel = supabase.channel('online-presence');
-    channel.on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState();
-      setStatuses(prev => {
-        const next = { ...prev };
-        userIds.forEach(id => {
-          if (next[id]) {
-            next[id] = { ...next[id], is_online: !!state[id]?.length };
-          }
-        });
-        return next;
-      });
-    });
+    // Online state comes from the DB (is_online), kept live by the
+    // postgres_changes subscription below — no presence listener here (the
+    // shared 'online-presence' channel is already subscribed by
+    // useOnlineStatus, and a late .on() throws on the current Realtime server).
 
     // DB subscription for full profile changes
     const dbChannel = supabase
