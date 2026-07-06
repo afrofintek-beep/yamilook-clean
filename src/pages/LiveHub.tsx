@@ -13,6 +13,18 @@ import { StreamErrorBanner } from '@/components/live/StreamErrorBanner';
 import { useLiveStreamContext } from '@/components/live/LiveStreamProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type LiveTab = 'para_ti' | 'banda' | 'em_alta' | 'explorar';
 
@@ -33,10 +45,29 @@ export default function LiveHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<LiveTab>('para_ti');
+  const [endingId, setEndingId] = useState<string | null>(null);
+  const [ending, setEnding] = useState(false);
 
   useEffect(() => {
     fetchLiveSessions();
   }, [fetchLiveSessions]);
+
+  const handleEndLive = async () => {
+    if (!endingId) return;
+    setEnding(true);
+    const { error } = await supabase
+      .from('live_sessions')
+      .update({ status: 'ended', ended_at: new Date().toISOString() })
+      .eq('id', endingId);
+    setEnding(false);
+    setEndingId(null);
+    if (error) {
+      toast.error('Não foi possível terminar a live');
+    } else {
+      toast.success('Live terminada');
+      fetchLiveSessions();
+    }
+  };
 
   const filteredSessions = useMemo(() => {
     let sessions = liveSessions;
@@ -186,6 +217,8 @@ export default function LiveHub() {
                   session={session}
                   isLarge={index === 0 && filteredSessions.length > 1}
                   onClick={() => navigate(`/live/${session.id}`)}
+                  isOwnLive={!!user && session.host_id === user.id}
+                  onEnd={() => setEndingId(session.id)}
                 />
               ))}
             </div>
@@ -233,6 +266,27 @@ export default function LiveHub() {
       <BottomNav />
 
       <StartLiveSheet open={startLiveOpen} onOpenChange={setStartLiveOpen} />
+
+      <AlertDialog open={!!endingId} onOpenChange={(o) => !o && setEndingId(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminar a tua live?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A transmissão será encerrada para todos os espectadores. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleEndLive}
+              disabled={ending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
+            >
+              {ending ? 'A terminar…' : 'Terminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

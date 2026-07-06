@@ -64,21 +64,28 @@ export function useLiveStream(): UseLiveStreamReturn {
 
   const getToken = useCallback(async (roomName: string, isHostUser: boolean) => {
     if (!user || !profile) return null;
-    try {
-      const participantIdentity = isHostUser
-        ? `host:${user.id}`
-        : (viewerIdentityRef.current ??= `viewer:${user.id}:${globalThis.crypto?.randomUUID?.() ?? Date.now()}`);
+    const participantIdentity = isHostUser
+      ? `host:${user.id}`
+      : (viewerIdentityRef.current ??= `viewer:${user.id}:${globalThis.crypto?.randomUUID?.() ?? Date.now()}`);
+    const body = { roomName, participantName: profile.display_name || 'User', participantIdentity, isHost: isHostUser };
 
-      const { data, error } = await supabase.functions.invoke('generate-livekit-token', {
-        body: { roomName, participantName: profile.display_name || 'User', participantIdentity, isHost: isHostUser },
-      });
-      if (error) throw error;
-      return { token: data.token, url: data.url };
-    } catch (error) {
-      logger.error('Token error', 'live', error);
-      toast({ title: 'Connection Error', description: 'Failed to get streaming credentials', variant: 'destructive' });
-      return null;
+    // The token edge function can cold-start slowly after a lull; retry a few
+    // times so the first host/viewer doesn't get a spurious credentials error.
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-livekit-token', { body });
+        if (error) throw error;
+        if (data?.token) return { token: data.token, url: data.url };
+        throw new Error('No token in response');
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+      }
     }
+    logger.error('Token error', 'live', lastError);
+    toast({ title: 'Connection Error', description: 'Failed to get streaming credentials', variant: 'destructive' });
+    return null;
   }, [user, profile, toast]);
 
   const setupRoom = useCallback((newRoom: Room) => {

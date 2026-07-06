@@ -72,30 +72,26 @@ export function useRodaStream(): UseRodaStreamReturn {
   const getToken = useCallback(async (roomName: string, isHostUser: boolean): Promise<{ token: string; url: string } | null> => {
     if (!user || !profile) return null;
 
-    try {
-      const participantIdentity = isHostUser
-        ? `host:${user.id}`
-        : `viewer:${user.id}:${Date.now()}`;
+    const participantIdentity = isHostUser
+      ? `host:${user.id}`
+      : `viewer:${user.id}:${Date.now()}`;
+    const body = { roomName, participantName: profile.display_name || 'User', participantIdentity, isHost: isHostUser };
 
-      console.log('[RodaStream] Requesting token:', { roomName, participantIdentity, isHostUser });
-
-      const { data, error } = await supabase.functions.invoke('generate-livekit-token', {
-        body: {
-          roomName,
-          participantName: profile.display_name || 'User',
-          participantIdentity,
-          isHost: isHostUser,
-        },
-      });
-
-      if (error) throw error;
-      
-      console.log('[RodaStream] Token received for room:', roomName);
-      return { token: data.token, url: data.url };
-    } catch (err) {
-      console.error('[RodaStream] Token error:', err);
-      return null;
+    // Retry: the token edge function can cold-start slowly after a lull.
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-livekit-token', { body });
+        if (error) throw error;
+        if (data?.token) return { token: data.token, url: data.url };
+        throw new Error('No token in response');
+      } catch (err) {
+        lastError = err;
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+      }
     }
+    console.error('[RodaStream] Token error:', lastError);
+    return null;
   }, [user, profile]);
 
   const setupRoom = useCallback((newRoom: Room) => {
