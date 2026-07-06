@@ -11,6 +11,7 @@ import {
   QrCode,
   LogOut,
   Settings,
+  Megaphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -666,6 +667,10 @@ export default function Profile() {
               </DropdownMenuItem>
               {isOwnProfile && (
                 <>
+                  <DropdownMenuItem onClick={() => navigate('/advertising')} className="rounded-lg">
+                    <Megaphone className="w-4 h-4 mr-2" />
+                    {t('settings.advertisingSettings', 'Publicidade')}
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/settings')} className="rounded-lg">
                     <Settings className="w-4 h-4 mr-2" />
                     {t('nav.settings')}
