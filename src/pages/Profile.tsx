@@ -12,6 +12,7 @@ import {
   LogOut,
   Settings,
   Megaphone,
+  Coins,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,6 +53,7 @@ import { CreateHighlightSheet } from '@/components/profile/CreateHighlightSheet'
 import { HighlightViewer } from '@/components/profile/HighlightViewer';
 import { YamilookJourneySheet } from '@/components/profile/YamilookJourneySheet';
 import { ProfileLevel } from '@/components/profile/ProfileLevel';
+import KumbuBalanceCard from '@/features/kumbu/components/KumbuBalanceCard';
 import { ProfileAchievements, type Achievement } from '@/components/profile/ProfileAchievements';
 import { ProfileContributions } from '@/components/profile/ProfileContributions';
 
@@ -667,6 +669,10 @@ export default function Profile() {
               </DropdownMenuItem>
               {isOwnProfile && (
                 <>
+                  <DropdownMenuItem onClick={() => navigate('/kumbu')} className="rounded-lg">
+                    <Coins className="w-4 h-4 mr-2" />
+                    {t('kumbu.wallet', 'Carteira Kumbu')}
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/advertising')} className="rounded-lg">
                     <Megaphone className="w-4 h-4 mr-2" />
                     {t('settings.advertisingSettings', 'Publicidade')}
@@ -758,6 +764,21 @@ export default function Profile() {
         onPrimaryAction={isOwnProfile ? () => navigate('/feed') : handleFollow}
         onSecondaryAction={isOwnProfile ? () => setIsEditOpen(true) : handleOpenChat}
       />
+
+      {/* Kumbu wallet — own profile only (entry point to /kumbu) */}
+      {isOwnProfile && (
+        <button
+          type="button"
+          onClick={() => navigate('/kumbu')}
+          aria-label={t('kumbu.openWallet', 'Ver a minha Carteira Kumbu')}
+          className="group w-full text-left mb-4 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-transform active:scale-[0.99]"
+        >
+          <KumbuBalanceCard />
+          <div className="mt-1.5 flex items-center justify-end gap-1 text-[11px] text-muted-foreground group-hover:text-primary transition-colors">
+            {t('kumbu.viewWallet', 'Ver carteira e histórico')} ›
+          </div>
+        </button>
+      )}
 
       {/* Stats */}
       <ProfileStats items={getStats()} hideZeros animateCountUp isOwner={isOwnProfile} />
