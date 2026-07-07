@@ -33,6 +33,7 @@ import { CreateAdSheet } from './CreateAdSheet';
 import { AdPreviewDialog } from './AdPreviewDialog';
 import { StatsDetailSheet } from './StatsDetailSheet';
 import { CreditDisplay } from './CreditDisplay';
+import { BuyCreditsSheet } from './BuyCreditsSheet';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
@@ -51,7 +52,8 @@ export function AdsDashboard({ onBack }: AdsDashboardProps) {
     pauseAdvertisement,
     activateAdvertisement,
     deleteAdvertisement,
-    addCredits
+    addCredits,
+    fetchBusinessProfile
   } = useAdvertising();
   
   const [showBusinessSetup, setShowBusinessSetup] = useState(false);
@@ -59,6 +61,7 @@ export function AdsDashboard({ onBack }: AdsDashboardProps) {
   const [activeTab, setActiveTab] = useState('ads');
   const [previewAd, setPreviewAd] = useState<Advertisement | null>(null);
   const [selectedStat, setSelectedStat] = useState<StatType | null>(null);
+  const [buyOpen, setBuyOpen] = useState(false);
 
   const activeAds = advertisements.filter(a => a.status === 'active');
   const totalImpressions = advertisements.reduce((sum, a) => sum + a.impressions, 0);
@@ -176,13 +179,20 @@ export function AdsDashboard({ onBack }: AdsDashboardProps) {
           className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98] col-span-2"
           onClick={() => setSelectedStat('credits')}
         >
-          <CreditDisplay 
+          <CreditDisplay
             credits={businessProfile?.credit_balance || 0}
             size="md"
             showSelector={true}
             showEquivalent={true}
           />
         </Card>
+
+        <Button
+          onClick={() => setBuyOpen(true)}
+          className="col-span-2 h-11 rounded-xl gap-2"
+        >
+          <Plus className="w-4 h-4" /> Comprar créditos
+        </Button>
 
         <Card 
           className="p-4 cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
@@ -455,6 +465,8 @@ export function AdsDashboard({ onBack }: AdsDashboardProps) {
           }}
         />
       )}
+
+      <BuyCreditsSheet open={buyOpen} onOpenChange={setBuyOpen} onDone={fetchBusinessProfile} />
     </div>
   );
 }

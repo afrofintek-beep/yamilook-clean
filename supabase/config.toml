@@ -21,5 +21,11 @@ verify_jwt = false
 [functions.export-user-data]
 verify_jwt = false
 
+[functions.create-appypay-payment]
+verify_jwt = false
+
+[functions.appypay-webhook]
+verify_jwt = false
+
 [functions.moderate-content]
 verify_jwt = false
