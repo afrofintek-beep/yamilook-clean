@@ -71,6 +71,7 @@ interface ProfileData {
   profile_theme_color: string;
   created_at: string;
   founder_number?: number | null;
+  is_creator?: boolean | null;
   show_last_seen: boolean;
   show_online_status: boolean;
   show_read_receipts: boolean;
@@ -329,12 +330,13 @@ export default function Profile() {
       .select('role')
       .eq('user_id', targetUserId);
     
+    // Note: user_roles is RLS-restricted to self/admin, so this only resolves on
+    // your own profile. The "Criador Verificado" badge is driven by the PUBLIC
+    // profiles.is_creator flag instead (see displayRole), so others can see it too.
     if (data && data.length > 0) {
       const roles = data.map(r => r.role);
       if (roles.includes('admin')) {
         setUserRole('founder');
-      } else if (roles.includes('moderator')) {
-        setUserRole('verified_creator');
       }
     }
   };
@@ -458,6 +460,15 @@ export default function Profile() {
     return [...publicStats, ...ownerOnlyStats];
   };
 
+  // Effective role for badge/level: founder wins; otherwise the PUBLIC is_creator
+  // flag (from profiles, readable by everyone) drives "Criador Verificado".
+  const displayRole: 'founder' | 'verified_creator' | 'default' =
+    userRole === 'founder'
+      ? 'founder'
+      : profileData?.is_creator
+        ? 'verified_creator'
+        : userRole;
+
   // Build badges based on profile
   const getBadges = () => {
     const badges: { type: string; label: string }[] = [];
@@ -465,8 +476,8 @@ export default function Profile() {
     if (profileData?.founder_number) {
       badges.push({ type: 'founder', label: `Fundador #${profileData.founder_number}` });
     }
-    if (userRole === 'verified_creator') {
-      badges.push({ type: 'verified', label: 'Verificado' });
+    if (displayRole === 'verified_creator') {
+      badges.push({ type: 'verified', label: 'Criador Verificado' });
     }
     if (sessionsCreated > 0) {
       badges.push({ type: 'creator', label: 'Mentor' });
@@ -738,8 +749,8 @@ export default function Profile() {
         subtitle={profileData.status_message}
         username={profileData.username}
         bandaName={bandaName}
-        isVerified={userRole !== 'default'}
-        role={userRole}
+        isVerified={displayRole !== 'default'}
+        role={displayRole}
         isOnline={profileData.is_online}
         showOnlineStatus={profileData.show_online_status}
         onAvatarClick={handleAvatarClick}
@@ -747,7 +758,7 @@ export default function Profile() {
 
       {/* Level indicator */}
       <div className="mb-4">
-        <ProfileLevel role={userRole} />
+        <ProfileLevel role={displayRole} />
       </div>
 
       {/* Bio */}

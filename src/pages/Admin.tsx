@@ -20,7 +20,12 @@ import {
   ShieldOff,
   MoreVertical,
   Ban,
-  CheckCircle
+  CheckCircle,
+  FileCheck,
+  Coins,
+  Award,
+  Wallet,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -429,6 +434,40 @@ export default function Admin() {
             </Card>
           ))}
         </motion.div>
+
+        {/* Sub-painéis de gestão */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Gestão
+            </CardTitle>
+            <CardDescription>
+              Candidaturas, monetização, certificações e pagamentos
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {[
+              { label: 'Candidaturas de criador', icon: FileCheck, to: '/admin/applications' },
+              { label: 'Monetização', icon: Coins, to: '/admin/monetization' },
+              { label: 'Certificações AFROLOC', icon: Award, to: '/admin/afroloc-certifications' },
+              { label: 'Pagamentos (payouts)', icon: Wallet, to: '/admin/payouts' },
+            ].map((item) => (
+              <Button
+                key={item.to}
+                variant="outline"
+                className="w-full justify-between gap-2"
+                onClick={() => navigate(item.to)}
+              >
+                <span className="flex items-center gap-2">
+                  <item.icon className="w-4 h-4" />
+                  {item.label}
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
 
         {/* Actions */}
         <Card>
