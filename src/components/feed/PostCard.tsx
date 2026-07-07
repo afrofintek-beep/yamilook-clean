@@ -9,6 +9,7 @@ import {
   Share2,
   Bookmark,
   MoreHorizontal,
+  Megaphone,
   MapPin,
   Trash2,
   Pencil,
@@ -266,6 +267,10 @@ export const PostCard = memo(function PostCard({ post, onCommentClick, isArchive
             )}
             {isOwner ? (
               <>
+                <DropdownMenuItem onClick={() => navigate(`/advertising?promote=${post.id}`)}>
+                  <Megaphone className="w-4 h-4 mr-2" />
+                  {t('feed.promotePost', 'Promover')}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowEdit(true)}>
                   <Pencil className="w-4 h-4 mr-2" />
                   {t('feed.editPost', 'Editar publicação')}

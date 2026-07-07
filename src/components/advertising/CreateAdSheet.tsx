@@ -68,12 +68,18 @@ export function CreateAdSheet({ open, onOpenChange, preselectedPostId }: CreateA
     if (open) {
       // Refresh business profile to get latest credit balance
       fetchBusinessProfile();
-      
+
+      // Deep link "Promover" from a post: pre-select it as a promoted post.
+      if (preselectedPostId) {
+        setAdType('promoted_post');
+        setSelectedPostId(preselectedPostId);
+      }
+
       if (!selectedMarket && locationMarkets.length > 0) {
         detectLocation();
       }
     }
-  }, [open, locationMarkets, fetchBusinessProfile]);
+  }, [open, preselectedPostId, locationMarkets, fetchBusinessProfile]);
 
   // Detect user location and find nearest market
   const detectLocation = () => {

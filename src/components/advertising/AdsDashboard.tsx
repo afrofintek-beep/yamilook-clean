@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,17 @@ export function AdsDashboard({ onBack }: AdsDashboardProps) {
   const [previewAd, setPreviewAd] = useState<Advertisement | null>(null);
   const [selectedStat, setSelectedStat] = useState<StatType | null>(null);
   const [buyOpen, setBuyOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [promotePostId, setPromotePostId] = useState<string | null>(null);
+
+  // Deep link from a post's "Promover" action: /advertising?promote=<postId>
+  useEffect(() => {
+    const p = searchParams.get('promote');
+    if (p && businessProfile) {
+      setPromotePostId(p);
+      setShowCreateAd(true);
+    }
+  }, [searchParams, businessProfile]);
 
   const activeAds = advertisements.filter(a => a.status === 'active');
   const totalImpressions = advertisements.reduce((sum, a) => sum + a.impressions, 0);
@@ -430,7 +442,8 @@ export function AdsDashboard({ onBack }: AdsDashboardProps) {
 
       <CreateAdSheet
         open={showCreateAd}
-        onOpenChange={setShowCreateAd}
+        onOpenChange={(o) => { setShowCreateAd(o); if (!o) setPromotePostId(null); }}
+        preselectedPostId={promotePostId ?? undefined}
       />
 
       {previewAd && (
