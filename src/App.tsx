@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { OnlineStatusTracker } from "@/components/OnlineStatusTracker";
 import { LiveStreamProvider } from "@/components/live/LiveStreamProvider";
 import { GlobalMessageNotifier } from "@/components/GlobalMessageNotifier";
+import { KumbuEarnNotifier } from "@/components/KumbuEarnNotifier";
 
 
 // Lazy load the ActiveCallProvider since it imports heavy WebRTC hooks
@@ -410,6 +411,7 @@ function AppContent() {
 
       <OnlineStatusTracker />
       <GlobalMessageNotifier />
+      <KumbuEarnNotifier />
       <ActiveCallProvider>
         <AnimatedRoutes />
       </ActiveCallProvider>
