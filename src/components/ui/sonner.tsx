@@ -1,14 +1,16 @@
-import { useTheme } from "next-themes";
 import { Toaster as Sonner, toast } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
+// Yamilook is a fixed dark theme, so we set it explicitly instead of depending
+// on next-themes' useTheme() — that hook can return undefined when there's no
+// ThemeProvider, which crashed this component and left every sonner toast
+// invisible across the app.
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="dark"
+      position="top-center"
       className="toaster group"
       toastOptions={{
         classNames: {
