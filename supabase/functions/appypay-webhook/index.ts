@@ -36,20 +36,21 @@ serve(async (req) => {
     const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(url, svc);
 
+    // Real AppyPay payload shape:
+    //   { id, merchantTransactionId, amount, responseStatus: { successful, status, code, ... }, ... }
     // We put credit_purchases.id in merchantTransactionId, so read it back here.
-    const purchaseId = (payload.merchantTransactionId ?? payload.reference ??
-      payload.merchantReference ?? payload.merchant_transaction_id) as string | undefined;
-    const providerRef = (payload.id ?? payload.chargeId ?? payload.transactionId ??
-      payload.charge_id ?? null) as string | null;
-    const status = String(
-      payload.status ?? payload.state ?? payload.paymentStatus ?? payload.responseStatus ?? "",
-    ).toLowerCase();
+    const purchaseId = (payload.merchantTransactionId ?? payload.merchant_transaction_id) as string | undefined;
+    const providerRef = (payload.id ?? payload.chargeId ?? payload.transactionId ?? null) as string | null;
 
     if (!purchaseId) return jr({ error: "missing merchantTransactionId" }, 400);
 
-    const paid = ["paid", "success", "successful", "completed", "settled", "accepted", "approved", "captured"]
-      .some((s) => status.includes(s));
-    if (!paid) return jr({ ok: true, ignored: status || "unknown" });
+    // Success lives inside responseStatus (successful:true / status:"Success" / code:100).
+    const rs = (payload.responseStatus ?? {}) as Record<string, unknown>;
+    const statusStr = String(rs.status ?? payload.status ?? "").toLowerCase();
+    const code = Number(rs.code ?? NaN);
+    const paid = rs.successful === true || code === 100 ||
+      ["success", "successful", "paid", "completed", "settled", "approved"].some((s) => statusStr.includes(s));
+    if (!paid) return jr({ ok: true, ignored: statusStr || String(rs.code ?? "unknown") });
 
     const { data, error } = await admin.rpc("fulfill_credit_purchase", {
       p_purchase_id: purchaseId,
