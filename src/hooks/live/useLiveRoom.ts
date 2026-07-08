@@ -69,12 +69,26 @@ export function useLiveStream(): UseLiveStreamReturn {
       : (viewerIdentityRef.current ??= `viewer:${user.id}:${globalThis.crypto?.randomUUID?.() ?? Date.now()}`);
     const body = { roomName, participantName: profile.display_name || 'User', participantIdentity, isHost: isHostUser };
 
-    // The token edge function can cold-start slowly after a lull; retry a few
-    // times so the first host/viewer doesn't get a spurious credentials error.
+    // The token edge function requires a valid user session. On mobile the
+    // access token can be stale/detached (backgrounded tab), which made
+    // supabase.functions.invoke fall back to the anon key → 401. Fetch a fresh
+    // session (refreshing if expired) and pass the user's JWT explicitly.
+    let { data: { session } } = await supabase.auth.getSession();
+    if (session?.expires_at && session.expires_at * 1000 < Date.now() + 5000) {
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      session = refreshed.session;
+    }
+    if (!session?.access_token) {
+      toast({ title: 'Sessão expirada', description: 'Inicia sessão novamente para entrar na live.', variant: 'destructive' });
+      return null;
+    }
+    const authHeaders = { Authorization: `Bearer ${session.access_token}` };
+
+    // The token edge function can also cold-start slowly; retry a few times.
     let lastError: unknown = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const { data, error } = await supabase.functions.invoke('generate-livekit-token', { body });
+        const { data, error } = await supabase.functions.invoke('generate-livekit-token', { body, headers: authHeaders });
         if (error) throw error;
         if (data?.token) return { token: data.token, url: data.url };
         throw new Error('No token in response');
@@ -84,7 +98,7 @@ export function useLiveStream(): UseLiveStreamReturn {
       }
     }
     logger.error('Token error', 'live', lastError);
-    toast({ title: 'Connection Error', description: 'Failed to get streaming credentials', variant: 'destructive' });
+    toast({ title: 'Erro de ligação', description: 'Não foi possível obter as credenciais da live.', variant: 'destructive' });
     return null;
   }, [user, profile, toast]);
 
