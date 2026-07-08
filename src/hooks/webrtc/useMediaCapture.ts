@@ -156,27 +156,39 @@ export function useMediaCapture(): UseMediaCaptureReturn {
       setScreenStream(null);
       setIsScreenSharing(false);
     } else {
+      // Screen capture is unavailable on most mobile browsers (iOS Safari,
+      // Android Chrome). Signal that clearly instead of failing silently.
+      if (!navigator.mediaDevices?.getDisplayMedia) {
+        const e = new Error('Partilha de ecrã não é suportada neste dispositivo (ex.: telemóveis).');
+        e.name = 'ScreenShareUnsupported';
+        throw e;
+      }
+      let stream: MediaStream;
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
+        stream = await navigator.mediaDevices.getDisplayMedia({
           video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: true,
         });
-
-        screenStreamRef.current = stream;
-        setScreenStream(stream);
-        setIsScreenSharing(true);
-
-        // Handle stop from browser UI
-        const videoTrack = stream.getVideoTracks()[0];
-        videoTrack.onended = () => {
-          screenStreamRef.current?.getTracks().forEach(t => t.stop());
-          screenStreamRef.current = null;
-          setScreenStream(null);
-          setIsScreenSharing(false);
-        };
       } catch (error) {
         logger.error('Error starting screen share', 'MediaCapture', error);
+        const name = (error as Error)?.name;
+        // User cancelled the picker → stay silent; otherwise surface the error.
+        if (name === 'NotAllowedError' || name === 'AbortError') return;
+        throw error;
       }
+
+      screenStreamRef.current = stream;
+      setScreenStream(stream);
+      setIsScreenSharing(true);
+
+      // Handle stop from browser UI
+      const videoTrack = stream.getVideoTracks()[0];
+      videoTrack.onended = () => {
+        screenStreamRef.current?.getTracks().forEach(t => t.stop());
+        screenStreamRef.current = null;
+        setScreenStream(null);
+        setIsScreenSharing(false);
+      };
     }
   }, [isScreenSharing]);
 

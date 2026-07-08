@@ -13,6 +13,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { toast } from '@/hooks/use-toast';
 import { useWebRTCSignaling, EventPayload } from './useWebRTCSignaling';
 import { useICEServers } from './useICEServers';
 
@@ -660,7 +661,13 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
   const toggleScreenShare = useCallback(async () => {
     const wasSharing = mediaCapture.isScreenSharing;
-    await mediaCapture.toggleScreenShare();
+    try {
+      await mediaCapture.toggleScreenShare();
+    } catch (e) {
+      const msg = e instanceof Error && e.message ? e.message : 'Não foi possível partilhar o ecrã.';
+      toast({ title: 'Partilha de ecrã', description: msg, variant: 'destructive' });
+      return;
+    }
 
     if (!wasSharing && mediaCapture.screenStreamRef.current) {
       // Started sharing: replace video track in PCs with screen track
