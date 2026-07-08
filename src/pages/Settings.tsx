@@ -727,13 +727,13 @@ export default function Settings() {
             icon={HelpCircle}
             label={t('settings.helpCenter')}
             delay={0.44}
-            onClick={() => toast({ title: t('settings.comingSoon') })}
+            onClick={() => navigate('/help')}
           />
           <SettingItem
             icon={FileText}
             label={t('settings.termsOfService')}
             delay={0.46}
-            onClick={() => toast({ title: t('settings.comingSoon') })}
+            onClick={() => navigate('/terms')}
           />
           <SettingItem
             icon={Info}

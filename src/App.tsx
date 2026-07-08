@@ -44,6 +44,7 @@ const BrandBook = lazy(() => import("./pages/BrandBook"));
 const JoinGroup = lazy(() => import("./pages/JoinGroup"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const LiveHub = lazy(() => import("./pages/LiveHub"));
 const BandaHub = lazy(() => import("./pages/BandaHub"));
 const Live = lazy(() => import("./pages/Live"));
@@ -325,6 +326,7 @@ function AnimatedRoutes() {
           <Route path="/manual/contas/pdf" element={<UserAccountsManualPrint />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/help" element={<HelpCenter />} />
           <Route path="/join/:code" element={<JoinGroup />} />
           <Route
             path="/live"
