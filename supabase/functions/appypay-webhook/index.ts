@@ -39,10 +39,12 @@ serve(async (req) => {
     // Real AppyPay payload shape:
     //   { id, merchantTransactionId, amount, responseStatus: { successful, status, code, ... }, ... }
     // We put credit_purchases.id in merchantTransactionId, so read it back here.
-    const purchaseId = (payload.merchantTransactionId ?? payload.merchant_transaction_id) as string | undefined;
+    // merchantTransactionId is our short merchant_ref (<=15 alnum), not the
+    // purchase UUID — map it back to the purchase.
+    const merchantRef = (payload.merchantTransactionId ?? payload.merchant_transaction_id) as string | undefined;
     const providerRef = (payload.id ?? payload.chargeId ?? payload.transactionId ?? null) as string | null;
 
-    if (!purchaseId) return jr({ error: "missing merchantTransactionId" }, 400);
+    if (!merchantRef) return jr({ error: "missing merchantTransactionId" }, 400);
 
     // Success lives inside responseStatus (successful:true / status:"Success" / code:100).
     const rs = (payload.responseStatus ?? {}) as Record<string, unknown>;
@@ -52,8 +54,12 @@ serve(async (req) => {
       ["success", "successful", "paid", "completed", "settled", "approved"].some((s) => statusStr.includes(s));
     if (!paid) return jr({ ok: true, ignored: statusStr || String(rs.code ?? "unknown") });
 
+    const { data: purchase } = await admin
+      .from("credit_purchases").select("id").eq("merchant_ref", merchantRef).maybeSingle();
+    if (!purchase) return jr({ error: "purchase not found for merchant_ref" }, 404);
+
     const { data, error } = await admin.rpc("fulfill_credit_purchase", {
-      p_purchase_id: purchaseId,
+      p_purchase_id: purchase.id,
       p_provider_ref: providerRef,
     });
     if (error) return jr({ error: error.message }, 500);

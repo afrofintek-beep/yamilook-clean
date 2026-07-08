@@ -106,12 +106,18 @@ serve(async (req) => {
       return await fail("Número de telemóvel obrigatório para Multicaixa Express.", 400);
     }
 
+    // AppyPay requires merchantTransactionId = 1..15 alphanumeric chars (a UUID
+    // doesn't fit). Derive a short unique ref and store it so the webhook can map
+    // it back to this purchase.
+    const merchantRef = String(purchase.id).replace(/-/g, "").slice(0, 15);
+    await admin.from("credit_purchases").update({ merchant_ref: merchantRef }).eq("id", purchase.id);
+
     // deno-lint-ignore no-explicit-any
     const chargeBody: Record<string, any> = {
       amount: pkg.kwanza,
       currency: "AOA",
       description: `Yamilook creditos (${pkg.credits})`,
-      merchantTransactionId: purchase.id, // echoed back on the webhook
+      merchantTransactionId: merchantRef, // echoed back on the webhook
       paymentMethod: methodKey,
     };
     if (method === "GPO") chargeBody.paymentInfo = { phoneNumber: cleanPhone };
