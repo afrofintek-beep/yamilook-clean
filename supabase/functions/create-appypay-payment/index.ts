@@ -148,10 +148,11 @@ serve(async (req) => {
     if (chargeId) await admin.from("credit_purchases").update({ provider_ref: String(chargeId) }).eq("id", purchase.id);
 
     // AppyPay confirms GPO synchronously (no separate webhook for an instant
-    // success), so credit right away when the charge already succeeded. A later
-    // webhook is harmless — fulfill_credit_purchase is idempotent.
+    // success), so credit right away — but ONLY on code 100 (paid). REF returns
+    // successful:true with code 101 (Pending, awaiting the buyer to pay the
+    // reference), which must NOT be credited yet. A later webhook is idempotent.
     const rs = charge?.responseStatus ?? {};
-    if (rs?.successful === true || Number(rs?.code) === 100) {
+    if (Number(rs?.code) === 100) {
       await admin.rpc("fulfill_credit_purchase", { p_purchase_id: purchase.id, p_provider_ref: chargeId ?? null });
       return json({
         purchaseId: purchase.id, status: "paid", method,

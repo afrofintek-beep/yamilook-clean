@@ -47,10 +47,13 @@ serve(async (req) => {
     if (!merchantRef) return jr({ error: "missing merchantTransactionId" }, 400);
 
     // Success lives inside responseStatus (successful:true / status:"Success" / code:100).
+    // Credit ONLY on an actual payment (code 100 / status "Success"). REF sends
+    // successful:true with code 101 (Pending) when the reference is generated —
+    // that must NOT credit; the paid webhook (code 100) arrives when it's paid.
     const rs = (payload.responseStatus ?? {}) as Record<string, unknown>;
     const statusStr = String(rs.status ?? payload.status ?? "").toLowerCase();
     const code = Number(rs.code ?? NaN);
-    const paid = rs.successful === true || code === 100 ||
+    const paid = code === 100 ||
       ["success", "successful", "paid", "completed", "settled", "approved"].some((s) => statusStr.includes(s));
     if (!paid) return jr({ ok: true, ignored: statusStr || String(rs.code ?? "unknown") });
 
