@@ -13,6 +13,33 @@ const PACKAGES: Record<string, { credits: number; kwanza: number; label: string 
   max: { credits: 12000, kwanza: 96000, label: "Máximo" },
 };
 
+// AppyPay environment (test defaults; override via secrets to go to production).
+const BASE = Deno.env.get("APPYPAY_BASE_URL") ?? "https://gwy-api-tst.appypay.co.ao";
+const TOKEN_URL =
+  Deno.env.get("APPYPAY_TOKEN_URL") ??
+  "https://login.microsoftonline.com/appypaydev.onmicrosoft.com/oauth2/token";
+const RESOURCE = Deno.env.get("APPYPAY_RESOURCE") ?? "2aed7612-de64-46b5-9e59-1f48f8902d14";
+
+// OAuth2 client-credentials against Azure AD (token valid ~1h).
+async function getAppyToken(clientId: string, clientSecret: string): Promise<string> {
+  const body = new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: clientId,
+    client_secret: clientSecret,
+    resource: RESOURCE,
+  });
+  const r = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) {
+    throw new Error(`Auth AppyPay falhou: ${j.error_description ?? j.error ?? r.status}`);
+  }
+  return j.access_token as string;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   const json = (b: unknown, s = 200) =>
@@ -33,6 +60,7 @@ serve(async (req) => {
     const { packageId, method = "GPO", phone } = await req.json();
     const pkg = PACKAGES[packageId as string];
     if (!pkg) return json({ error: "Pacote inválido" }, 400);
+    if (method !== "GPO" && method !== "REF") return json({ error: "Método inválido" }, 400);
 
     const admin = createClient(url, svc);
     const { data: biz } = await admin
@@ -49,6 +77,11 @@ serve(async (req) => {
       .select().single();
     if (perr) return json({ error: perr.message }, 500);
 
+    const fail = async (msg: string, status = 502, detail?: unknown) => {
+      await admin.from("credit_purchases").update({ status: "failed" }).eq("id", purchase.id);
+      return json({ error: msg, detail }, status);
+    };
+
     // --- AppyPay charge ---
     const APPY_KEY = Deno.env.get("APPYPAY_API_KEY");
     const APPY_SECRET = Deno.env.get("APPYPAY_API_SECRET");
@@ -56,21 +89,74 @@ serve(async (req) => {
       // Gateway not wired yet: purchase stays 'pending' until credentials exist.
       return json({
         purchaseId: purchase.id, status: "gateway_pending",
-        message: "Compra registada. Falta configurar as credenciais AppyPay (APPYPAY_API_KEY/SECRET).",
+        message: "Compra registada. Falta configurar as credenciais AppyPay.",
         credits: pkg.credits, amountKwanza: pkg.kwanza,
       });
     }
 
-    // TODO(appypay): complete with the exact spec once we have sandbox docs:
-    //   1) OAuth token (client_credentials with APPY_KEY/APPY_SECRET)
-    //   2) POST https://api.appypay.ao/... /charges  with body:
-    //        { amount: pkg.kwanza, currency: "AOA", paymentMethod: method,
-    //          reference: purchase.id, phoneNumber: phone,
-    //          callbackUrl: `${url}/functions/v1/appypay-webhook`,
-    //          description: `Yamilook créditos (${pkg.credits})` }
-    //   3) save the returned charge id -> credit_purchases.provider_ref
-    //   4) return the payment instruction (Multicaixa Express push / REF + expiry)
-    return json({ purchaseId: purchase.id, status: "created", message: "AppyPay charge — a completar" });
+    // The payment-method "Chave" per method (e.g. "GPO_<guid>" / "REF_<guid>").
+    const methodKey = method === "REF"
+      ? Deno.env.get("APPYPAY_REF_KEY")
+      : Deno.env.get("APPYPAY_GPO_KEY");
+    if (!methodKey) return await fail(`Chave AppyPay em falta para ${method} (APPYPAY_${method}_KEY).`, 500);
+
+    // GPO (Multicaixa Express) pushes to the buyer's phone → phone is required.
+    const cleanPhone = typeof phone === "string" ? phone.replace(/\D/g, "") : "";
+    if (method === "GPO" && cleanPhone.length < 9) {
+      return await fail("Número de telemóvel obrigatório para Multicaixa Express.", 400);
+    }
+
+    // deno-lint-ignore no-explicit-any
+    const chargeBody: Record<string, any> = {
+      amount: pkg.kwanza,
+      currency: "AOA",
+      description: `Yamilook creditos (${pkg.credits})`,
+      merchantTransactionId: purchase.id, // echoed back on the webhook
+      paymentMethod: methodKey,
+    };
+    if (method === "GPO") chargeBody.paymentInfo = { phoneNumber: cleanPhone };
+
+    let token: string;
+    try {
+      token = await getAppyToken(APPY_KEY, APPY_SECRET);
+    } catch (e) {
+      return await fail(e instanceof Error ? e.message : "Auth AppyPay falhou", 502);
+    }
+
+    const cr = await fetch(`${BASE}/v2.0/charges`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(chargeBody),
+    });
+    // deno-lint-ignore no-explicit-any
+    const charge: any = await cr.json().catch(() => ({}));
+    if (!cr.ok) {
+      return await fail(`AppyPay recusou o pagamento: ${charge?.message ?? charge?.error ?? cr.status}`, 502, charge);
+    }
+
+    const chargeId = charge?.id ?? charge?.chargeId ?? charge?.transactionId ?? null;
+    if (chargeId) await admin.from("credit_purchases").update({ provider_ref: String(chargeId) }).eq("id", purchase.id);
+
+    if (method === "GPO") {
+      return json({
+        purchaseId: purchase.id, status: "pending_push", method: "GPO",
+        message: "Confirma o pagamento no teu telemóvel (Multicaixa Express).",
+        credits: pkg.credits, amountKwanza: pkg.kwanza, charge,
+      });
+    }
+    // REF: surface the entity + reference for the buyer to pay at ATM / Internet Banking.
+    const entity = charge?.entity ?? charge?.paymentInfo?.entity ?? charge?.reference?.entity ?? null;
+    const reference =
+      charge?.referenceNumber ?? charge?.reference?.referenceNumber ?? charge?.paymentInfo?.reference ?? null;
+    return json({
+      purchaseId: purchase.id, status: "pending_ref", method: "REF",
+      message: "Referência gerada. Paga no Multicaixa Express, ATM ou Internet Banking.",
+      entity, reference, credits: pkg.credits, amountKwanza: pkg.kwanza, charge,
+    });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "error" }, 500);
   }
