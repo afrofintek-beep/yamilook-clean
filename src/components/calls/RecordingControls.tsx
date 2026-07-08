@@ -20,6 +20,8 @@ import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useActiveCallRequired } from './ActiveCallProvider';
+import { useCallRecorder } from '@/hooks/useCallRecorder';
 
 interface Participant {
   id: string;
@@ -40,6 +42,8 @@ interface ConsentStatus {
 
 export function RecordingControls({ callId, participants }: RecordingControlsProps) {
   const { user } = useAuth();
+  const { webRTCState } = useActiveCallRequired();
+  const recorder = useCallRecorder();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingId, setRecordingId] = useState<string | null>(null);
@@ -117,28 +121,30 @@ export function RecordingControls({ callId, participants }: RecordingControlsPro
         .single();
 
       if (error) throw error;
+      setRecordingId(recording.id);
 
-      // Create consent requests for all participants
-      const consentPromises = participants.map(async (p) => {
-        await supabase.from('recording_consents').insert({
+      // Only OTHER participants need to consent. If we're alone, record now.
+      const others = participants.filter((p) => p.user_id !== user.id);
+      if (others.length === 0) {
+        startActualRecording(recording.id);
+        return;
+      }
+
+      await Promise.all(others.map((p) =>
+        supabase.from('recording_consents').insert({
           recording_id: recording.id,
           user_id: p.user_id,
-          consented: false, // Will be updated when they respond
-        });
-      });
+          consented: false,
+        }),
+      ));
 
-      await Promise.all(consentPromises);
-
-      setRecordingId(recording.id);
-      setConsentStatuses(participants.map(p => ({
+      setConsentStatuses(others.map(p => ({
         userId: p.user_id,
         displayName: p.display_name,
         consented: null,
       })));
       setShowConsentDialog(true);
       setWaitingForConsent(true);
-
-      // Listen for consent responses
       listenForConsents(recording.id);
 
     } catch (error) {
@@ -197,22 +203,25 @@ export function RecordingControls({ callId, participants }: RecordingControlsPro
     return () => supabase.removeChannel(channel);
   };
 
-  // Start actual recording after all consent
+  // Start actual media recording (composite video + mixed audio) after consent.
   const startActualRecording = async (recId: string) => {
-    await supabase
-      .from('call_recordings')
-      .update({ status: 'recording' })
-      .eq('id', recId);
+    const started = recorder.start(webRTCState.localStream, webRTCState.remoteStreams);
+    if (!started) {
+      toast({ title: 'Sem vídeo para gravar', description: 'A câmara ainda não está pronta. Tenta quando a chamada ligar.', variant: 'destructive' });
+      await supabase.from('call_recordings').update({ status: 'stopped' }).eq('id', recId);
+      setRecordingId(null);
+      setShowConsentDialog(false);
+      setWaitingForConsent(false);
+      return;
+    }
+
+    await supabase.from('call_recordings').update({ status: 'recording' }).eq('id', recId);
 
     setIsRecording(true);
     setWaitingForConsent(false);
     setShowConsentDialog(false);
     setRecordingDuration(0);
-
-    toast({
-      title: 'Recording Started',
-      description: 'All participants have consented. Recording is now active.',
-    });
+    toast({ title: 'Gravação iniciada', description: 'A chamada está a ser gravada.' });
   };
 
   // Cancel recording
@@ -231,37 +240,60 @@ export function RecordingControls({ callId, participants }: RecordingControlsPro
   // Pause/resume recording
   const togglePause = async () => {
     if (!recordingId) return;
-
+    recorder.pause(!isPaused);
     await supabase
       .from('call_recordings')
       .update({ status: isPaused ? 'recording' : 'paused' })
       .eq('id', recordingId);
-
     setIsPaused(!isPaused);
   };
 
-  // Stop recording
+  // Stop recording: finalise the media, upload the webm, save the file path.
   const stopRecording = async () => {
     if (!recordingId) return;
-
-    await supabase
-      .from('call_recordings')
-      .update({ 
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        duration_seconds: recordingDuration,
-      })
-      .eq('id', recordingId);
-
+    const recId = recordingId;
+    const dur = recordingDuration;
     setIsRecording(false);
     setIsPaused(false);
-    setRecordingId(null);
     setRecordingDuration(0);
 
-    toast({
-      title: 'Recording Saved',
-      description: 'Your recording has been saved successfully.',
-    });
+    toast({ title: 'A guardar gravação…' });
+    const blob = await recorder.stop();
+
+    if (!blob) {
+      await supabase.from('call_recordings')
+        .update({ status: 'stopped', completed_at: new Date().toISOString(), duration_seconds: dur })
+        .eq('id', recId);
+      setRecordingId(null);
+      toast({ title: 'Gravação vazia', variant: 'destructive' });
+      return;
+    }
+
+    const path = `${callId}/${recId}.webm`;
+    const { error: upErr } = await supabase.storage
+      .from('call-recordings')
+      .upload(path, blob, { contentType: 'video/webm', upsert: true });
+
+    if (upErr) {
+      console.error('[rec] upload failed', upErr);
+      await supabase.from('call_recordings')
+        .update({ status: 'stopped', duration_seconds: dur })
+        .eq('id', recId);
+      setRecordingId(null);
+      toast({ title: 'Falha ao guardar a gravação', variant: 'destructive' });
+      return;
+    }
+
+    await supabase.from('call_recordings').update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      duration_seconds: dur,
+      storage_path: path,
+      file_size_bytes: blob.size,
+    }).eq('id', recId);
+
+    setRecordingId(null);
+    toast({ title: 'Gravação guardada', description: 'A gravação da chamada foi guardada.' });
   };
 
   // Respond to incoming consent request
