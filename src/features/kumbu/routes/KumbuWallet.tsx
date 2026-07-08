@@ -1,15 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, HelpCircle, History, Trophy, Sparkles, ChevronRight } from 'lucide-react';
+import { ArrowLeft, HelpCircle, History, Trophy, Sparkles, ChevronRight, Banknote } from 'lucide-react';
 import KumbuBalanceCard from '../components/KumbuBalanceCard';
 import KumbuHowToEarn from '../components/KumbuHowToEarn';
 import { TAGLINE_FULL } from '../copy';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function KumbuWallet() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showHelp, setShowHelp] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
+
+  // Approved creators withdraw (payout); everyone else sees the apply CTA.
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('creator_applications')
+      .select('status')
+      .eq('user_id', user.id)
+      .eq('status', 'approved')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setIsCreator(!!data));
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -48,18 +65,24 @@ export default function KumbuWallet() {
           </motion.button>
         </div>
 
-        {/* Become a creator — entry point to the monetization program */}
+        {/* Approved creators → payouts; otherwise → the monetization apply CTA. */}
         <motion.button
           whileTap={{ scale: 0.98 }}
-          onClick={() => navigate('/creator/apply')}
+          onClick={() => navigate(isCreator ? '/payouts' : '/creator/apply')}
           className="w-full flex items-center gap-3 p-4 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 text-left transition-colors hover:from-primary/15"
         >
           <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-            <Sparkles className="h-5 w-5 text-primary" />
+            {isCreator ? <Banknote className="h-5 w-5 text-primary" /> : <Sparkles className="h-5 w-5 text-primary" />}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sm text-foreground">Tornar-me criador</div>
-            <div className="text-xs text-muted-foreground">Monetiza o que crias — converte Kumbu em dinheiro</div>
+            <div className="font-semibold text-sm text-foreground">
+              {isCreator ? 'Levantar Kumbu (Payout)' : 'Tornar-me criador'}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {isCreator
+                ? 'Converte os teus Kumbu em dinheiro'
+                : 'Monetiza o que crias — converte Kumbu em dinheiro'}
+            </div>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
         </motion.button>
