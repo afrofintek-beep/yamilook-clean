@@ -90,7 +90,11 @@ export function useLiveStream(): UseLiveStreamReturn {
 
   const setupRoom = useCallback((newRoom: Room) => {
     newRoom.on(RoomEvent.ConnectionStateChanged, (state) => setConnectionState(state));
-    newRoom.on(RoomEvent.ParticipantConnected, (p) => setRemoteParticipants(prev => [...prev, p]));
+    newRoom.on(RoomEvent.ParticipantConnected, (p) => {
+      setRemoteParticipants(prev => [...prev, p]);
+      // Alert everyone already in the room (host + viewers) that someone joined.
+      toast({ title: `${p.name || 'Espectador'} entrou na live 👋` });
+    });
     newRoom.on(RoomEvent.ParticipantDisconnected, (p) => setRemoteParticipants(prev => prev.filter(x => x.sid !== p.sid)));
     newRoom.on(RoomEvent.TrackSubscribed, () => setRemoteParticipants([...newRoom.remoteParticipants.values()]));
     newRoom.on(RoomEvent.TrackUnsubscribed, () => setRemoteParticipants([...newRoom.remoteParticipants.values()]));
