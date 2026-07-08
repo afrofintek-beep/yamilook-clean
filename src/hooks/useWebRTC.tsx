@@ -23,6 +23,7 @@ import { useCallLifecycle } from './webrtc/useCallLifecycle';
 import { useAutoplayRecovery } from './webrtc/useAutoplayRecovery';
 import { useCallTelemetry } from './webrtc/useCallTelemetry';
 import { CallState, CallSettings, INITIAL_STATE, CallMetrics } from './webrtc/types';
+import { VirtualBackgroundProcessor, type BgMode } from '@/lib/virtualBackground';
 
 export type { PeerConnection, CallState, CallSettings, CallMetrics } from './webrtc/types';
 
@@ -45,6 +46,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
   // Without this, every time B answers a call the PC gets destroyed immediately after creation.
   const cleanupCallRef = useRef<() => void>(() => {});
   const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map());
+  const vbgProcessorRef = useRef<VirtualBackgroundProcessor | null>(null);
 
   useEffect(() => { callIdRef.current = state.callId; }, [state.callId]);
   // Keep iceServersRef warm with cached servers so getter always has something
@@ -217,6 +219,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
       clearTimeout(callConnectingTimeoutRef.current);
       callConnectingTimeoutRef.current = null;
     }
+    if (vbgProcessorRef.current) { vbgProcessorRef.current.stop(); vbgProcessorRef.current = null; }
     peerConnection.closeAllPeerConnections();
     iceQueue.clearAllQueues();
     mediaCapture.stopAllMedia();
@@ -694,6 +697,50 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     setState(prev => ({ ...prev, localStream: mediaCapture.localStreamRef.current }));
   }, [mediaCapture, peerConnection]);
 
+  // Virtual background: swap the outgoing video track for a segmentation-processed
+  // one (blur / image / video bg). Mirrors the screen-share track swap. Fully
+  // defensive — on any failure it restores the raw camera so a call never breaks.
+  const replaceOutgoingVideo = useCallback((track: MediaStreamTrack) => {
+    peerConnection.peerConnections.current.forEach(pc => {
+      const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) sender.replaceTrack(track).catch(() => {});
+    });
+  }, [peerConnection]);
+
+  const setVirtualBackground = useCallback(async (mode: BgMode) => {
+    const cameraTrack = mediaCapture.localStreamRef.current?.getVideoTracks()[0];
+    const audioTrack = mediaCapture.localStreamRef.current?.getAudioTracks()[0];
+
+    if (mode.kind === 'none') {
+      if (vbgProcessorRef.current) { vbgProcessorRef.current.stop(); vbgProcessorRef.current = null; }
+      if (cameraTrack) replaceOutgoingVideo(cameraTrack);
+      setState(prev => ({ ...prev, localStream: mediaCapture.localStreamRef.current }));
+      return;
+    }
+    if (!cameraTrack) return;
+
+    try {
+      if (!vbgProcessorRef.current) {
+        vbgProcessorRef.current = await VirtualBackgroundProcessor.create(cameraTrack, mode);
+      } else {
+        vbgProcessorRef.current.setMode(mode);
+      }
+      const processedTrack = vbgProcessorRef.current.outputStream.getVideoTracks()[0];
+      if (!processedTrack) throw new Error('no processed track');
+      replaceOutgoingVideo(processedTrack);
+      // Local preview shows the effect (processed video + original mic audio).
+      const preview = new MediaStream();
+      preview.addTrack(processedTrack);
+      if (audioTrack) preview.addTrack(audioTrack);
+      setState(prev => ({ ...prev, localStream: preview }));
+    } catch (e) {
+      console.error('[VBG] failed, reverting to raw camera:', e);
+      if (vbgProcessorRef.current) { vbgProcessorRef.current.stop(); vbgProcessorRef.current = null; }
+      if (cameraTrack) replaceOutgoingVideo(cameraTrack);
+      setState(prev => ({ ...prev, localStream: mediaCapture.localStreamRef.current }));
+    }
+  }, [mediaCapture, replaceOutgoingVideo]);
+
   const raiseHand = useCallback(async (raised: boolean) => {
     if (state.callId && user) await lifecycle.raiseHand(state.callId, user.id, raised);
   }, [state.callId, user, lifecycle]);
@@ -743,6 +790,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     toggleVideo,
     toggleScreenShare,
     flipCamera,
+    setVirtualBackground,
     raiseHand,
     sendReaction,
     getUserMedia,

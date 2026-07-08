@@ -6,6 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import type { BgMode } from '@/lib/virtualBackground';
 
 interface VirtualBackground {
   id: string;
@@ -19,8 +20,15 @@ interface VirtualBackground {
 
 interface VirtualBackgroundPickerProps {
   selectedBackground: string | null;
-  onSelect: (backgroundId: string | null) => void;
+  onSelect: (backgroundId: string | null, mode: BgMode) => void;
   onClose: () => void;
+}
+
+// Map a virtual_backgrounds row to a processor mode.
+function toMode(bg: VirtualBackground): BgMode {
+  if (bg.type === 'blur') return { kind: 'blur', intensity: bg.blur_intensity ?? 5 };
+  if (bg.type === 'image') return { kind: 'image', url: bg.storage_path ?? '' };
+  return { kind: 'video', url: bg.storage_path ?? '' }; // animated | video
 }
 
 export function VirtualBackgroundPicker({
@@ -84,7 +92,7 @@ export function VirtualBackgroundPicker({
         <TabsContent value="blur" className="mt-4 space-y-4">
           {/* No background option */}
           <button
-            onClick={() => onSelect(null)}
+            onClick={() => onSelect(null, { kind: 'none' })}
             className={cn(
               "w-full p-4 rounded-lg border-2 text-left transition-all",
               selectedBackground === null 
@@ -110,7 +118,7 @@ export function VirtualBackgroundPicker({
           {blurOptions.map((bg) => (
             <button
               key={bg.id}
-              onClick={() => onSelect(bg.id)}
+              onClick={() => onSelect(bg.id, toMode(bg))}
               className={cn(
                 "w-full p-4 rounded-lg border-2 text-left transition-all",
                 selectedBackground === bg.id 
@@ -144,7 +152,7 @@ export function VirtualBackgroundPicker({
             <label className="text-sm font-medium">Custom Blur Intensity</label>
             <Slider
               value={[blurIntensity]}
-              onValueChange={([val]) => setBlurIntensity(val)}
+              onValueChange={([val]) => { setBlurIntensity(val); onSelect('custom-blur', { kind: 'blur', intensity: val }); }}
               max={10}
               min={1}
               step={1}
@@ -181,7 +189,7 @@ export function VirtualBackgroundPicker({
             {imageOptions.map((bg) => (
               <button
                 key={bg.id}
-                onClick={() => onSelect(bg.id)}
+                onClick={() => onSelect(bg.id, toMode(bg))}
                 className={cn(
                   "relative aspect-video rounded-lg overflow-hidden border-2 transition-all",
                   selectedBackground === bg.id 
@@ -223,7 +231,7 @@ export function VirtualBackgroundPicker({
                 animatedOptions.map((bg) => (
                   <button
                     key={bg.id}
-                    onClick={() => onSelect(bg.id)}
+                    onClick={() => onSelect(bg.id, toMode(bg))}
                     disabled={bg.is_premium}
                     className={cn(
                       "relative aspect-video rounded-lg overflow-hidden border-2 transition-all",

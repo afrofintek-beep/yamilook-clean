@@ -79,6 +79,7 @@ export function VideoCall({
     toggleVideo,
     toggleScreenShare,
     flipCamera,
+    setVirtualBackground,
     raiseHand,
     sendReaction,
     endCall,
@@ -461,7 +462,7 @@ export function VideoCall({
       {/* Virtual Background Picker */}
       {showBackgrounds && (
         <VirtualBackgroundPicker
-          onSelect={setSelectedBackground}
+          onSelect={(id, mode) => { setSelectedBackground(id); setVirtualBackground(mode); }}
           selectedBackground={selectedBackground}
           onClose={() => setShowBackgrounds(false)}
         />
