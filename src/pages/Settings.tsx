@@ -449,9 +449,8 @@ export default function Settings() {
           <Separator />
 
           {/* Quick Actions */}
-          <div className="p-4 grid grid-cols-3 gap-3">
+          <div className="p-4 grid grid-cols-2 gap-3">
             {[
-              { id: 'starred', icon: Star, label: t('settings.starred'), color: 'text-yellow-500', onClick: () => toast({ title: t('settings.comingSoon') }) },
               { id: 'backup', icon: CloudUpload, label: t('settings.backup'), color: 'text-blue-500', onClick: () => setStorageOpen(true) },
               { id: 'invite', icon: Share2, label: t('settings.invite'), color: 'text-green-500', onClick: async () => {
                 const inviteUrl = 'https://yamilook.app';
@@ -812,7 +811,17 @@ export default function Settings() {
               <AlertDialogFooter>
                 <AlertDialogCancel className="rounded-xl">{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={() => toast({ title: t('settings.comingSoon') })}
+                  onClick={() => {
+                    const body = encodeURIComponent(
+                      `Peço a eliminação permanente da minha conta Yamilook.\n\nUser ID: ${user?.id ?? ''}\nEmail: ${user?.email ?? ''}`,
+                    );
+                    window.location.href =
+                      `mailto:contacto@afrofintek.com?subject=Pedido%20de%20elimina%C3%A7%C3%A3o%20de%20conta&body=${body}`;
+                    toast({
+                      title: 'Pedido de eliminação iniciado',
+                      description: 'Abrimos o teu email para confirmares o pedido ao suporte.',
+                    });
+                  }}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
                 >
                   {t('settings.deleteAccount')}
@@ -1240,12 +1249,6 @@ export default function Settings() {
                   }
                 />
                 <SettingItem
-                  icon={CloudUpload}
-                  label={t('settings.backupChats')}
-                  description={t('settings.backupChatsDesc') || 'Backup all chats to cloud'}
-                  onClick={() => toast({ title: t('settings.comingSoon') })}
-                />
-                <SettingItem
                   icon={Wifi}
                   label={t('settings.backupWifiOnly')}
                   rightElement={<Switch checked={true} />}
@@ -1255,11 +1258,27 @@ export default function Settings() {
               {/* Clear data */}
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-muted-foreground px-1">{t('settings.clearData')}</h4>
-                <Button variant="outline" className="w-full rounded-xl" onClick={() => toast({ title: t('settings.comingSoon') })}>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl"
+                  onClick={async () => {
+                    try {
+                      if ('caches' in window) {
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map((k) => caches.delete(k)));
+                      }
+                      if ('serviceWorker' in navigator) {
+                        const regs = await navigator.serviceWorker.getRegistrations();
+                        await Promise.all(regs.map((r) => r.unregister()));
+                      }
+                      toast({ title: t('settings.cacheCleared', 'Cache limpa. A recarregar…') });
+                      setTimeout(() => window.location.reload(), 700);
+                    } catch {
+                      toast({ title: 'Erro ao limpar a cache', variant: 'destructive' });
+                    }
+                  }}
+                >
                   {t('settings.clearCache')}
-                </Button>
-                <Button variant="outline" className="w-full rounded-xl text-destructive border-destructive/50" onClick={() => toast({ title: t('settings.comingSoon') })}>
-                  {t('settings.clearAllData')}
                 </Button>
               </div>
             </div>
@@ -1285,19 +1304,30 @@ export default function Settings() {
             <p className="text-muted-foreground mb-6">{t('settings.version')} 1.0.0</p>
             
             <div className="space-y-3 text-left">
-              <Button variant="outline" className="w-full rounded-xl justify-between" onClick={() => toast({ title: t('settings.comingSoon') })}>
-                {t('settings.rateUs')}
-                <Star className="w-4 h-4 text-yellow-500" />
-              </Button>
-              <Button variant="outline" className="w-full rounded-xl justify-between" onClick={() => toast({ title: t('settings.comingSoon') })}>
+              <Button
+                variant="outline" className="w-full rounded-xl justify-between"
+                onClick={async () => {
+                  const url = window.location.origin;
+                  const data = { title: 'Yamilook', text: t('settings.inviteMessage', 'Junta-te a mim no Yamilook!'), url };
+                  try {
+                    if (navigator.share) await navigator.share(data);
+                    else { await navigator.clipboard.writeText(url); toast({ title: t('settings.linkCopied', 'Link copiado!') }); }
+                  } catch (e) {
+                    if ((e as Error).name !== 'AbortError') {
+                      await navigator.clipboard.writeText(url);
+                      toast({ title: t('settings.linkCopied', 'Link copiado!') });
+                    }
+                  }
+                }}
+              >
                 {t('settings.shareApp')}
                 <Share2 className="w-4 h-4" />
               </Button>
-              <Button variant="outline" className="w-full rounded-xl justify-between" onClick={() => toast({ title: t('settings.comingSoon') })}>
+              <Button variant="outline" className="w-full rounded-xl justify-between" onClick={() => navigate('/privacy')}>
                 {t('settings.privacyPolicy')}
                 <FileText className="w-4 h-4" />
               </Button>
-              <Button variant="outline" className="w-full rounded-xl justify-between" onClick={() => toast({ title: t('settings.comingSoon') })}>
+              <Button variant="outline" className="w-full rounded-xl justify-between" onClick={() => navigate('/terms')}>
                 {t('settings.termsOfService')}
                 <FileText className="w-4 h-4" />
               </Button>
