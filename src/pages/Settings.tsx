@@ -92,6 +92,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { ChangePasswordSheet } from '@/components/settings/ChangePasswordSheet';
 import { ChatWallpaperSheet } from '@/components/settings/ChatWallpaperSheet';
 import { ArchivedChatsSheet } from '@/components/settings/ArchivedChatsSheet';
+import { TwoFactorSheet } from '@/components/settings/TwoFactorSheet';
+import { BlockedUsersSheet } from '@/components/settings/BlockedUsersSheet';
 import { useMessageNotification } from '@/hooks/useMessageNotification';
 import { SOUND_LABELS, type SoundName } from '@/lib/notification-sounds';
 
@@ -133,6 +135,8 @@ export default function Settings() {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [chatWallpaperOpen, setChatWallpaperOpen] = useState(false);
   const [archivedChatsOpen, setArchivedChatsOpen] = useState(false);
+  const [twoFactorOpen, setTwoFactorOpen] = useState(false);
+  const [blockedUsersOpen, setBlockedUsersOpen] = useState(false);
   const [lastBackupDate, setLastBackupDate] = useState<string | null>(
     localStorage.getItem('lastBackupDate')
   );
@@ -601,7 +605,7 @@ export default function Settings() {
             description={profile?.two_factor_enabled ? t('settings.enabled') : t('settings.notEnabled')}
             badge={profile?.two_factor_enabled ? 'On' : undefined}
             delay={0.24}
-            onClick={() => toast({ title: t('settings.comingSoon') })}
+            onClick={() => setTwoFactorOpen(true)}
           />
           <SettingItem
             icon={Key}
@@ -1183,7 +1187,7 @@ export default function Settings() {
                 icon={UserX}
                 label={t('settings.blockedUsers')}
                 description={t('settings.manageBlocked')}
-                onClick={() => toast({ title: t('settings.comingSoon') })}
+                onClick={() => setBlockedUsersOpen(true)}
               />
             </div>
           </ScrollArea>
@@ -1323,6 +1327,12 @@ export default function Settings() {
         open={archivedChatsOpen}
         onOpenChange={setArchivedChatsOpen}
       />
+
+      {/* Two-factor auth (TOTP via Supabase MFA) */}
+      <TwoFactorSheet open={twoFactorOpen} onOpenChange={setTwoFactorOpen} />
+
+      {/* Blocked users management */}
+      <BlockedUsersSheet open={blockedUsersOpen} onOpenChange={setBlockedUsersOpen} />
     </div>
   );
 }
