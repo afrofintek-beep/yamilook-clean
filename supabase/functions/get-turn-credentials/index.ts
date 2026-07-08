@@ -97,6 +97,28 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Prefer statically-provisioned ICE servers (Metered "Show ICE Servers Array").
+    // This is a full array incl. STUN + TURN with long-lived credentials — no
+    // dependency on the dynamic API key (which needs the exact app subdomain).
+    const staticIce = Deno.env.get("METERED_ICE_SERVERS");
+    if (staticIce) {
+      try {
+        const parsed = JSON.parse(staticIce) as RTCIceServer[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const result: ICEServersResponse = {
+            iceServers: parsed,
+            expiresAt: Date.now() + 12 * 60 * 60 * 1000,
+          };
+          return new Response(JSON.stringify(result), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (e) {
+        console.error("[TURN] Invalid METERED_ICE_SERVERS JSON:", e);
+      }
+    }
+
     // Get Metered credentials from environment
     const meteredApiKey = Deno.env.get("METERED_TURN_API_KEY");
     const meteredAppName = Deno.env.get("METERED_TURN_APP_NAME") || "yamilook";
