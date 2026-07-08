@@ -23,6 +23,9 @@ import { pt } from 'date-fns/locale';
 import { AfrolocCertificationGate } from '../components/AfrolocCertificationGate';
 import { useAfrolocCertification } from '../hooks/useAfrolocCertification';
 
+// Minimum Kumbu per payout request (must match the request_payout server RPC).
+const MIN_PAYOUT_KUMBU = 1000;
+
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
   pending: { label: 'Pendente', variant: 'secondary' },
   approved: { label: 'Aprovado', variant: 'default' },
@@ -241,34 +244,49 @@ export default function Payouts() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="amount" className="text-sm">Quantidade (Kumbu)</Label>
-              <Input
-                id="amount"
-                type="number"
-                min={1}
-                max={kumbuAvailable}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder={`Máx. ${kumbuAvailable}`}
-              />
-              {aoaFactor && parseInt(amount) > 0 && (
-                <p className="text-xs text-muted-foreground">Vais receber ≈ {fmtKz(parseInt(amount) * aoaFactor)}</p>
-              )}
+          {kumbuAvailable < MIN_PAYOUT_KUMBU ? (
+            // Below the minimum: no valid amount exists, so explain instead of
+            // showing a permanently-disabled button with contradictory labels.
+            <div className="rounded-lg bg-muted/60 p-4 text-sm text-muted-foreground my-2">
+              Precisas de pelo menos <span className="font-semibold text-foreground">{MIN_PAYOUT_KUMBU} Kumbu</span> para
+              pedir um payout. Tens <span className="font-semibold text-foreground">{kumbuAvailable}</span> —
+              faltam <span className="font-semibold text-foreground">{MIN_PAYOUT_KUMBU - kumbuAvailable}</span>.
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="space-y-3 py-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="amount" className="text-sm">Quantidade (Kumbu)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    min={MIN_PAYOUT_KUMBU}
+                    max={kumbuAvailable}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder={`Entre ${MIN_PAYOUT_KUMBU} e ${kumbuAvailable}`}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Mínimo {MIN_PAYOUT_KUMBU} Kumbu · máximo {kumbuAvailable}.
+                  </p>
+                  {aoaFactor && parseInt(amount) > 0 && (
+                    <p className="text-xs text-muted-foreground">Vais receber ≈ {fmtKz(parseInt(amount) * aoaFactor)}</p>
+                  )}
+                </div>
+              </div>
 
-          <DialogFooter>
-            <Button
-              className="w-full"
-              disabled={!amount || parseInt(amount) < 1000 || parseInt(amount) > kumbuAvailable || submitting}
-              onClick={handleSubmit}
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Solicitar payout
-            </Button>
-          </DialogFooter>
+              <DialogFooter>
+                <Button
+                  className="w-full"
+                  disabled={!amount || parseInt(amount) < MIN_PAYOUT_KUMBU || parseInt(amount) > kumbuAvailable || submitting}
+                  onClick={handleSubmit}
+                >
+                  {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Solicitar payout
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
