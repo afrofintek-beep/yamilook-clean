@@ -23,7 +23,7 @@ import { useCallLifecycle } from './webrtc/useCallLifecycle';
 import { useAutoplayRecovery } from './webrtc/useAutoplayRecovery';
 import { useCallTelemetry } from './webrtc/useCallTelemetry';
 import { CallState, CallSettings, INITIAL_STATE, CallMetrics } from './webrtc/types';
-import { VirtualBackgroundProcessor, type BgMode } from '@/lib/virtualBackground';
+import { VirtualBackgroundProcessor, effectsActive, DEFAULT_EFFECTS, type BgMode, type EffectsConfig } from '@/lib/virtualBackground';
 
 export type { PeerConnection, CallState, CallSettings, CallMetrics } from './webrtc/types';
 
@@ -47,6 +47,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
   const cleanupCallRef = useRef<() => void>(() => {});
   const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map());
   const vbgProcessorRef = useRef<VirtualBackgroundProcessor | null>(null);
+  const effectsConfigRef = useRef<EffectsConfig>({ ...DEFAULT_EFFECTS });
 
   useEffect(() => { callIdRef.current = state.callId; }, [state.callId]);
   // Keep iceServersRef warm with cached servers so getter always has something
@@ -707,11 +708,15 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     });
   }, [peerConnection]);
 
-  const setVirtualBackground = useCallback(async (mode: BgMode) => {
+  // Apply the current combined effects config (background + colour/beauty/face)
+  // to the outgoing video via a single processor. If nothing is active, restore
+  // the raw camera. Fully defensive — any failure reverts to the raw camera.
+  const applyEffects = useCallback(async () => {
+    const cfg = effectsConfigRef.current;
     const cameraTrack = mediaCapture.localStreamRef.current?.getVideoTracks()[0];
     const audioTrack = mediaCapture.localStreamRef.current?.getAudioTracks()[0];
 
-    if (mode.kind === 'none') {
+    if (!effectsActive(cfg)) {
       if (vbgProcessorRef.current) { vbgProcessorRef.current.stop(); vbgProcessorRef.current = null; }
       if (cameraTrack) replaceOutgoingVideo(cameraTrack);
       setState(prev => ({ ...prev, localStream: mediaCapture.localStreamRef.current }));
@@ -721,25 +726,44 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
     try {
       if (!vbgProcessorRef.current) {
-        vbgProcessorRef.current = await VirtualBackgroundProcessor.create(cameraTrack, mode);
+        vbgProcessorRef.current = await VirtualBackgroundProcessor.create(cameraTrack, cfg);
       } else {
-        vbgProcessorRef.current.setMode(mode);
+        vbgProcessorRef.current.setEffects(cfg);
       }
       const processedTrack = vbgProcessorRef.current.outputStream.getVideoTracks()[0];
       if (!processedTrack) throw new Error('no processed track');
       replaceOutgoingVideo(processedTrack);
-      // Local preview shows the effect (processed video + original mic audio).
       const preview = new MediaStream();
       preview.addTrack(processedTrack);
       if (audioTrack) preview.addTrack(audioTrack);
       setState(prev => ({ ...prev, localStream: preview }));
     } catch (e) {
-      console.error('[VBG] failed, reverting to raw camera:', e);
+      console.error('[FX] effects failed, reverting to raw camera:', e);
       if (vbgProcessorRef.current) { vbgProcessorRef.current.stop(); vbgProcessorRef.current = null; }
       if (cameraTrack) replaceOutgoingVideo(cameraTrack);
       setState(prev => ({ ...prev, localStream: mediaCapture.localStreamRef.current }));
     }
   }, [mediaCapture, replaceOutgoingVideo]);
+
+  const setVirtualBackground = useCallback(async (mode: BgMode) => {
+    effectsConfigRef.current = { ...effectsConfigRef.current, background: mode };
+    await applyEffects();
+  }, [applyEffects]);
+
+  const setCallEffects = useCallback(async (partial: Partial<EffectsConfig>) => {
+    effectsConfigRef.current = { ...effectsConfigRef.current, ...partial };
+    await applyEffects();
+  }, [applyEffects]);
+
+  // Audio processing toggles applied live to the mic track (real browser DSP).
+  const setAudioProcessing = useCallback(async (
+    opts: { noiseSuppression?: boolean; echoCancellation?: boolean; autoGainControl?: boolean },
+  ) => {
+    const audioTrack = mediaCapture.localStreamRef.current?.getAudioTracks()[0];
+    if (!audioTrack) return;
+    try { await audioTrack.applyConstraints(opts); }
+    catch (e) { console.warn('[audio] applyConstraints failed:', e); }
+  }, [mediaCapture]);
 
   const raiseHand = useCallback(async (raised: boolean) => {
     if (state.callId && user) await lifecycle.raiseHand(state.callId, user.id, raised);
@@ -791,6 +815,8 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     toggleScreenShare,
     flipCamera,
     setVirtualBackground,
+    setCallEffects,
+    setAudioProcessing,
     raiseHand,
     sendReaction,
     getUserMedia,

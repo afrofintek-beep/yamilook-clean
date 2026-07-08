@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode, lazy, Suspense, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWebRTC, CallState } from '@/hooks/useWebRTC';
-import type { BgMode } from '@/lib/virtualBackground';
+import type { BgMode, EffectsConfig } from '@/lib/virtualBackground';
 import { useCalls } from '@/hooks/useCalls';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
@@ -29,6 +29,8 @@ interface ActiveCallContextType {
   toggleScreenShare: () => Promise<void>;
   flipCamera: () => Promise<void>;
   setVirtualBackground: (mode: BgMode) => Promise<void>;
+  setCallEffects: (partial: Partial<EffectsConfig>) => Promise<void>;
+  setAudioProcessing: (opts: { noiseSuppression?: boolean; echoCancellation?: boolean; autoGainControl?: boolean }) => Promise<void>;
   raiseHand: (raised: boolean) => void;
   sendReaction: (emoji: string) => void;
   endCall: () => void;
@@ -106,6 +108,8 @@ export function ActiveCallProvider({ children }: ActiveCallProviderProps) {
     toggleScreenShare,
     flipCamera,
     setVirtualBackground,
+    setCallEffects,
+    setAudioProcessing,
     raiseHand,
     sendReaction,
     markUserInteracted,
@@ -233,10 +237,12 @@ export function ActiveCallProvider({ children }: ActiveCallProviderProps) {
     toggleScreenShare,
     flipCamera,
     setVirtualBackground,
+    setCallEffects,
+    setAudioProcessing,
     raiseHand,
     sendReaction,
     endCall,
-  }), [isInCall, currentCallId, startCall, joinCall, endCurrentCall, markUserInteracted, webRTCState, toggleMute, toggleVideo, toggleScreenShare, flipCamera, setVirtualBackground, raiseHand, sendReaction, endCall]);
+  }), [isInCall, currentCallId, startCall, joinCall, endCurrentCall, markUserInteracted, webRTCState, toggleMute, toggleVideo, toggleScreenShare, flipCamera, setVirtualBackground, setCallEffects, setAudioProcessing, raiseHand, sendReaction, endCall]);
 
   return (
     <ActiveCallContext.Provider value={contextValue}>

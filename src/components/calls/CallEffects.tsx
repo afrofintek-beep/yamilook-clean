@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import type { TablesUpdate } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
+import { useActiveCallRequired } from './ActiveCallProvider';
+import type { ColorFilter, FaceFilter } from '@/lib/virtualBackground';
 
 interface CallSettings {
   beautyMode: boolean;
@@ -42,8 +44,13 @@ const FACE_FILTERS = [
   { id: 'bunny', name: 'Bunny', emoji: '🐰' },
 ];
 
+const FACE_MAP: Record<string, FaceFilter> = {
+  none: 'none', glasses: 'glasses', hat: 'partyhat', cat: 'cat', dog: 'dog', bunny: 'bunny',
+};
+
 export function CallEffects({ onClose }: CallEffectsProps) {
   const { user } = useAuth();
+  const { setCallEffects, setAudioProcessing } = useActiveCallRequired();
   const [settings, setSettings] = useState<CallSettings>({
     beautyMode: false,
     lowLightBoost: false,
@@ -88,6 +95,16 @@ export function CallEffects({ onClose }: CallEffectsProps) {
     value: CallSettings[K]
   ) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+
+    // Apply live to the call (video effects on the canvas, audio via constraints).
+    if (key === 'beautyMode') setCallEffects({ beauty: Boolean(value) });
+    else if (key === 'touchUpLevel') setCallEffects({ touchUp: Number(value) });
+    else if (key === 'lowLightBoost') setCallEffects({ lowLight: Boolean(value) });
+    else if (key === 'colorCorrection') setCallEffects({ autoColor: Boolean(value) });
+    else if (key === 'colorFilter') setCallEffects({ colorFilter: (value as ColorFilter | null) ?? 'none' });
+    else if (key === 'noiseSuppression') setAudioProcessing({ noiseSuppression: Boolean(value) });
+    else if (key === 'echoCancellation') setAudioProcessing({ echoCancellation: Boolean(value) });
+    else if (key === 'voiceEnhancement') setAudioProcessing({ autoGainControl: Boolean(value) });
 
     if (!user) return;
 
@@ -228,7 +245,7 @@ export function CallEffects({ onClose }: CallEffectsProps) {
             {FACE_FILTERS.map((filter) => (
               <button
                 key={filter.id}
-                onClick={() => setSelectedFaceFilter(filter.id)}
+                onClick={() => { setSelectedFaceFilter(filter.id); setCallEffects({ faceFilter: FACE_MAP[filter.id] ?? 'none' }); }}
                 className={`p-3 rounded-lg border-2 transition-all text-center ${
                   selectedFaceFilter === filter.id
                     ? 'border-primary bg-primary/10'
