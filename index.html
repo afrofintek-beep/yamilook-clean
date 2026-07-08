@@ -2,6 +2,18 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+    <!-- Apply the saved theme before first paint (default dark) to avoid a flash -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('yamilook-theme') || 'dark';
+          var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute('content', dark ? '#121214' : '#FBF9F5');
+        } catch (e) { document.documentElement.classList.add('dark'); }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Yamilook - A vida na minha banda bate</title>
     <meta name="description" content="Yamilook - Conecte-se com pessoas reais em tempo real. Mensagens, chamadas e muito mais.">
@@ -30,8 +42,8 @@
     <!-- Critical CSS for instant first paint -->
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      html,body,#root{height:100%;width:100%;background:#F5F3EF}
-      @media(prefers-color-scheme:dark){html,body,#root{background:#111}}
+      html,body,#root{height:100%;width:100%;background:#FBF9F5}
+      html.dark,html.dark body,html.dark #root{background:#121214}
     </style>
 
     <meta property="og:title" content="Yamilook - A vida na minha banda bate">

@@ -11,6 +11,7 @@ import { OnlineStatusTracker } from "@/components/OnlineStatusTracker";
 import { LiveStreamProvider } from "@/components/live/LiveStreamProvider";
 import { GlobalMessageNotifier } from "@/components/GlobalMessageNotifier";
 import { KumbuEarnNotifier } from "@/components/KumbuEarnNotifier";
+import ThemeSync from "@/components/ThemeSync";
 
 
 // Lazy load the ActiveCallProvider since it imports heavy WebRTC hooks
@@ -415,6 +416,7 @@ function AppContent() {
       <OnlineStatusTracker />
       <GlobalMessageNotifier />
       <KumbuEarnNotifier />
+      <ThemeSync />
       <ActiveCallProvider>
         <AnimatedRoutes />
       </ActiveCallProvider>

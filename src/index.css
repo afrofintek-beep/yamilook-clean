@@ -35,95 +35,170 @@
 
 @layer base {
   :root {
-    /* ========== YAMILOOK DARK MODERN + WARM GOLD ========== */
-    /* 
-     * Primary palette:
-     * Background: #121214 → hsl(240 7% 8%)
-     * Surface:    #1F1F25 → hsl(240 11% 13%)
-     * Text:       #F5F5F5 → hsl(0 0% 96%)
-     * Secondary:  #A1A1AA → hsl(240 4% 65%)
-     * Gold:       #D4AF37 → hsl(45 63% 52%)
-     * Green:      #22C55E → hsl(142 71% 45%)
-     */
-    
+    /* ========== YAMILOOK LIGHT — WARM NEUTRAL + GOLD ========== */
+    /* Default (no .dark class) is the LIGHT theme. See .dark below for dark. */
+
     /* Accent gold - Primary action */
-    --primary: 45 63% 52%;
-    --primary-foreground: 240 7% 8%;
-    
-    /* Base - Dark layered surfaces */
-    --background: 240 7% 8%;          /* #121214 */
-    --foreground: 0 0% 96%;           /* #F5F5F5 */
-    
-    /* Card & Surface - Elevated layer */
-    --card: 240 11% 13%;              /* #1F1F25 */
-    --card-foreground: 0 0% 96%;
-    
-    --popover: 240 11% 15%;
-    --popover-foreground: 0 0% 96%;
-    
-    /* Secondary - Slightly elevated */
-    --secondary: 240 8% 16%;
-    --secondary-foreground: 0 0% 90%;
-    
-    /* Muted - Subdued elements */
-    --muted: 240 6% 18%;
-    --muted-foreground: 240 4% 65%;   /* #A1A1AA */
-    
+    --primary: 45 63% 50%;
+    --primary-foreground: 240 10% 10%;
+
+    /* Base - warm near-white */
+    --background: 40 33% 98%;         /* #FBF9F5 */
+    --foreground: 240 10% 12%;        /* #1B1B21 */
+
+    /* Card & Surface */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 12%;
+
+    /* Secondary - light warm grey */
+    --secondary: 40 16% 94%;
+    --secondary-foreground: 240 10% 20%;
+
+    /* Muted */
+    --muted: 40 16% 95%;
+    --muted-foreground: 240 5% 42%;
+
     /* Accent - Gold */
-    --accent: 45 63% 52%;
-    --accent-foreground: 240 7% 8%;
-    
-    /* Borders & Inputs - Subtle separators */
-    --border: 240 6% 20%;
-    --input: 240 6% 18%;
-    --ring: 45 63% 52%;
-    
+    --accent: 45 63% 50%;
+    --accent-foreground: 240 10% 10%;
+
+    /* Borders & Inputs */
+    --border: 40 12% 89%;
+    --input: 40 12% 91%;
+    --ring: 45 63% 50%;
+
     /* ========== SEMANTIC COLORS ========== */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    
+
+    --success: 142 60% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 45%;
+    --warning-foreground: 0 0% 100%;
+
+    /* ========== AFRICAN REACTION TOKENS ========== */
+    --reaction-sankofa: 45 63% 48%;
+    --reaction-sankofa-hover: 45 63% 42%;
+    --reaction-ubuntu: 19 55% 45%;
+    --reaction-ubuntu-hover: 19 55% 40%;
+    --reaction-djembe: 32 80% 42%;
+    --reaction-djembe-hover: 32 80% 36%;
+    --reaction-shango: 0 68% 45%;
+    --reaction-shango-hover: 0 68% 40%;
+    --reaction-eish: 47 8% 45%;
+    --reaction-eish-hover: 47 8% 40%;
+
+    /* ========== STATUS INDICATORS ========== */
+    --online: 142 60% 40%;
+    --offline: 0 0% 65%;
+    --busy: 0 72% 51%;
+    --away: 42 90% 48%;
+
+    /* ========== SHADOWS (Light) ========== */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 10px -2px rgba(0, 0, 0, 0.10);
+    --shadow-lg: 0 12px 28px -6px rgba(0, 0, 0, 0.12);
+    --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.25);
+    --shadow-glow-accent: 0 0 25px rgba(212, 175, 55, 0.30);
+    --shadow-elevated: 0 8px 28px -8px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.04);
+
+    /* ========== SIDEBAR ========== */
+    --sidebar-background: 40 24% 97%;
+    --sidebar-foreground: 240 10% 15%;
+    --sidebar-primary: 45 63% 50%;
+    --sidebar-primary-foreground: 240 10% 10%;
+    --sidebar-accent: 45 63% 50%;
+    --sidebar-accent-foreground: 240 10% 10%;
+    --sidebar-border: 40 12% 89%;
+    --sidebar-ring: 45 63% 50%;
+
+    /* ========== CHAT BUBBLES ========== */
+    --bubble-sent: 45 63% 55%;
+    --bubble-sent-foreground: 240 10% 10%;
+    --bubble-received: 40 16% 93%;
+    --bubble-received-foreground: 240 10% 12%;
+
+    /* ========== GRADIENTS ========== */
+    --gradient-primary: linear-gradient(135deg, hsl(45 63% 52%), hsl(40 70% 45%));
+    --gradient-surface: linear-gradient(180deg, hsl(40 24% 99%), hsl(40 20% 96%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(45 63% 52% / 0.12), hsl(45 63% 52% / 0.04));
+
+    /* ========== PALCO MODULE TOKENS ========== */
+    --palco-accent: 45 63% 50%;
+    --palco-bg: 40 33% 98%;
+    --palco-text: 240 10% 12%;
+    --palco-text-secondary: 240 5% 42%;
+    --palco-surface: 0 0% 100%;
+    --palco-border: 40 12% 89%;
+
+    /* ========== RADIUS ========== */
+    --radius: 0.625rem;
+  }
+
+  /* ========== YAMILOOK DARK MODERN + WARM GOLD ========== */
+  /* Applied when the <html> element carries the .dark class (default on load). */
+  .dark {
+    --primary: 45 63% 52%;
+    --primary-foreground: 240 7% 8%;
+
+    --background: 240 7% 8%;          /* #121214 */
+    --foreground: 0 0% 96%;           /* #F5F5F5 */
+
+    --card: 240 11% 13%;              /* #1F1F25 */
+    --card-foreground: 0 0% 96%;
+
+    --popover: 240 11% 15%;
+    --popover-foreground: 0 0% 96%;
+
+    --secondary: 240 8% 16%;
+    --secondary-foreground: 0 0% 90%;
+
+    --muted: 240 6% 18%;
+    --muted-foreground: 240 4% 65%;   /* #A1A1AA */
+
+    --accent: 45 63% 52%;
+    --accent-foreground: 240 7% 8%;
+
+    --border: 240 6% 20%;
+    --input: 240 6% 18%;
+    --ring: 45 63% 52%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
     --success: 142 71% 45%;          /* #22C55E */
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 45 63% 52%;
     --warning-foreground: 240 7% 8%;
-    
-    /* ========== AFRICAN REACTION TOKENS ========== */
-    /* Sankofa Love - Primary positive, love with memory */
+
     --reaction-sankofa: 45 63% 52%;
     --reaction-sankofa-hover: 45 63% 60%;
-    
-    /* Ubuntu - Solidarity, shared humanity */
     --reaction-ubuntu: 19 55% 45%;
     --reaction-ubuntu-hover: 19 55% 52%;
-    
-    /* Djembe - Celebration, rhythm */
     --reaction-djembe: 32 80% 40%;
     --reaction-djembe-hover: 32 80% 48%;
-    
-    /* Shango - Justified anger, justice */
     --reaction-shango: 0 68% 36%;
     --reaction-shango-hover: 0 68% 42%;
-    
-    /* Eish - Exhaustion, dissatisfaction */
     --reaction-eish: 47 10% 35%;
     --reaction-eish-hover: 47 10% 42%;
-    
-    /* ========== STATUS INDICATORS ========== */
+
     --online: 142 71% 45%;
     --offline: 0 0% 40%;
     --busy: 0 72% 51%;
     --away: 45 63% 52%;
-    
-    /* ========== SHADOWS (Dark layered) ========== */
+
     --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 10px 20px -3px rgba(0, 0, 0, 0.6);
     --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.2);
     --shadow-glow-accent: 0 0 25px rgba(212, 175, 55, 0.3);
     --shadow-elevated: 0 8px 32px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
-    
-    /* ========== SIDEBAR ========== */
+
     --sidebar-background: 240 7% 7%;
     --sidebar-foreground: 0 0% 96%;
     --sidebar-primary: 45 63% 52%;
@@ -132,33 +207,22 @@
     --sidebar-accent-foreground: 240 7% 8%;
     --sidebar-border: 240 6% 18%;
     --sidebar-ring: 45 63% 52%;
-    
-    /* ========== CHAT BUBBLES ========== */
+
     --bubble-sent: 45 63% 48%;
     --bubble-sent-foreground: 240 7% 8%;
     --bubble-received: 240 8% 16%;
     --bubble-received-foreground: 0 0% 96%;
-    
-    /* ========== GRADIENTS ========== */
+
     --gradient-primary: linear-gradient(135deg, hsl(45 63% 52%), hsl(40 70% 45%));
     --gradient-surface: linear-gradient(180deg, hsl(240 11% 14%), hsl(240 11% 12%));
     --gradient-gold-subtle: linear-gradient(135deg, hsl(45 63% 52% / 0.15), hsl(45 63% 52% / 0.05));
-    
-    /* ========== PALCO MODULE TOKENS ========== */
+
     --palco-accent: 45 63% 52%;
     --palco-bg: 240 7% 8%;
     --palco-text: 0 0% 96%;
     --palco-text-secondary: 240 4% 65%;
     --palco-surface: 240 11% 13%;
     --palco-border: 240 6% 20%;
-    
-    /* ========== RADIUS ========== */
-    --radius: 0.625rem;
-  }
-
-  /* Dark-first: :root IS the dark theme. .dark class kept for compatibility */
-  .dark {
-    /* Inherits root values - no overrides needed */
   }
 }
 

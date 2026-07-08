@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-const logoImage = "/yamilook-logo-dark.webp";
+// Two wordmarks: a dark-ink logo for light backgrounds and a light logo for dark.
+const logoLight = "/yamilook-logo.png";       // dark ink on white → shown in light theme
+const logoDark = "/yamilook-logo-dark.webp";  // light ink → shown in dark theme
 
 interface YamilookLogoProps {
   size?: "sm" | "md" | "lg" | "xl";
@@ -36,10 +38,11 @@ const YamilookLogo = ({
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
-      {/* Logo Image - blend mode removes white background in dark theme */}
+      {/* Blend modes drop each logo's flat background: multiply hides white (light
+          theme), screen hides dark (dark theme). Swap by the .dark class. */}
       <div className="relative" style={{ width }}>
         <motion.img
-          src={logoImage}
+          src={logoLight}
           alt="Yamilook"
           width={width}
           height={Math.round(width * 376 / 560)}
@@ -48,7 +51,20 @@ const YamilookLogo = ({
           {...{ fetchpriority: "high" }}
           loading="eager"
           decoding="async"
-          className="relative h-auto mix-blend-screen dark:mix-blend-screen"
+          className="relative h-auto mix-blend-multiply block dark:hidden"
+          initial={animate ? { opacity: 0, y: -10 } : undefined}
+          animate={animate ? { opacity: 1, y: 0 } : undefined}
+          transition={{ duration: 0.5 }}
+        />
+        <motion.img
+          src={logoDark}
+          alt="Yamilook"
+          width={width}
+          height={Math.round(width * 376 / 560)}
+          {...{ fetchpriority: "high" }}
+          loading="eager"
+          decoding="async"
+          className="relative h-auto mix-blend-screen hidden dark:block"
           initial={animate ? { opacity: 0, y: -10 } : undefined}
           animate={animate ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.5 }}

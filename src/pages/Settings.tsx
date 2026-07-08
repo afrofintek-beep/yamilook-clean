@@ -86,6 +86,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { useAdvertising } from '@/hooks/useAdvertising';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { applyTheme, type ThemePref } from '@/lib/theme';
 import { languages } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { ChangePasswordSheet } from '@/components/settings/ChangePasswordSheet';
@@ -187,22 +188,12 @@ export default function Settings() {
   };
 
   const handleThemeChange = async (theme: string) => {
+    applyTheme(theme as ThemePref); // apply immediately (also persists to localStorage)
     const { error } = await updateSettings({ theme });
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else if (theme === 'light') {
-        document.documentElement.classList.remove('dark');
-      } else {
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      }
-      toast({ title: 'Theme updated', description: `Switched to ${theme} mode` });
+      toast({ title: t('settings.themeUpdated', 'Tema atualizado') });
     }
   };
 
