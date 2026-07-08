@@ -382,7 +382,11 @@ export default function Profile() {
   };
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/profile/${targetUserId}`;
+    // Prefer the public /u/<username> link (viewable without login); fall back to
+    // the in-app profile when there's no username.
+    const shareUrl = profileData?.username
+      ? `${window.location.origin}/u/${profileData.username}`
+      : `${window.location.origin}/profile/${targetUserId}`;
 
     const isInIframe = (() => {
       try {

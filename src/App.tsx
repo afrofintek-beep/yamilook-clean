@@ -24,6 +24,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Profile = lazy(() => import("./pages/Profile"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Contacts = lazy(() => import("./pages/Contacts"));
 const Chat = lazy(() => import("./pages/Chat"));
@@ -352,6 +353,8 @@ function AnimatedRoutes() {
           <Route path="/welcome" element={<PublicRoute><Welcome /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+          {/* Open to everyone (authed or not) — ecosystem deep-link target */}
+          <Route path="/u/:username" element={<PublicProfile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
