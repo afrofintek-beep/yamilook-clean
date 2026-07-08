@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ const kz = (n: number) => new Intl.NumberFormat('pt-AO').format(n) + ' Kz';
 
 interface RefResult {
   method: 'REF';
+  purchaseId?: string;
   entity?: string | null;
   reference?: string | null;
   amountKwanza?: number;
@@ -34,9 +35,36 @@ export function BuyCreditsSheet({ open, onOpenChange, onDone }: Props) {
   const [method, setMethod] = useState<'GPO' | 'REF'>('GPO');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [refResult, setRefResult] = useState<RefResult | null>(null);
 
-  const reset = () => { setRefResult(null); setPhone(''); };
+  const reset = () => { setRefResult(null); setPhone(''); setChecking(false); };
+
+  // Query the charge status and credit if it's been paid. AppyPay's webhook isn't
+  // reliably delivered, so this is how a REF (paid at ATM) actually confirms.
+  const verifyPayment = async (silent = false): Promise<boolean> => {
+    if (!silent) setChecking(true);
+    const { data } = await supabase.functions.invoke('check-appypay-payment', {
+      body: refResult?.purchaseId ? { purchaseId: refResult.purchaseId } : {},
+    });
+    if (!silent) setChecking(false);
+    if ((data as { credited?: number })?.credited) {
+      toast.success('Pagamento confirmado! Créditos adicionados. ✅');
+      onDone?.();
+      close(false);
+      return true;
+    }
+    if (!silent) toast.info('Ainda não recebemos a confirmação do pagamento. Tenta novamente daqui a pouco.');
+    return false;
+  };
+
+  // While the reference is on-screen, poll the status so credits land on their own.
+  useEffect(() => {
+    if (!refResult) return;
+    const id = setInterval(() => { verifyPayment(true); }, 10000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refResult]);
 
   const buy = async () => {
     const digits = phone.replace(/\D/g, '');
@@ -75,8 +103,8 @@ export function BuyCreditsSheet({ open, onOpenChange, onDone }: Props) {
 
     if (method === 'REF') {
       // Show the reference on-screen — the buyer needs to write it down and pay later.
-      const r = data as { entity?: string; reference?: string };
-      setRefResult({ method: 'REF', entity: r.entity, reference: r.reference, amountKwanza: pkgFor(sel).kwanza, credits: pkgFor(sel).credits });
+      const r = data as { entity?: string; reference?: string; purchaseId?: string };
+      setRefResult({ method: 'REF', purchaseId: r.purchaseId, entity: r.entity, reference: r.reference, amountKwanza: pkgFor(sel).kwanza, credits: pkgFor(sel).credits });
       onDone?.();
       return;
     }
@@ -124,6 +152,17 @@ export function BuyCreditsSheet({ open, onOpenChange, onDone }: Props) {
                 <span className="font-bold tabular-nums">{kz(refResult.amountKwanza ?? 0)}</span>
               </div>
             </div>
+            <p className="text-[11px] text-muted-foreground text-center">
+              A verificar o pagamento automaticamente… assim que pagares, os créditos entram sozinhos.
+            </p>
+            <Button
+              variant="outline"
+              className="w-full h-12 rounded-xl"
+              onClick={() => verifyPayment(false)}
+              disabled={checking}
+            >
+              {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Já paguei — verificar agora'}
+            </Button>
             <Button className="w-full h-12 rounded-xl" onClick={() => close(false)}>Concluído</Button>
           </div>
         ) : (

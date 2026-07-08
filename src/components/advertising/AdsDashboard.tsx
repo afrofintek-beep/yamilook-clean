@@ -37,6 +37,8 @@ import { CreditDisplay } from './CreditDisplay';
 import { BuyCreditsSheet } from './BuyCreditsSheet';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AdsDashboardProps {
   onBack?: () => void;
@@ -74,6 +76,23 @@ export function AdsDashboard({ onBack }: AdsDashboardProps) {
       setShowCreateAd(true);
     }
   }, [searchParams, businessProfile]);
+
+  // Reconcile pending AppyPay payments whenever the dashboard opens — a REF paid
+  // at the ATM (or a delayed Multicaixa push) is confirmed by querying the charge
+  // status, since AppyPay's webhook isn't reliably delivered.
+  useEffect(() => {
+    if (!businessProfile?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.functions.invoke('check-appypay-payment', { body: {} });
+      if (!cancelled && (data as { credited?: number })?.credited) {
+        toast.success('Pagamento confirmado! Créditos adicionados. ✅');
+        fetchBusinessProfile();
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businessProfile?.id]);
 
   const activeAds = advertisements.filter(a => a.status === 'active');
   const totalImpressions = advertisements.reduce((sum, a) => sum + a.impressions, 0);

@@ -168,10 +168,11 @@ serve(async (req) => {
         credits: pkg.credits, amountKwanza: pkg.kwanza, charge,
       });
     }
-    // REF: surface the entity + reference for the buyer to pay at ATM / Internet Banking.
-    const entity = charge?.entity ?? charge?.paymentInfo?.entity ?? charge?.reference?.entity ?? null;
-    const reference =
-      charge?.referenceNumber ?? charge?.reference?.referenceNumber ?? charge?.paymentInfo?.reference ?? null;
+    // REF: surface the entity + reference for the buyer to pay at ATM / Internet
+    // Banking. AppyPay nests these under responseStatus.reference (not the top level).
+    const refObj = rs?.reference ?? charge?.reference ?? {};
+    const entity = refObj?.entity ?? charge?.entity ?? null;
+    const reference = refObj?.referenceNumber ?? charge?.referenceNumber ?? null;
     return json({
       purchaseId: purchase.id, status: "pending_ref", method: "REF",
       message: "Referência gerada. Paga no Multicaixa Express, ATM ou Internet Banking.",
