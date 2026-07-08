@@ -40,8 +40,11 @@ export default function Payouts() {
   const [showModal, setShowModal] = useState(false);
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [balance, setBalance] = useState<number>(profile?.kumbu_available ?? 0);
+  const [aoaFactor, setAoaFactor] = useState<number | null>(null); // AOA per 1 Kumbu
 
-  const kumbuAvailable = profile?.kumbu_available ?? 0;
+  const kumbuAvailable = balance;
+  const fmtKz = (n: number) => new Intl.NumberFormat('pt-AO').format(Math.round(n)) + ' Kz';
 
   useEffect(() => {
     if (!user) return;
@@ -56,6 +59,20 @@ export default function Payouts() {
         .maybeSingle();
 
       setEligible(!!app);
+
+      // Fresh balance (the deduction on request makes the useAuth profile stale).
+      const { data: prof } = await supabase
+        .from('profiles').select('kumbu_available').eq('id', user.id).maybeSingle();
+      if (prof) setBalance(prof.kumbu_available ?? 0);
+
+      // Kumbu -> AOA factor from currency_rates (same anchor as the server RPC).
+      const { data: rate } = await supabase
+        .from('currency_rates')
+        .select('credits_per_usd, rate_to_usd')
+        .eq('currency_code', 'AOA').eq('is_active', true).maybeSingle();
+      if (rate && Number(rate.credits_per_usd) && Number(rate.rate_to_usd)) {
+        setAoaFactor((1 / Number(rate.credits_per_usd)) / Number(rate.rate_to_usd));
+      }
 
       // Fetch payouts history
       const { data: pData } = await supabase
@@ -79,31 +96,30 @@ export default function Payouts() {
     }
 
     setSubmitting(true);
-    try {
-      const { error } = await supabase.from('payout_requests').insert({
-        user_id: user.id,
-        amount_kumbu: kumbu,
-        status: 'pending',
-      });
-      if (error) throw error;
-
-      toast.success('Pedido de payout submetido.');
-      setShowModal(false);
-      setAmount('');
-
-      // Refresh list
-      const { data } = await supabase
-        .from('payout_requests')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      setPayouts(data ?? []);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao submeter pedido.');
-    } finally {
-      setSubmitting(false);
+    // Server-side RPC: deducts Kumbu atomically and stores the AOA value.
+    const { data, error } = await supabase.rpc('request_payout' as never, { p_amount_kumbu: kumbu } as never);
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message || 'Erro ao submeter pedido.');
+      return;
     }
+
+    const res = data as { amount_local?: number } | null;
+    toast.success(
+      res?.amount_local != null ? `Pedido submetido — ${fmtKz(res.amount_local)}.` : 'Pedido de payout submetido.',
+    );
+    setShowModal(false);
+    setAmount('');
+    setBalance((b) => b - kumbu); // reflect the debit immediately
+
+    // Refresh list
+    const { data: list } = await supabase
+      .from('payout_requests')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    setPayouts(list ?? []);
   };
 
   if (loading) {
@@ -172,9 +188,12 @@ export default function Payouts() {
             <div>
               <p className="text-xs text-muted-foreground">Kumbu disponível</p>
               <p className="text-2xl font-semibold">{kumbuAvailable}</p>
+              {aoaFactor && kumbuAvailable > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">≈ {fmtKz(kumbuAvailable * aoaFactor)}</p>
+              )}
             </div>
             <p className="text-xs text-muted-foreground max-w-[160px] text-right leading-relaxed">
-              Conversão mensal — sujeito a verificação.
+              Mínimo 1000 Kumbu · sujeito a verificação.
             </p>
           </CardContent>
         </Card>
@@ -234,13 +253,16 @@ export default function Payouts() {
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder={`Máx. ${kumbuAvailable}`}
               />
+              {aoaFactor && parseInt(amount) > 0 && (
+                <p className="text-xs text-muted-foreground">Vais receber ≈ {fmtKz(parseInt(amount) * aoaFactor)}</p>
+              )}
             </div>
           </div>
 
           <DialogFooter>
             <Button
               className="w-full"
-              disabled={!amount || parseInt(amount) <= 0 || parseInt(amount) > kumbuAvailable || submitting}
+              disabled={!amount || parseInt(amount) < 1000 || parseInt(amount) > kumbuAvailable || submitting}
               onClick={handleSubmit}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}

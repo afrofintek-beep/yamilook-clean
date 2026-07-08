@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
+import type { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -41,16 +41,26 @@ export default function AdminPayouts() {
 
   useEffect(() => { setLoading(true); fetchPayouts(); }, [fetchPayouts]);
 
-  const updateStatus = async (id: string, status: string) => {
+  const fmtKz = (n: number) => new Intl.NumberFormat('pt-AO').format(Math.round(n)) + ' Kz';
+
+  // Server-side RPC: approve / mark paid / reject (reject refunds the creator's Kumbu).
+  const runAction = async (id: string, action: 'approve' | 'process' | 'reject', reason?: string) => {
     setActing(id);
-    const updates: TablesUpdate<'payout_requests'> = { status };
-    if (status === 'processed' || status === 'rejected') {
-      updates.processed_at = new Date().toISOString();
-    }
-    const { error } = await supabase.from('payout_requests').update(updates).eq('id', id);
+    const { error } = await supabase.rpc('process_payout' as never, {
+      p_payout_id: id, p_action: action, p_reason: reason ?? null,
+    } as never);
     if (error) toast.error(error.message);
-    else { toast.success(`Payout ${status}.`); fetchPayouts(); }
+    else {
+      toast.success(action === 'reject' ? 'Rejeitado — Kumbu devolvido.' : action === 'process' ? 'Marcado como pago.' : 'Aprovado.');
+      fetchPayouts();
+    }
     setActing(null);
+  };
+
+  const reject = (id: string) => {
+    const reason = window.prompt('Motivo da rejeição (opcional). O Kumbu é devolvido ao criador:');
+    if (reason === null) return; // cancelled
+    runAction(id, 'reject', reason || undefined);
   };
 
   return (
@@ -90,28 +100,36 @@ export default function AdminPayouts() {
               <li key={p.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">{p.amount_kumbu} Kumbu</p>
+                    <p className="text-sm font-medium">
+                      {p.amount_kumbu} Kumbu
+                      {p.amount_local != null && (
+                        <span className="text-muted-foreground font-normal"> · {fmtKz(Number(p.amount_local))}</span>
+                      )}
+                    </p>
                     <p className="text-[11px] text-muted-foreground">
                       {format(new Date(p.created_at), "d MMM yyyy · HH:mm", { locale: pt })}
                     </p>
                     <p className="text-[11px] text-muted-foreground truncate">User: {p.user_id}</p>
+                    {p.rejection_reason && (
+                      <p className="text-[11px] text-destructive truncate">Motivo: {p.rejection_reason}</p>
+                    )}
                   </div>
                   <Badge variant={st} className="text-xs shrink-0">{p.status}</Badge>
                 </div>
 
                 {p.status === 'pending' && (
                   <div className="flex gap-2 pt-1">
-                    <Button size="sm" className="h-8 text-xs flex-1" disabled={acting === p.id} onClick={() => updateStatus(p.id, 'approved')}>
+                    <Button size="sm" className="h-8 text-xs flex-1" disabled={acting === p.id} onClick={() => runAction(p.id, 'approve')}>
                       {acting === p.id && <Loader2 className="h-3 w-3 animate-spin" />} Aprovar
                     </Button>
-                    <Button size="sm" variant="destructive" className="h-8 text-xs flex-1" disabled={acting === p.id} onClick={() => updateStatus(p.id, 'rejected')}>
+                    <Button size="sm" variant="destructive" className="h-8 text-xs flex-1" disabled={acting === p.id} onClick={() => reject(p.id)}>
                       Rejeitar
                     </Button>
                   </div>
                 )}
 
                 {p.status === 'approved' && (
-                  <Button size="sm" className="h-8 text-xs" disabled={acting === p.id} onClick={() => updateStatus(p.id, 'processed')}>
+                  <Button size="sm" className="h-8 text-xs" disabled={acting === p.id} onClick={() => runAction(p.id, 'process')}>
                     {acting === p.id && <Loader2 className="h-3 w-3 animate-spin" />} Marcar como Pago
                   </Button>
                 )}
