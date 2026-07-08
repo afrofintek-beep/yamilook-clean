@@ -66,6 +66,13 @@ export function BuyCreditsSheet({ open, onOpenChange, onDone }: Props) {
       return;
     }
 
+    if (status === 'paid') {
+      toast.success('Pagamento confirmado! Créditos adicionados. ✅');
+      onDone?.();
+      onOpenChange(false);
+      return;
+    }
+
     if (method === 'REF') {
       // Show the reference on-screen — the buyer needs to write it down and pay later.
       const r = data as { entity?: string; reference?: string };
