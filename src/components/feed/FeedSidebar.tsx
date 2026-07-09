@@ -33,44 +33,55 @@ export function FeedSidebar({ activeStreams }: { activeStreams: ActiveStream[] }
         </div>
       </button>
 
-      {/* Bandas ao vivo agora */}
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="flex items-center gap-1.5 mb-3">
-          <Radio className="w-4 h-4 text-destructive" />
-          <span className="text-sm font-semibold">Bandas ao vivo</span>
-        </div>
-        {activeStreams.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Ninguém ao vivo agora. Sê o primeiro a abrir a tua banda!</p>
-        ) : (
-          <div className="space-y-1">
-            {activeStreams.slice(0, 4).map((s) => (
-              <button
-                key={s.id}
-                onClick={() => navigate('/live')}
-                className="w-full flex items-center gap-2.5 text-left rounded-xl p-1.5 transition-colors hover:bg-secondary/50"
-              >
-                <div className="relative shrink-0">
-                  <Avatar className="h-9 w-9">
+      {/* Bandas ao vivo — clickable red cover, coherent with the live branding */}
+      <button
+        onClick={() => navigate('/live')}
+        aria-label="Ver as bandas ao vivo"
+        className="group relative block w-full overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 via-red-600 to-red-700 p-5 text-left text-white shadow-md transition-transform hover:scale-[1.02]"
+      >
+        {/* soft glow + oversized radio motif */}
+        <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/20 blur-2xl" />
+        <Radio className="pointer-events-none absolute -bottom-4 -right-3 h-24 w-24 opacity-10 rotate-12" />
+        <div className="relative">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/85">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+            </span>
+            Ao vivo
+          </div>
+          <div className="mt-0.5 text-2xl font-extrabold tracking-tight drop-shadow-sm">Bandas ao vivo</div>
+
+          {activeStreams.length === 0 ? (
+            <div className="mt-1 text-xs text-white/85">Ninguém ao vivo agora. Sê o primeiro a abrir a tua banda!</div>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {activeStreams.slice(0, 3).map((s) => (
+                <div key={s.id} className="flex items-center gap-2.5">
+                  <Avatar className="h-8 w-8 ring-2 ring-white/40 shrink-0">
                     <AvatarImage src={s.host.avatar_url ?? undefined} />
-                    <AvatarFallback>{(s.host.display_name ?? '?').charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="text-red-700 bg-white text-xs">
+                      {(s.host.display_name ?? '?').charAt(0).toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
-                  <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive border-2 border-card" />
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">{s.host.display_name}</div>
-                  <div className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                    <Users className="w-3 h-3 shrink-0" />
-                    {s.viewer_count} · {s.title}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{s.host.display_name}</div>
+                    <div className="text-[11px] text-white/80 truncate flex items-center gap-1">
+                      <Users className="w-3 h-3 shrink-0" />
+                      {s.viewer_count} · {s.title}
+                    </div>
                   </div>
                 </div>
-              </button>
-            ))}
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold">
+            {activeStreams.length > 0 ? 'Entrar na live' : 'Abrir a minha banda'}
+            <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
-        )}
-      </div>
+        </div>
+      </button>
 
       <p className="text-[10px] text-muted-foreground/50 px-1">Yamilook · a vida na tua banda</p>
     </div>
