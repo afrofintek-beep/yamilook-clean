@@ -4,7 +4,7 @@ import { Calendar, Clock, Repeat, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ResponsiveModal } from '@/components/ui/responsive-modal';
 import { Switch } from '@/components/ui/switch';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -59,14 +59,17 @@ export function ScheduleMessageSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
-        <SheetHeader className="pb-4">
-          <SheetTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary" />
-            Schedule Message
-          </SheetTitle>
-        </SheetHeader>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      className="h-[85vh] rounded-t-3xl sm:max-w-lg"
+      title={
+        <span className="flex items-center gap-2">
+          <Clock className="w-5 h-5 text-primary" />
+          Schedule Message
+        </span>
+      }
+    >
 
         <div className="space-y-6 overflow-y-auto max-h-[calc(85vh-8rem)]">
           {/* Message preview */}
@@ -195,7 +198,6 @@ export function ScheduleMessageSheet({
             Schedule
           </Button>
         </div>
-      </SheetContent>
-    </Sheet>
+    </ResponsiveModal>
   );
 }

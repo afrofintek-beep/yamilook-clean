@@ -2,12 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Check, X, Loader2, Forward } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { ResponsiveModal } from '@/components/ui/responsive-modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -132,14 +127,17 @@ export function ForwardMessageSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="bottom" className="h-[75vh] rounded-t-3xl">
-        <SheetHeader className="mb-4">
-          <SheetTitle className="flex items-center gap-2">
-            <Forward className="w-5 h-5" />
-            Reencaminhar {messagesToForward.length > 1 ? `${messagesToForward.length} mensagens` : 'mensagem'}
-          </SheetTitle>
-        </SheetHeader>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={handleClose}
+      className="h-[75vh] rounded-t-3xl sm:max-w-lg"
+      title={
+        <span className="flex items-center gap-2">
+          <Forward className="w-5 h-5" />
+          Reencaminhar {messagesToForward.length > 1 ? `${messagesToForward.length} mensagens` : 'mensagem'}
+        </span>
+      }
+    >
 
         {/* Message Preview */}
         {messagesToForward.length > 0 && (
@@ -252,7 +250,6 @@ export function ForwardMessageSheet({
             </Button>
           </motion.div>
         )}
-      </SheetContent>
-    </Sheet>
+    </ResponsiveModal>
   );
 }

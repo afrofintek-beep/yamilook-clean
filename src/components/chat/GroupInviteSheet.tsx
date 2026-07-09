@@ -11,12 +11,7 @@ import {
   Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { ResponsiveModal } from '@/components/ui/responsive-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -238,15 +233,17 @@ export function GroupInviteSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
-        <SheetHeader className="mb-4">
-          <SheetTitle className="text-xl flex items-center gap-2">
-            <Link2 className="w-5 h-5" />
-            Convites por Link
-          </SheetTitle>
-        </SheetHeader>
-
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      className="h-[85vh] rounded-t-3xl sm:max-w-lg"
+      title={
+        <span className="text-xl flex items-center gap-2">
+          <Link2 className="w-5 h-5" />
+          Convites por Link
+        </span>
+      }
+    >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Create new invite */}
           <AnimatePresence mode="wait">
@@ -417,7 +414,6 @@ export function GroupInviteSheet({
             </div>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+    </ResponsiveModal>
   );
 }

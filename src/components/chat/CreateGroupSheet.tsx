@@ -11,12 +11,7 @@ import {
   ImagePlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { ResponsiveModal } from '@/components/ui/responsive-modal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -214,8 +209,13 @@ export function CreateGroupSheet({ open, onOpenChange }: CreateGroupSheetProps) 
 
   return (
     <>
-      <Sheet open={open} onOpenChange={resetAndClose}>
-        <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl p-0">
+      <ResponsiveModal
+        open={open}
+        onOpenChange={resetAndClose}
+        srTitle="Novo Grupo"
+        padded={false}
+        className="h-[90vh] rounded-t-3xl sm:max-w-lg flex flex-col"
+      >
           <AnimatePresence mode="wait">
             {step === 'select' ? (
               <motion.div
@@ -225,14 +225,14 @@ export function CreateGroupSheet({ open, onOpenChange }: CreateGroupSheetProps) 
                 exit={{ opacity: 0, x: -20 }}
                 className="flex flex-col h-full"
               >
-                <SheetHeader className="p-4 border-b border-border/50">
+                <div className="p-4 border-b border-border/50">
                   <div className="flex items-center justify-between">
-                    <SheetTitle className="text-xl">Novo Grupo</SheetTitle>
+                    <h2 className="text-xl font-semibold">Novo Grupo</h2>
                     <Badge variant="secondary" className="font-mono">
                       {selectedContacts.size}/{MAX_GROUP_MEMBERS}
                     </Badge>
                   </div>
-                </SheetHeader>
+                </div>
 
                 {/* Selected contacts preview */}
                 <AnimatePresence>
@@ -387,7 +387,7 @@ export function CreateGroupSheet({ open, onOpenChange }: CreateGroupSheetProps) 
                 exit={{ opacity: 0, x: 20 }}
                 className="flex flex-col h-full"
               >
-                <SheetHeader className="p-4 border-b border-border/50">
+                <div className="p-4 border-b border-border/50">
                   <div className="flex items-center gap-3">
                     <Button
                       variant="ghost"
@@ -397,9 +397,9 @@ export function CreateGroupSheet({ open, onOpenChange }: CreateGroupSheetProps) 
                     >
                       <ChevronRight className="w-5 h-5 rotate-180" />
                     </Button>
-                    <SheetTitle className="text-xl">Detalhes do Grupo</SheetTitle>
+                    <h2 className="text-xl font-semibold">Detalhes do Grupo</h2>
                   </div>
-                </SheetHeader>
+                </div>
 
                 <div className="flex-1 p-4 space-y-6">
                   {/* Group photo */}
@@ -502,8 +502,7 @@ export function CreateGroupSheet({ open, onOpenChange }: CreateGroupSheetProps) 
               </motion.div>
             )}
           </AnimatePresence>
-        </SheetContent>
-      </Sheet>
+      </ResponsiveModal>
 
       <AlertDialog
         open={createdDialogOpen}

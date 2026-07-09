@@ -1,11 +1,6 @@
 import { useState } from 'react';
 import { Reply, Copy, Star, Pin, Forward, Trash2, Highlighter, Tag } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { ResponsiveModal } from '@/components/ui/responsive-modal';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
@@ -74,12 +69,13 @@ export function MessageActionsSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-3xl pb-safe">
-        <SheetHeader className="sr-only">
-          <SheetTitle>Ações da mensagem</SheetTitle>
-        </SheetHeader>
-        
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      srTitle="Ações da mensagem"
+      className="rounded-t-3xl pb-safe sm:max-w-sm"
+    >
+
         {/* African Reactions */}
         <div className="flex justify-center gap-1 py-4">
           {AFRICAN_REACTIONS.map((reaction) => (
@@ -228,7 +224,6 @@ export function MessageActionsSheet({
             </>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+    </ResponsiveModal>
   );
 }

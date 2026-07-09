@@ -1,12 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MessageCircle, Loader2, Users } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { ResponsiveModal } from '@/components/ui/responsive-modal';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useContacts } from '@/hooks/useContacts';
@@ -58,12 +53,12 @@ export function NewChatSheet({ open, onOpenChange }: NewChatSheetProps) {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
-          <SheetHeader className="mb-4">
-            <SheetTitle className="text-xl">New Chat</SheetTitle>
-          </SheetHeader>
-
+      <ResponsiveModal
+        open={open}
+        onOpenChange={onOpenChange}
+        className="h-[85vh] rounded-t-3xl sm:max-w-lg"
+        title={<span className="text-xl font-semibold">New Chat</span>}
+      >
           <div className="space-y-4">
             {/* Create Group Button */}
             <button
@@ -159,8 +154,7 @@ export function NewChatSheet({ open, onOpenChange }: NewChatSheetProps) {
               )}
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+      </ResponsiveModal>
 
       <CreateGroupSheet open={groupSheetOpen} onOpenChange={setGroupSheetOpen} />
     </>
