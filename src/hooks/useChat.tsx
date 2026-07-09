@@ -345,6 +345,9 @@ export function useMessages(conversationId: string | null) {
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
+        // Hide disappearing messages that have already expired (the cron purges
+        // them from the DB shortly after; this keeps them out of view meanwhile).
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
