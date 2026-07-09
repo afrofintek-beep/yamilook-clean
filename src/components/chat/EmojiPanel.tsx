@@ -1,16 +1,37 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { EMOJI_GROUPS } from '@/lib/african-emojis';
+import { EMOJI_GROUPS, SKIN_TONES, DEFAULT_TONE, applyTone, supportsTone } from '@/lib/african-emojis';
 
 interface Props {
   onSelect: (emoji: string) => void;
 }
 
-/** African-first emoji picker for the chat. Category chips switch the grid;
- *  the "Outros" group holds the general set. */
+const TONE_KEY = 'yamilook-emoji-tone';
+
+/** African-first emoji picker for the chat. Category chips switch the grid; a
+ *  skin-tone selector re-tones people/hand emojis (default darkest, up to the
+ *  lightest/European); the "Outros" group holds the general set. */
 export function EmojiPanel({ onSelect }: Props) {
   const [active, setActive] = useState(EMOJI_GROUPS[0].key);
+  const [tone, setTone] = useState<string>(() => {
+    try {
+      return localStorage.getItem(TONE_KEY) || DEFAULT_TONE;
+    } catch {
+      return DEFAULT_TONE;
+    }
+  });
+
   const group = EMOJI_GROUPS.find((g) => g.key === active) ?? EMOJI_GROUPS[0];
+  const groupHasTonable = group.emojis.some(supportsTone);
+
+  const pickTone = (mod: string) => {
+    setTone(mod);
+    try {
+      localStorage.setItem(TONE_KEY, mod);
+    } catch {
+      /* ignore */
+    }
+  };
 
   return (
     <div className="w-[300px] max-w-[80vw]">
@@ -33,19 +54,45 @@ export function EmojiPanel({ onSelect }: Props) {
         ))}
       </div>
 
+      {/* Skin-tone selector — only where the current group has tonable emojis */}
+      {groupHasTonable && (
+        <div className="flex items-center gap-1 pb-2">
+          <span className="text-[10px] text-muted-foreground mr-1">Tom:</span>
+          {SKIN_TONES.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => pickTone(t.mod)}
+              title={t.label}
+              aria-label={`Tom de pele: ${t.label}`}
+              aria-pressed={tone === t.mod}
+              className={cn(
+                'text-base leading-none rounded-md p-0.5 transition-transform',
+                tone === t.mod ? 'ring-2 ring-primary scale-110' : 'opacity-80 hover:opacity-100',
+              )}
+            >
+              <span role="img" aria-hidden="true">{`✋${t.mod}`}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Emoji grid */}
       <div className="grid grid-cols-7 gap-0.5 max-h-[184px] overflow-y-auto">
-        {group.emojis.map((e, i) => (
-          <button
-            key={`${e}-${i}`}
-            type="button"
-            onClick={() => onSelect(e)}
-            className="text-xl p-1.5 rounded-lg hover:bg-secondary/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={`Emoji ${e}`}
-          >
-            <span role="img">{e}</span>
-          </button>
-        ))}
+        {group.emojis.map((e, i) => {
+          const toned = applyTone(e, tone);
+          return (
+            <button
+              key={`${e}-${i}`}
+              type="button"
+              onClick={() => onSelect(toned)}
+              className="text-xl p-1.5 rounded-lg hover:bg-secondary/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`Emoji ${toned}`}
+            >
+              <span role="img">{toned}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
