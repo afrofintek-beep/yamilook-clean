@@ -2,6 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
+/** Palco ids the given user has been invited to (Quarto / Cozinha guests). */
+async function invitedPalcoIds(uid: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from('palco_invites')
+    .select('palco_id')
+    .eq('invited_user_id', uid);
+  return new Set((data ?? []).map((r) => r.palco_id));
+}
+
 /** Active live session (most recent one that's live right now) */
 export function useActiveLiveSession() {
   return useQuery({
@@ -197,12 +206,16 @@ export function useSpaceRodas(spaceKey: string) {
         for (const f of fr ?? []) friendIds.add(f.sender_id === uid ? f.receiver_id : f.sender_id);
         rodas = inSpace.filter((r) => r.organizer_id === uid || (r.organizer_id && friendIds.has(r.organizer_id)));
       } else if (spaceKey === 'cozinha') {
-        // Cozinha das Sis = women's space (invited guests come in a later phase).
+        // Cozinha das Sis = women, plus anyone the host explicitly invited.
         const { data: me } = await supabase.from('profiles').select('gender').eq('id', uid).maybeSingle();
-        if (me?.gender !== 'female') rodas = inSpace.filter((r) => r.organizer_id === uid);
+        if (me?.gender !== 'female') {
+          const invited = await invitedPalcoIds(uid);
+          rodas = inSpace.filter((r) => r.organizer_id === uid || (r.palco_id && invited.has(r.palco_id)));
+        }
       } else if (spaceKey === 'quarto') {
-        // Só Nós = 1:1 invite (invites come in a later phase); for now, host-only.
-        rodas = inSpace.filter((r) => r.organizer_id === uid);
+        // Só Nós = the host and the single invited person.
+        const invited = await invitedPalcoIds(uid);
+        rodas = inSpace.filter((r) => r.organizer_id === uid || (r.palco_id && invited.has(r.palco_id)));
       }
       if (!rodas.length) return [] as SpaceRoda[];
 

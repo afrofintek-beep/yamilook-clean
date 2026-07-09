@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -1364,6 +1389,59 @@ export type Database = {
           },
         ]
       }
+      credit_purchases: {
+        Row: {
+          amount_kwanza: number
+          business_id: string
+          created_at: string
+          credits: number
+          id: string
+          merchant_ref: string | null
+          method: string | null
+          paid_at: string | null
+          provider: string
+          provider_ref: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_kwanza: number
+          business_id: string
+          created_at?: string
+          credits: number
+          id?: string
+          merchant_ref?: string | null
+          method?: string | null
+          paid_at?: string | null
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_kwanza?: number
+          business_id?: string
+          created_at?: string
+          credits?: number
+          id?: string
+          merchant_ref?: string | null
+          method?: string | null
+          paid_at?: string | null
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_purchases_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -1733,6 +1811,7 @@ export type Database = {
         Row: {
           action_type: string
           amount: number
+          balance_after: number | null
           created_at: string
           description: string | null
           id: string
@@ -1743,6 +1822,7 @@ export type Database = {
         Insert: {
           action_type: string
           amount: number
+          balance_after?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1753,6 +1833,7 @@ export type Database = {
         Update: {
           action_type?: string
           amount?: number
+          balance_after?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -2628,6 +2709,38 @@ export type Database = {
         }
         Relationships: []
       }
+      palco_invites: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string
+          invited_user_id: string
+          palco_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string
+          invited_user_id: string
+          palco_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string
+          invited_user_id?: string
+          palco_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "palco_invites_palco_id_fkey"
+            columns: ["palco_id"]
+            isOneToOne: false
+            referencedRelation: "palcos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       palco_likes: {
         Row: {
           created_at: string
@@ -3471,8 +3584,10 @@ export type Database = {
           created_at: string
           display_name: string
           email: string | null
+          founder_number: number | null
           gender: Database["public"]["Enums"]["gender"] | null
           id: string
+          is_creator: boolean
           is_online: boolean | null
           is_verified: boolean | null
           kumbu_available: number
@@ -3514,8 +3629,10 @@ export type Database = {
           created_at?: string
           display_name: string
           email?: string | null
+          founder_number?: number | null
           gender?: Database["public"]["Enums"]["gender"] | null
           id: string
+          is_creator?: boolean
           is_online?: boolean | null
           is_verified?: boolean | null
           kumbu_available?: number
@@ -3557,8 +3674,10 @@ export type Database = {
           created_at?: string
           display_name?: string
           email?: string | null
+          founder_number?: number | null
           gender?: Database["public"]["Enums"]["gender"] | null
           id?: string
+          is_creator?: boolean
           is_online?: boolean | null
           is_verified?: boolean | null
           kumbu_available?: number
@@ -5522,6 +5641,22 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_create_academia_session: {
+        Args: {
+          _description: string
+          _format: string
+          _mentor_id: string
+          _price_coins: number
+          _scheduled_at: string
+          _spots: number
+          _title: string
+        }
+        Returns: Json
+      }
+      admin_set_kumbu_available: {
+        Args: { _amount: number; _user_id: string }
+        Returns: Json
+      }
       approve_mvp_candidate: { Args: { p_candidate_id: string }; Returns: Json }
       can_view_post: {
         Args: { p_owner: string; p_viewer: string; p_visibility: string }
@@ -5542,12 +5677,11 @@ export type Database = {
         }
         Returns: string
       }
-      generate_afroloc_code: { Args: { p_user_id: string }; Returns: string }
-      request_afroloc_certification: { Args: never; Returns: Json }
-      set_afroloc_certification: {
-        Args: { p_certified: boolean; p_user_id: string }
+      fulfill_credit_purchase: {
+        Args: { p_provider_ref?: string; p_purchase_id: string }
         Returns: Json
       }
+      generate_afroloc_code: { Args: { p_user_id: string }; Returns: string }
       generate_invite_code: { Args: never; Returns: string }
       generate_mvp_access_code: { Args: never; Returns: string }
       get_my_profile: {
@@ -5568,8 +5702,10 @@ export type Database = {
           created_at: string
           display_name: string
           email: string | null
+          founder_number: number | null
           gender: Database["public"]["Enums"]["gender"] | null
           id: string
+          is_creator: boolean
           is_online: boolean | null
           is_verified: boolean | null
           kumbu_available: number
@@ -5602,6 +5738,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_public_profile: { Args: { p_username: string }; Returns: Json }
       get_public_profiles_by_ids: {
         Args: { p_ids: string[] }
         Returns: {
@@ -5614,6 +5751,14 @@ export type Database = {
           level: string
           status_message: string
           username: string
+        }[]
+      }
+      get_public_table_columns: {
+        Args: { _table: string }
+        Returns: {
+          column_name: string
+          data_type: string
+          ordinal_position: number
         }[]
       }
       get_ritmo_reaction_counts: { Args: { p_ritmo_id: string }; Returns: Json }
@@ -5675,9 +5820,14 @@ export type Database = {
         }
         Returns: Json
       }
-      mark_message_read: {
-        Args: { p_message_id: string }
-        Returns: undefined
+      kumbu_topup: {
+        Args: { _amount: number; _package?: string }
+        Returns: Json
+      }
+      mark_message_read: { Args: { p_message_id: string }; Returns: undefined }
+      process_payout: {
+        Args: { p_action: string; p_payout_id: string; p_reason?: string }
+        Returns: Json
       }
       reject_mvp_candidate: {
         Args: { p_candidate_id: string; p_reason?: string }
@@ -5687,9 +5837,15 @@ export type Database = {
         Args: { _conversation_id: string; _user_id: string }
         Returns: Json
       }
+      request_afroloc_certification: { Args: never; Returns: Json }
+      request_payout: { Args: { p_amount_kumbu: number }; Returns: Json }
       revoke_other_sessions: {
         Args: { current_session_id?: string }
         Returns: undefined
+      }
+      set_afroloc_certification: {
+        Args: { p_certified: boolean; p_user_id: string }
+        Returns: Json
       }
       set_member_role: {
         Args: {
@@ -5899,6 +6055,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       account_status: ["active", "suspended", "deleted", "pending", "banned"],

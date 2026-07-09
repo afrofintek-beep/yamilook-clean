@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { MokubicoInviteSheet, type InvitedUser } from '@/features/mokubico/components/MokubicoInviteSheet';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -104,6 +105,11 @@ export default function CreatePalco() {
   const { currencies, selectedCurrency, changeCurrency, loading: currencyLoading } = useCurrencyRates();
 
   const [step, setStep] = useState(1);
+  // MOKUBICO invites — Quarto requires exactly 1; Cozinha guests are optional.
+  const needsInvite = mokubicoSpace === 'quarto' || mokubicoSpace === 'cozinha';
+  const singleInvite = mokubicoSpace === 'quarto';
+  const [invited, setInvited] = useState<InvitedUser[]>([]);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState('');
   const [description, setDescription] = useState('');
@@ -395,6 +401,14 @@ export default function CreatePalco() {
         
         // Insert voice types for the new palco
         if (newPalco?.id) {
+          // MOKUBICO invites: who may enter this private space (Quarto/Cozinha).
+          if (needsInvite && invited.length > 0) {
+            const { error: invErr } = await supabase.from('palco_invites').insert(
+              invited.map((u) => ({ palco_id: newPalco.id, invited_user_id: u.id })),
+            );
+            if (invErr) console.error('Error inviting to palco:', invErr);
+          }
+
           if (enabledVTs.length > 0) {
             await supabase
               .from('palco_voice_types')
@@ -457,7 +471,8 @@ export default function CreatePalco() {
 
   // Validation: Step 2 requires at least one roda WITH a datetime set
   const rodasWithDates = rodas.filter(r => r.datetime && r.datetime.trim() !== '');
-  const canProceed = step === 1 ? title.length >= 3 : step === 2 ? rodasWithDates.length >= 1 : true;
+  const step1Ok = title.length >= 3 && (!singleInvite || invited.length === 1);
+  const canProceed = step === 1 ? step1Ok : step === 2 ? rodasWithDates.length >= 1 : true;
 
   return (
     <div className="min-h-screen bg-palco-bg">
@@ -605,7 +620,7 @@ export default function CreatePalco() {
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {tags.map((tag) => (
-                    <span 
+                    <span
                       key={tag}
                       className="inline-flex items-center gap-1 px-2 py-1 bg-palco-accent/10 text-palco-accent rounded-full text-sm"
                     >
@@ -618,6 +633,37 @@ export default function CreatePalco() {
                 </div>
               )}
             </div>
+
+            {/* MOKUBICO invites (Quarto = 1 person required; Cozinha = optional guests) */}
+            {needsInvite && (
+              <div className="space-y-2">
+                <Label className="text-palco-text">
+                  {singleInvite ? 'Convidar (Quarto — só nós)' : 'Convidar (Cozinha das Sis)'}
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setInviteOpen(true)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-palco-border bg-palco-surface text-left"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-palco-accent/15 flex items-center justify-center shrink-0">
+                    <Plus className="w-4 h-4 text-palco-accent" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-palco-text">
+                      {invited.length === 0
+                        ? (singleInvite ? 'Escolher a pessoa' : 'Adicionar convidadas')
+                        : invited.map((u) => u.name).join(', ')}
+                    </div>
+                    <div className="text-xs text-palco-text-secondary">
+                      {singleInvite ? 'Só esta pessoa pode entrar' : 'Além das sis, estas pessoas podem entrar'}
+                    </div>
+                  </div>
+                </button>
+                {singleInvite && invited.length === 0 && (
+                  <p className="text-xs text-destructive">Escolhe 1 pessoa para abrir o Quarto.</p>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -1050,6 +1096,17 @@ export default function CreatePalco() {
           imageSrc={tempImageForCrop}
           onCropComplete={handleCropComplete}
           aspectRatio={16 / 9}
+        />
+      )}
+
+      {/* MOKUBICO invite picker (Quarto / Cozinha) */}
+      {needsInvite && (
+        <MokubicoInviteSheet
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          single={singleInvite}
+          selected={invited}
+          onConfirm={setInvited}
         />
       )}
     </div>
