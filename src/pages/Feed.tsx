@@ -6,6 +6,7 @@ import { Plus, Search, MessageCircle, Radio, Loader2, ArrowUp } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PostCard } from '@/components/feed/PostCard';
+import { FeedSidebar } from '@/components/feed/FeedSidebar';
 import { CreatePostSheet } from '@/components/feed/CreatePostSheet';
 import { CommentsSheet } from '@/components/feed/CommentsSheet';
 import { StatusList } from '@/components/status/StatusList';
@@ -112,10 +113,10 @@ export default function Feed() {
   }, [hasMoreFeed, loadMoreFeedPosts, feedWithAds.length]);
 
   return (
-    <div className="min-h-screen bg-card flex flex-col">
+    <div className="min-h-screen bg-muted/30 flex flex-col">
       {/* Header - Clean, minimal */}
       <header className="sticky top-0 z-50 bg-card border-b border-border safe-top">
-        <div className="flex items-center justify-between px-4 py-2 mx-auto w-full max-w-[600px]">
+        <div className="flex items-center justify-between px-4 py-2 mx-auto w-full max-w-[940px]">
           <YamilookLogo size="sm" showTagline={false} animate={false} bgClassName="bg-card" />
           <div className="flex items-center gap-1">
             <LivePreviewTooltip activeStreams={activeStreams} hasActiveStreams={hasActiveStreams}>
@@ -177,8 +178,9 @@ export default function Feed() {
             style={refreshingFeed ? undefined : { opacity: Math.min(pullDistance / 70, 1), transform: `rotate(${pullDistance * 3}deg)` }}
           />
         </div>
-        {/* Instagram-style centered column on desktop; full width on mobile */}
-        <div className="mx-auto w-full max-w-[600px]">
+        {/* Centered feed card + desktop-only right rail (Instagram/Facebook-like) */}
+        <div className="mx-auto w-full max-w-[940px] lg:flex lg:gap-6 lg:items-start lg:px-4 lg:pt-4">
+          <main className="w-full lg:max-w-[600px] lg:flex-1 bg-card lg:rounded-2xl lg:border lg:border-border lg:overflow-hidden lg:shadow-sm">
         {/* Status stories */}
         <div className="border-b border-border">
           <StatusList />
@@ -232,6 +234,10 @@ export default function Feed() {
             </>
           )}
         </div>
+          </main>
+          <aside className="hidden lg:block w-[300px] shrink-0">
+            <FeedSidebar activeStreams={activeStreams} />
+          </aside>
         </div>
       </ScrollArea>
 
