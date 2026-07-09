@@ -1,36 +1,35 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { Radio, Coins, ChevronRight, Users } from 'lucide-react';
+import { Radio, ChevronRight, Users } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { ActiveStream } from '@/hooks/useActiveStreams';
 
 /**
  * Desktop-only right rail for the feed. Fills the space next to the centered
- * column with genuinely useful, on-brand Yamilook content rather than filler:
- * the user's Kumbu balance and the bandas that are live right now.
+ * column with on-brand Yamilook content: a branded Kumbu cover (entry point to
+ * the wallet, no balance exposed) and the bandas that are live right now.
  */
 export function FeedSidebar({ activeStreams }: { activeStreams: ActiveStream[] }) {
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const kumbu = profile?.kumbu_available ?? 0;
-  const level = profile?.level ?? 'Bronze';
 
   return (
     <div className="sticky top-4 space-y-4">
-      {/* Kumbu */}
+      {/* Kumbu — branded cover, not a balance readout */}
       <button
         onClick={() => navigate('/kumbu')}
-        className="w-full text-left rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-secondary/40"
+        aria-label="Abrir a carteira Kumbu"
+        className="group relative block w-full overflow-hidden rounded-2xl bg-gradient-primary p-5 text-left text-white shadow-md transition-transform hover:scale-[1.02]"
       >
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-            <Coins className="w-3.5 h-3.5 text-primary" /> A tua Kumbu
-          </span>
-          <span className="text-[10px] font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5">{level}</span>
-        </div>
-        <div className="text-2xl font-bold tabular-nums">{kumbu.toLocaleString('pt-AO')}</div>
-        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-          Ver carteira <ChevronRight className="w-3 h-3" />
+        {/* soft glow + oversized coin motif */}
+        <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-3 -right-1 select-none text-7xl leading-none opacity-20 rotate-12">🪙</div>
+        <div className="relative">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/75">Yamilook</div>
+          <div className="mt-0.5 text-3xl font-extrabold tracking-tight drop-shadow-sm">KUMBU</div>
+          <div className="mt-1 text-xs text-white/85">Kumbu é valor</div>
+          <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold">
+            Abrir a tua carteira
+            <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
       </button>
 
