@@ -372,7 +372,10 @@ export function EnhancedMessageBubble({
             'flex gap-2 px-4 py-1 group relative z-10 select-none',
             isOwn ? 'justify-end' : 'justify-start',
             highlight && getHighlightClass(highlight.color),
-            isSelected ? 'bg-primary/10' : 'bg-background'
+            // Transparent at rest so the chat wallpaper shows through uniformly
+            // (an opaque bg-background here banded over the wallpaper). The
+            // swipe-to-reply icon is occluded by its own opacity, not this.
+            isSelected ? 'bg-primary/10' : 'bg-transparent'
           )}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
