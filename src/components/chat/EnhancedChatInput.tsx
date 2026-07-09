@@ -34,6 +34,7 @@ import {
 import { ReplyPreview } from './ReplyPreview';
 import { StickerPicker } from './StickerPicker';
 import { GifPicker } from './GifPicker';
+import { AFRICAN_REACTIONS } from '@/lib/reactions';
 import { ScheduleMessageSheet } from './ScheduleMessageSheet';
 import { ViewOnceToggle } from './ViewOnceMedia';
 import { useVoiceRecorder, useMediaUpload } from '@/hooks/useMediaUpload';
@@ -97,6 +98,23 @@ export function EnhancedChatInput({
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   }, [message]);
+
+  // Insert an emoji at the caret (or append) and keep focus in the textarea.
+  const insertEmoji = (emoji: string) => {
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? message.length;
+    const end = el?.selectionEnd ?? message.length;
+    const next = message.slice(0, start) + emoji + message.slice(end);
+    setMessage(next);
+    setShowEmojiMenu(false);
+    requestAnimationFrame(() => {
+      if (el) {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      }
+    });
+  };
 
   const handleSend = () => {
     if (!message.trim() || sending || disabled) return;
@@ -408,6 +426,22 @@ export function EnhancedChatInput({
               </PopoverTrigger>
               <PopoverContent className="w-auto p-2" align="end">
                 <div className="flex flex-col gap-2">
+                  {/* Yamilook African emojis — insert into the message */}
+                  <div className="flex gap-0.5">
+                    {AFRICAN_REACTIONS.map((r) => (
+                      <button
+                        key={r.type}
+                        type="button"
+                        onClick={() => insertEmoji(r.icon)}
+                        title={`${r.label} — ${r.meaning}`}
+                        aria-label={r.label}
+                        className="p-2 rounded-lg text-xl hover:bg-secondary/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span role="img" aria-hidden="true">{r.icon}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="h-px bg-border" />
                   <Button
                     variant="ghost"
                     size="sm"
