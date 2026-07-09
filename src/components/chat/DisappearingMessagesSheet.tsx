@@ -7,12 +7,20 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DisappearingMessagesSheetProps {
   open: boolean;
@@ -33,6 +41,7 @@ export function DisappearingMessagesSheet({
   conversationId,
 }: DisappearingMessagesSheetProps) {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -72,20 +81,9 @@ export function DisappearingMessagesSheet({
     setSaving(false);
   };
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-auto rounded-t-3xl">
-        <SheetHeader className="mb-6">
-          <SheetTitle className="flex items-center gap-2">
-            <Timer className="w-5 h-5 text-primary" />
-            Disappearing Messages
-          </SheetTitle>
-          <SheetDescription>
-            When enabled, new messages will disappear after the selected time.
-          </SheetDescription>
-        </SheetHeader>
-
-        <RadioGroup
+  const body = (
+    <>
+      <RadioGroup
           value={selectedDuration || 'off'}
           onValueChange={(v) => setSelectedDuration(v === 'off' ? null : v)}
           className="space-y-3"
@@ -132,19 +130,54 @@ export function DisappearingMessagesSheet({
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
-          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            className="flex-1 bg-gradient-primary text-white"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            Save
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+      <div className="flex gap-3 mt-6">
+        <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+          Cancel
+        </Button>
+        <Button
+          className="flex-1 bg-gradient-primary text-white"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          Save
+        </Button>
+      </div>
+    </>
+  );
+
+  const title = (
+    <span className="flex items-center gap-2">
+      <Timer className="w-5 h-5 text-primary" />
+      Disappearing Messages
+    </span>
+  );
+  const description = 'When enabled, new messages will disappear after the selected time.';
+
+  // WhatsApp/Instagram pattern: compact centered dialog on desktop, bottom sheet
+  // on mobile.
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="h-auto max-h-[88vh] overflow-y-auto rounded-t-3xl">
+          <SheetHeader className="mb-6">
+            <SheetTitle>{title}</SheetTitle>
+            <SheetDescription>{description}</SheetDescription>
+          </SheetHeader>
+          {body}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader className="mb-2">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        {body}
+      </DialogContent>
+    </Dialog>
   );
 }
