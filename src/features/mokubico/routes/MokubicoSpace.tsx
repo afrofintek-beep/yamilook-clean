@@ -1,16 +1,21 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { EmptyStateBack } from '@/components/common/EmptyStateBack';
 import { ArrowLeft, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PalcoCard } from '../components/PalcoCard';
+import { GenderPromptCard } from '../components/GenderPromptCard';
 import { SPACES, MOKUBICO_COPY } from '../copy';
 import { useSpaceRodas } from '../hooks/useMokubicoData';
+import { useAuth } from '@/hooks/useAuth';
 import BottomNav from '@/components/BottomNav';
 
 export default function MokubicoSpace() {
   const { space } = useParams<{ space: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const queryClient = useQueryClient();
 
   const config = SPACES.find((s) => s.key === space);
   const { data: rodas = [], isLoading } = useSpaceRodas(space ?? '');
@@ -20,6 +25,9 @@ export default function MokubicoSpace() {
   }
 
   const hasLive = rodas.some((p) => p.isLive);
+  // Legacy accounts with no gender on file can't be placed in the Cozinha das
+  // Sis — ask them to self-declare before showing the space.
+  const needsGender = config.key === 'cozinha' && !!profile && !profile.gender;
 
   return (
     <div className="flex min-h-screen-safe flex-col bg-background pb-[calc(11rem+env(safe-area-inset-bottom,0px))]">
@@ -49,7 +57,11 @@ export default function MokubicoSpace() {
 
       {/* Rodas list */}
       <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-3">
-        {isLoading ? (
+        {needsGender ? (
+          <GenderPromptCard
+            onSaved={() => queryClient.invalidateQueries({ queryKey: ['mokubico-space-rodas'] })}
+          />
+        ) : isLoading ? (
           <div className="space-y-3">
             {[1, 2].map((i) => (
               <div key={i} className="h-32 rounded-xl bg-muted/30 animate-pulse" />
