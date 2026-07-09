@@ -34,7 +34,7 @@ import {
 import { ReplyPreview } from './ReplyPreview';
 import { StickerPicker } from './StickerPicker';
 import { GifPicker } from './GifPicker';
-import { AFRICAN_REACTIONS } from '@/lib/reactions';
+import { EmojiPanel } from './EmojiPanel';
 import { ScheduleMessageSheet } from './ScheduleMessageSheet';
 import { ViewOnceToggle } from './ViewOnceMedia';
 import { useVoiceRecorder, useMediaUpload } from '@/hooks/useMediaUpload';
@@ -426,21 +426,8 @@ export function EnhancedChatInput({
               </PopoverTrigger>
               <PopoverContent className="w-auto p-2" align="end">
                 <div className="flex flex-col gap-2">
-                  {/* Yamilook African emojis — insert into the message */}
-                  <div className="flex gap-0.5">
-                    {AFRICAN_REACTIONS.map((r) => (
-                      <button
-                        key={r.type}
-                        type="button"
-                        onClick={() => insertEmoji(r.icon)}
-                        title={`${r.label} — ${r.meaning}`}
-                        aria-label={r.label}
-                        className="p-2 rounded-lg text-xl hover:bg-secondary/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <span role="img" aria-hidden="true">{r.icon}</span>
-                      </button>
-                    ))}
-                  </div>
+                  {/* Yamilook African-first emoji picker (+ "Outros") */}
+                  <EmojiPanel onSelect={insertEmoji} />
                   <div className="h-px bg-border" />
                   <Button
                     variant="ghost"
