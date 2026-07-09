@@ -176,10 +176,34 @@ export function useSpaceRodas(spaceKey: string) {
       if (error || !allRodas?.length) return [] as SpaceRoda[];
 
       // Keep only rodas of this space (palco with no space → open Quintal).
-      const rodas = allRodas.filter((r) => {
+      const inSpace = allRodas.filter((r) => {
         const palco = Array.isArray(r.palcos) ? r.palcos[0] : r.palcos;
         return ((palco as { space?: string | null } | null)?.space ?? 'quintal') === spaceKey;
       });
+      if (!inSpace.length) return [] as SpaceRoda[];
+
+      // --- Access rules per MOKUBICO tier (relative to each roda's host) ---
+      // You always see your own rodas. Quintal (wis) is open to the whole banda.
+      const uid = user!.id;
+      let rodas = inSpace;
+      if (spaceKey === 'sala') {
+        // Kambas = accepted friends of the host.
+        const { data: fr } = await supabase
+          .from('friend_requests')
+          .select('sender_id, receiver_id')
+          .eq('status', 'accepted')
+          .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`);
+        const friendIds = new Set<string>();
+        for (const f of fr ?? []) friendIds.add(f.sender_id === uid ? f.receiver_id : f.sender_id);
+        rodas = inSpace.filter((r) => r.organizer_id === uid || (r.organizer_id && friendIds.has(r.organizer_id)));
+      } else if (spaceKey === 'cozinha') {
+        // Cozinha das Sis = women's space (invited guests come in a later phase).
+        const { data: me } = await supabase.from('profiles').select('gender').eq('id', uid).maybeSingle();
+        if (me?.gender !== 'female') rodas = inSpace.filter((r) => r.organizer_id === uid);
+      } else if (spaceKey === 'quarto') {
+        // Só Nós = 1:1 invite (invites come in a later phase); for now, host-only.
+        rodas = inSpace.filter((r) => r.organizer_id === uid);
+      }
       if (!rodas.length) return [] as SpaceRoda[];
 
       // Get organizer names
