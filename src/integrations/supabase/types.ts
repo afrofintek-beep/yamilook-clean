@@ -1843,6 +1843,41 @@ export type Database = {
         }
         Relationships: []
       }
+      live_access: {
+        Row: {
+          created_at: string
+          id: string
+          session_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          session_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          session_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_access_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_messages: {
         Row: {
           created_at: string
@@ -5658,6 +5693,7 @@ export type Database = {
         Returns: Json
       }
       approve_mvp_candidate: { Args: { p_candidate_id: string }; Returns: Json }
+      can_join_live_room: { Args: { p_room: string }; Returns: Json }
       can_view_post: {
         Args: { p_owner: string; p_viewer: string; p_visibility: string }
         Returns: boolean
@@ -5822,6 +5858,10 @@ export type Database = {
       }
       kumbu_topup: {
         Args: { _amount: number; _package?: string }
+        Returns: Json
+      }
+      live_session_access_info: {
+        Args: { p_session_id: string }
         Returns: Json
       }
       mark_message_read: { Args: { p_message_id: string }; Returns: undefined }

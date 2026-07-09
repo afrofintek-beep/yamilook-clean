@@ -1,0 +1,101 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Radio, Loader2, ArrowLeft, Lock } from 'lucide-react';
+import { toast } from 'sonner';
+
+export interface LiveAccessInfo {
+  exists: boolean;
+  host_name?: string;
+  title?: string;
+  has_access?: boolean;
+  request_status?: string | null;
+  status?: string;
+}
+
+/** Shown to a user who lacks access to a banda-restricted live: request to
+ *  enter, wait for the host, and join once approved (realtime). */
+export function LiveAccessRequest({
+  sessionId,
+  info,
+  onGranted,
+}: {
+  sessionId: string;
+  info: LiveAccessInfo;
+  onGranted: () => void;
+}) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [status, setStatus] = useState<string | null>(info.request_status ?? null);
+  const [sending, setSending] = useState(false);
+
+  // Watch my own access row — when the host approves, retry the join.
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`live-access-${sessionId}-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'live_access', filter: `session_id=eq.${sessionId}` },
+        (payload) => {
+          const row = payload.new as { user_id: string; status: string } | undefined;
+          if (row && row.user_id === user.id) {
+            setStatus(row.status);
+            if (row.status === 'approved') onGranted();
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [sessionId, user, onGranted]);
+
+  const request = async () => {
+    if (!user) return;
+    setSending(true);
+    const { error } = await supabase.from('live_access').insert({ session_id: sessionId, user_id: user.id, status: 'pending' });
+    setSending(false);
+    if (error && !/duplicate|unique/i.test(error.message)) {
+      toast.error('Não foi possível enviar o pedido.');
+      return;
+    }
+    setStatus('pending');
+    toast.success('Pedido enviado. À espera da autorização do dono.');
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-8 text-center gap-5 safe-top">
+      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+        <Lock className="w-7 h-7 text-primary" />
+      </div>
+      <div className="space-y-1">
+        <h1 className="text-lg font-bold text-foreground">Live da banda</h1>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          {info.host_name ? `${info.host_name} está ao vivo para a banda.` : 'Esta live é da banda.'}{' '}
+          Não fazes parte, mas podes pedir para entrar.
+        </p>
+      </div>
+
+      {status === 'approved' ? (
+        <Button className="rounded-full px-6" onClick={onGranted}>
+          <Radio className="w-4 h-4 mr-2" /> Entrar na live
+        </Button>
+      ) : status === 'pending' ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" /> À espera da autorização do dono…
+        </div>
+      ) : status === 'denied' ? (
+        <p className="text-sm text-destructive">O dono não autorizou a tua entrada.</p>
+      ) : (
+        <Button className="rounded-full px-6" onClick={request} disabled={sending}>
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Pedir para entrar'}
+        </Button>
+      )}
+
+      <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+        <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+      </Button>
+    </div>
+  );
+}

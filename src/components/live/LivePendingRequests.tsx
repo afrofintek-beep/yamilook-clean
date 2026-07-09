@@ -1,0 +1,101 @@
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserPlus, Check, X, Loader2 } from 'lucide-react';
+import { MokubicoInviteSheet, type InvitedUser } from '@/features/mokubico/components/MokubicoInviteSheet';
+import { toast } from 'sonner';
+
+interface PendingRow {
+  id: string;
+  user_id: string;
+  name: string;
+  avatar_url: string | null;
+}
+
+/** Host-only: pending join requests (approve/deny, realtime) + pre-authorize
+ *  contacts for a banda-restricted live. */
+export function LivePendingRequests({ sessionId }: { sessionId: string }) {
+  const [pending, setPending] = useState<PendingRow[]>([]);
+  const [inviteOpen, setInviteOpen] = useState(false);
+
+  const load = useCallback(async () => {
+    const { data } = await supabase
+      .from('live_access')
+      .select('id, user_id')
+      .eq('session_id', sessionId)
+      .eq('status', 'pending');
+    if (!data?.length) { setPending([]); return; }
+
+    const ids = data.map((r) => r.user_id);
+    const { data: profiles } = await supabase.rpc('get_public_profiles_by_ids', { p_ids: ids });
+    const map = new Map<string, { display_name: string; avatar_url: string | null }>();
+    for (const p of profiles ?? []) map.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url });
+    setPending(data.map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      name: map.get(r.user_id)?.display_name || 'Alguém',
+      avatar_url: map.get(r.user_id)?.avatar_url ?? null,
+    })));
+  }, [sessionId]);
+
+  useEffect(() => {
+    load();
+    const ch = supabase
+      .channel(`live-requests-${sessionId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_access', filter: `session_id=eq.${sessionId}` }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [sessionId, load]);
+
+  const decide = async (id: string, status: 'approved' | 'denied') => {
+    setPending((prev) => prev.filter((r) => r.id !== id)); // optimistic
+    const { error } = await supabase.from('live_access').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+    if (error) { toast.error('Não foi possível responder ao pedido.'); load(); }
+  };
+
+  const preAuthorize = async (users: InvitedUser[]) => {
+    if (!users.length) return;
+    const { error } = await supabase.from('live_access').upsert(
+      users.map((u) => ({ session_id: sessionId, user_id: u.id, status: 'approved' })),
+      { onConflict: 'session_id,user_id' },
+    );
+    if (error) { toast.error('Não foi possível autorizar.'); return; }
+    toast.success(`${users.length} ${users.length === 1 ? 'pessoa autorizada' : 'pessoas autorizadas'}.`);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-white/90">
+          Pedidos {pending.length > 0 && <span className="ml-1 rounded-full bg-white/20 px-1.5">{pending.length}</span>}
+        </span>
+        <button
+          type="button"
+          onClick={() => setInviteOpen(true)}
+          className="flex items-center gap-1 text-xs font-medium text-white/90 hover:text-white"
+        >
+          <UserPlus className="w-3.5 h-3.5" /> Convidar
+        </button>
+      </div>
+
+      {pending.map((r) => (
+        <div key={r.id} className="flex items-center gap-2 rounded-xl bg-black/30 p-1.5">
+          <Avatar className="h-8 w-8 shrink-0">
+            <AvatarImage src={r.avatar_url ?? undefined} />
+            <AvatarFallback className="text-xs">{r.name.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <span className="flex-1 min-w-0 truncate text-sm text-white">{r.name}</span>
+          <Button size="icon" className="h-8 w-8 rounded-full bg-green-600 hover:bg-green-700" onClick={() => decide(r.id, 'approved')}>
+            <Check className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-white hover:bg-white/10" onClick={() => decide(r.id, 'denied')}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+
+      <MokubicoInviteSheet open={inviteOpen} onOpenChange={setInviteOpen} selected={[]} onConfirm={preAuthorize} />
+    </div>
+  );
+}

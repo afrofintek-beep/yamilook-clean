@@ -12,6 +12,9 @@ import { AudioTrack } from '@/components/live/AudioTrack';
 import { LiveChat } from '@/components/live/LiveChat';
 import { LiveReactions } from '@/components/live/LiveReactions';
 import { LiveStreamControls } from '@/components/live/LiveStreamControls';
+import { LiveAccessRequest, type LiveAccessInfo } from '@/components/live/LiveAccessRequest';
+import { LivePendingRequests } from '@/components/live/LivePendingRequests';
+import { supabase } from '@/integrations/supabase/client';
 import { RoomEvent, Track } from 'livekit-client';
 
 export default function Live() {
@@ -41,6 +44,9 @@ export default function Live() {
   const [showChat, setShowChat] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const [trackTick, setTrackTick] = useState(0);
+  // Set when the viewer lacks access to a banda-restricted live → show the
+  // request-to-enter gate instead of bouncing them away.
+  const [accessInfo, setAccessInfo] = useState<LiveAccessInfo | null>(null);
 
   // Force re-render when tracks change (LiveKit uses RoomEvent constants)
   useEffect(() => {
@@ -81,6 +87,9 @@ export default function Live() {
     // If already joined, nothing to do
     if (hasJoined) return;
 
+    // Showing the access-request gate — don't keep re-attempting to join.
+    if (accessInfo) return;
+
     // If we're the host but room isn't ready yet, wait for it
     if (isHost && currentSession?.id === sessionId) {
       console.log('[Live] Host waiting for room connection...');
@@ -89,16 +98,25 @@ export default function Live() {
 
     // Only join as viewer if we're not the host of this session
     console.log('[Live] Joining stream as viewer:', sessionId);
-    joinStream(sessionId).then((success) => {
+    joinStream(sessionId).then(async (success) => {
       if (success) {
         console.log('[Live] Successfully joined as viewer');
         setHasJoined(true);
+        return;
+      }
+      // Join failed — if it's an access issue on an existing live, offer to
+      // request entry instead of bouncing back.
+      const { data } = await supabase.rpc('live_session_access_info', { p_session_id: sessionId });
+      const info = data as LiveAccessInfo | null;
+      // Only offer the request gate for a live session the user can't access —
+      // not for ended sessions or ones that don't exist.
+      if (info?.exists && info.has_access === false && info.status === 'live') {
+        setAccessInfo(info);
       } else {
-        console.log('[Live] Failed to join, navigating back');
         navigate('/live');
       }
     });
-  }, [sessionId, hasJoined, joinStream, navigate, isHost, currentSession?.id, room]);
+  }, [sessionId, hasJoined, joinStream, navigate, isHost, currentSession?.id, room, accessInfo]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -168,6 +186,17 @@ export default function Live() {
       hasAudio: !!audioTrack,
     });
   }, [isHost, hostIdentity, hostParticipant?.identity, publications.length, videoTrack, audioTrack]);
+
+  // Viewer without access to a banda-restricted live → request-to-enter gate.
+  if (accessInfo && sessionId) {
+    return (
+      <LiveAccessRequest
+        sessionId={sessionId}
+        info={accessInfo}
+        onGranted={() => { setAccessInfo(null); setHasJoined(false); }}
+      />
+    );
+  }
 
   if (loading && !hasJoined) {
     return (
@@ -259,6 +288,13 @@ export default function Live() {
           </div>
         )}
       </motion.div>
+
+      {/* Host: pending join requests + pre-authorize (banda-restricted lives) */}
+      {isHost && currentSession && (
+        <div className="absolute right-3 top-28 z-20 w-60 max-w-[70vw] rounded-2xl bg-black/50 backdrop-blur-md p-3">
+          <LivePendingRequests sessionId={currentSession.id} />
+        </div>
+      )}
 
       {/* Chat panel - positioned as bottom overlay on mobile */}
       <AnimatePresence>
