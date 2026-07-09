@@ -23,11 +23,31 @@ function installChunkLoadRecovery() {
   const KEY = "__yamilook_chunk_reload_count__";
   const MAX_RELOADS = 2;
 
-  const reloadLimited = (reason: string) => {
+  // Reset the counter once the app has loaded cleanly, so a *future* bad deploy
+  // can recover again (the counter only guards against a reload loop).
+  window.addEventListener("load", () => {
+    setTimeout(() => { try { window.sessionStorage.removeItem(KEY); } catch { /* noop */ } }, 4000);
+  });
+
+  const reloadLimited = async (reason: string) => {
     try {
       const current = Number(window.sessionStorage.getItem(KEY) ?? "0") || 0;
       if (current >= MAX_RELOADS) return;
       window.sessionStorage.setItem(KEY, String(current + 1));
+
+      // A stale service worker can keep serving a cached index.html that points
+      // at chunk hashes deleted by a newer deploy — reloading alone just re-serves
+      // the broken page. Drop the SW + caches first so the reload fetches fresh.
+      try {
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        }
+        if (typeof window.caches !== "undefined") {
+          const keys = await window.caches.keys();
+          await Promise.all(keys.map((k) => window.caches.delete(k)));
+        }
+      } catch { /* best-effort */ }
 
       const url = new URL(window.location.href);
       url.searchParams.set("__cr", String(Date.now()));
