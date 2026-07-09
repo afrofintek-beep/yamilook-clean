@@ -119,13 +119,16 @@ export function useLiveSpaces() {
 
       const { data: activeRodas } = await supabase
         .from('rodas')
-        .select('id')
+        .select('id, palcos(space)')
         .eq('banda_id', ub.banda_id)
         .in('phase', ['content', 'qa']);
 
+      // A roda is live in whichever space its palco belongs to. Palcos with no
+      // space fall back to the open Quintal.
       const liveSet = new Set<string>();
-      if (activeRodas && activeRodas.length > 0) {
-        liveSet.add('quintal');
+      for (const r of activeRodas ?? []) {
+        const palco = Array.isArray(r.palcos) ? r.palcos[0] : r.palcos;
+        liveSet.add((palco as { space?: string | null } | null)?.space ?? 'quintal');
       }
       return liveSet;
     },
@@ -141,7 +144,8 @@ export interface SpaceRoda {
   palcoId: string;
 }
 
-/** Rodas for a specific space (currently all go to quintal) */
+/** Rodas for a specific MOKUBICO space, resolved via each roda's palco.space
+ *  (a palco with no space belongs to the open Quintal). */
 export function useSpaceRodas(spaceKey: string) {
   const { user } = useAuth();
 
@@ -160,16 +164,23 @@ export function useSpaceRodas(spaceKey: string) {
 
       if (!ub?.banda_id) return [] as SpaceRoda[];
 
-      // Fetch active rodas in user's banda
-      const { data: rodas, error } = await supabase
+      // Fetch active rodas in user's banda, with their palco's space.
+      const { data: allRodas, error } = await supabase
         .from('rodas')
-        .select('id, title, organizer_id, palco_id, phase, viewer_count')
+        .select('id, title, organizer_id, palco_id, phase, viewer_count, palcos(space)')
         .eq('banda_id', ub.banda_id)
         .in('phase', ['content', 'qa', 'idle'])
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
-      if (error || !rodas?.length) return [] as SpaceRoda[];
+      if (error || !allRodas?.length) return [] as SpaceRoda[];
+
+      // Keep only rodas of this space (palco with no space → open Quintal).
+      const rodas = allRodas.filter((r) => {
+        const palco = Array.isArray(r.palcos) ? r.palcos[0] : r.palcos;
+        return ((palco as { space?: string | null } | null)?.space ?? 'quintal') === spaceKey;
+      });
+      if (!rodas.length) return [] as SpaceRoda[];
 
       // Get organizer names
       const organizerIds = [...new Set(rodas.map(r => r.organizer_id).filter(Boolean))];

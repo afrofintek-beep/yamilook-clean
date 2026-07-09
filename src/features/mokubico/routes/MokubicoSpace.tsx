@@ -84,7 +84,7 @@ export default function MokubicoSpace() {
       <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px)+0.75rem)] left-0 right-0 z-40 p-4">
         <Button
           className="w-full rounded-full shadow-glow"
-          onClick={() => navigate('/palco/create')}
+          onClick={() => navigate(`/palco/create?space=${config.key}`)}
         >
           {MOKUBICO_COPY.openRoda}
         </Button>

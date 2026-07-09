@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -92,6 +92,9 @@ interface RodaDraft {
 export default function CreatePalco() {
   const navigate = useNavigate();
   const { palcoId } = useParams();
+  const [searchParams] = useSearchParams();
+  // MOKUBICO space this palco is being opened in (e.g. /palco/create?space=sala).
+  const mokubicoSpace = searchParams.get('space');
   const isEditMode = !!palcoId;
   
   const createPalco = useCreatePalco();
@@ -387,6 +390,7 @@ export default function CreatePalco() {
           allow_custom_voice_text: allowCustomText,
           min_price: minPrice,
           cover_url: coverUrl || undefined,
+          space: mokubicoSpace,
         });
         
         // Insert voice types for the new palco

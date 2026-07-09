@@ -395,7 +395,7 @@ export function useCreatePalco() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (palco: Partial<Palco> & { title: string; roda_id?: string }) => {
+    mutationFn: async (palco: Partial<Palco> & { title: string; roda_id?: string; space?: string | null }) => {
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -415,6 +415,9 @@ export function useCreatePalco() {
           max_voices_per_roda: palco.max_voices_per_roda || 20,
           allow_custom_voice_text: palco.allow_custom_voice_text ?? true,
           allow_ai_assist: palco.allow_ai_assist ?? false,
+          // MOKUBICO space this stage belongs to (quintal/sala/cozinha/quarto).
+          // Null means the open Quintal by default.
+          space: palco.space ?? null,
         })
         .select()
         .single();
