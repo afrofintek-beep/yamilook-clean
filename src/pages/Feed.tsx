@@ -115,7 +115,7 @@ export default function Feed() {
     <div className="min-h-screen bg-card flex flex-col">
       {/* Header - Clean, minimal */}
       <header className="sticky top-0 z-50 bg-card border-b border-border safe-top">
-        <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex items-center justify-between px-4 py-2 mx-auto w-full max-w-[600px]">
           <YamilookLogo size="sm" showTagline={false} animate={false} bgClassName="bg-card" />
           <div className="flex items-center gap-1">
             <LivePreviewTooltip activeStreams={activeStreams} hasActiveStreams={hasActiveStreams}>
@@ -177,6 +177,8 @@ export default function Feed() {
             style={refreshingFeed ? undefined : { opacity: Math.min(pullDistance / 70, 1), transform: `rotate(${pullDistance * 3}deg)` }}
           />
         </div>
+        {/* Instagram-style centered column on desktop; full width on mobile */}
+        <div className="mx-auto w-full max-w-[600px]">
         {/* Status stories */}
         <div className="border-b border-border">
           <StatusList />
@@ -229,6 +231,7 @@ export default function Feed() {
               )}
             </>
           )}
+        </div>
         </div>
       </ScrollArea>
 
