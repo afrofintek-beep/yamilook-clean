@@ -153,6 +153,25 @@ serve(async (req) => {
     // Use the authenticated user's ID as the participant identity for security
     const secureIdentity = userId;
 
+    // --- Access control: only the host, banda members, or approved guests may
+    // join (public when the host has no banda). Authoritative check in the DB. ---
+    const { data: access, error: accessError } = await supabase.rpc('can_join_live_room', { p_room: roomName });
+    if (accessError) {
+      console.error('can_join_live_room error:', accessError);
+      return new Response(
+        JSON.stringify({ error: 'Access check failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!access?.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'forbidden', reason: access?.reason ?? 'not_allowed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    // Publish rights come from the DB (host), not a client-supplied flag.
+    const dbIsHost = access.is_host === true;
+
     // Create grants based on role
     const grants: ClaimGrants = {
       identity: secureIdentity,
@@ -160,10 +179,10 @@ serve(async (req) => {
       video: {
         room: sanitizedRoomName,
         roomJoin: true,
-        canPublish: isHost, // Only hosts can publish video/audio
-        canSubscribe: true, // Everyone can subscribe/watch
-        canPublishData: true, // Everyone can send chat messages
-        roomCreate: isHost, // Only hosts can create rooms
+        canPublish: dbIsHost, // Only the real host can publish video/audio
+        canSubscribe: true, // Everyone allowed in can subscribe/watch
+        canPublishData: true, // Everyone allowed in can send chat messages
+        roomCreate: dbIsHost, // Only the real host can create rooms
       },
     };
 
