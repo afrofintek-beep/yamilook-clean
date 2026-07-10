@@ -153,9 +153,13 @@ serve(async (req) => {
     // Use the authenticated user's ID as the participant identity for security
     const secureIdentity = userId;
 
-    // --- Access control: only the host, banda members, or approved guests may
-    // join (public when the host has no banda). Authoritative check in the DB. ---
-    const { data: access, error: accessError } = await supabase.rpc('can_join_live_room', { p_room: roomName });
+    // --- Access control (authoritative, in the DB). MOKUBICO conversa rooms
+    // (mok-*) gate on the chosen-guest list; live rooms gate on banda/approved. ---
+    const isMokubico = roomName.startsWith('mok-');
+    const { data: access, error: accessError } = await supabase.rpc(
+      isMokubico ? 'can_join_mokubico_room' : 'can_join_live_room',
+      { p_room: roomName },
+    );
     if (accessError) {
       console.error('can_join_live_room error:', accessError);
       return new Response(
