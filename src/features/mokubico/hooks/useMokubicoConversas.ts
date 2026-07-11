@@ -68,16 +68,24 @@ export function useOpenConversa() {
       const { data: ub } = await supabase
         .from('user_bandas').select('banda_id').eq('user_id', user.id).eq('is_active', true).limit(1).maybeSingle();
 
+      // Quintal voice/video is a Pro feature; free Quintal is text-only. Other
+      // spaces include voice/video for free.
+      const { data: me } = await supabase.from('profiles').select('plan').eq('id', user.id).maybeSingle();
+      const isPro = me?.plan === 'pro';
+      const mediaEnabled = space !== 'quintal' || isPro;
+
       const roomName = `mok-${user.id}-${Date.now()}`;
       const { data: conversa, error } = await supabase
         .from('mokubico_conversas')
-        .insert({ host_id: user.id, banda_id: ub?.banda_id ?? null, space, title: title || null, livekit_room_name: roomName })
+        .insert({ host_id: user.id, banda_id: ub?.banda_id ?? null, space, title: title || null, livekit_room_name: roomName, media_enabled: mediaEnabled })
         .select('id')
         .single();
       if (error) throw error;
 
-      // Limit: Quarto is 1:1 (host + 1); other spaces cap at 8 (host + 7).
-      const guests = guestIds.slice(0, space === 'quarto' ? 1 : 7);
+      // Limits per space: Quarto 1:1 (host+1); Quintal huge (host+99, text);
+      // Sala/Cozinha up to 8 (host+7).
+      const cap = space === 'quarto' ? 1 : space === 'quintal' ? 99 : 7;
+      const guests = guestIds.slice(0, cap);
       if (guests.length > 0) {
         await supabase
           .from('mokubico_conversa_guests')

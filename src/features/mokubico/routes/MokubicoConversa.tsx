@@ -18,6 +18,7 @@ interface ConversaInfo {
   host_id: string;
   livekit_room_name: string;
   status: string;
+  media_enabled: boolean;
 }
 
 export default function MokubicoConversa() {
@@ -39,7 +40,7 @@ export default function MokubicoConversa() {
     if (!id) return;
     supabase
       .from('mokubico_conversas')
-      .select('title, space, host_id, livekit_room_name, status')
+      .select('title, space, host_id, livekit_room_name, status, media_enabled')
       .eq('id', id)
       .maybeSingle()
       .then(({ data }) => {
@@ -48,11 +49,12 @@ export default function MokubicoConversa() {
       });
   }, [id]);
 
-  // Join the voice room once we have access to a live conversa.
+  // Join the LiveKit room only when this conversa has voice/video enabled
+  // (a free Quintal is text-only → no media session at all).
   useEffect(() => {
-    if (state === 'ok' && conversa?.status === 'live') room.connect();
+    if (state === 'ok' && conversa?.status === 'live' && conversa?.media_enabled) room.connect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, conversa?.status]);
+  }, [state, conversa?.status, conversa?.media_enabled]);
 
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [room.messages.length]);
 
@@ -91,6 +93,7 @@ export default function MokubicoConversa() {
   }
 
   const ended = conversa?.status !== 'live';
+  const media = conversa?.media_enabled ?? true; // free Quintal = text-only
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -100,7 +103,12 @@ export default function MokubicoConversa() {
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-bold truncate">{conversa?.title || 'Conversa'}</h1>
           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <Users className="h-3 w-3" /> {room.peers.length || 1} · {room.connected ? 'ao vivo' : room.connecting ? 'a entrar…' : ended ? 'terminada' : 'offline'}
+            <Users className="h-3 w-3" />{' '}
+            {ended
+              ? 'terminada'
+              : !media
+                ? 'só texto'
+                : `${room.peers.length || 1} · ${room.connected ? 'ao vivo' : room.connecting ? 'a entrar…' : 'offline'}`}
           </p>
         </div>
         {isHost && !ended && (
@@ -108,8 +116,8 @@ export default function MokubicoConversa() {
         )}
       </header>
 
-      {/* Participants — others fill the strip; your own camera is a small
-          draggable self-view in the corner (FaceTime-style). */}
+      {/* Participants (voice/video) — only when media is enabled. */}
+      {media && (
       <div ref={stageRef} className="relative px-4 py-4 shrink-0 border-b border-border/50 min-h-[8.5rem]">
         {room.error ? (
           <p className="text-xs text-destructive text-center">{room.error}</p>
@@ -166,6 +174,7 @@ export default function MokubicoConversa() {
           </>
         )}
       </div>
+      )}
 
       {/* Text chat */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
@@ -205,25 +214,38 @@ export default function MokubicoConversa() {
         </div>
       ) : (
         <div className="p-3 border-t border-border flex items-center gap-2 shrink-0 safe-bottom">
-          <Button
-            size="icon"
-            variant={room.micOn ? 'secondary' : 'destructive'}
-            className="rounded-full h-11 w-11 shrink-0"
-            onClick={room.toggleMic}
-            disabled={!room.connected}
-          >
-            {room.micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-          </Button>
-          <Button
-            size="icon"
-            variant={room.camOn ? 'default' : 'secondary'}
-            className="rounded-full h-11 w-11 shrink-0"
-            onClick={room.toggleCamera}
-            disabled={!room.connected}
-            title={room.camOn ? 'Desligar câmara' : 'Ligar câmara'}
-          >
-            {room.camOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-          </Button>
+          {media ? (
+            <>
+              <Button
+                size="icon"
+                variant={room.micOn ? 'secondary' : 'destructive'}
+                className="rounded-full h-11 w-11 shrink-0"
+                onClick={room.toggleMic}
+                disabled={!room.connected}
+              >
+                {room.micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+              </Button>
+              <Button
+                size="icon"
+                variant={room.camOn ? 'default' : 'secondary'}
+                className="rounded-full h-11 w-11 shrink-0"
+                onClick={room.toggleCamera}
+                disabled={!room.connected}
+                title={room.camOn ? 'Desligar câmara' : 'Ligar câmara'}
+              >
+                {room.camOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+              </Button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => toast.info('Voz e vídeo no Quintal é uma funcionalidade Pro.')}
+              className="rounded-full h-11 px-3 shrink-0 flex items-center gap-1.5 bg-secondary text-muted-foreground text-xs font-medium"
+              title="Voz e vídeo é Pro"
+            >
+              <Lock className="h-4 w-4" /> Pro
+            </button>
+          )}
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}

@@ -27,6 +27,7 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
 
   // Quarto ("Só Nós") is intimate 1:1 — exactly one other person.
   const isQuarto = space === 'quarto';
+  const isQuintal = space === 'quintal';
   const MAX_GUESTS = isQuarto ? 1 : 7; // host + guests (8 people cap, 2 for Quarto)
 
   const reset = () => { setTitle(''); setGuests([]); };
@@ -110,6 +111,12 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
               </div>
             )}
           </div>
+
+          {isQuintal && (
+            <p className="text-[11px] text-muted-foreground bg-secondary/50 rounded-lg p-2.5 leading-relaxed">
+              🔒 No Quintal, a <b>voz e o vídeo</b> são <b>Pro</b>. Sem Pro, a conversa é <b>só de texto</b> (sem limite de pessoas).
+            </p>
+          )}
 
           <Button className="w-full h-12 rounded-xl" onClick={create} disabled={creating}>
             {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Abrir conversa'}

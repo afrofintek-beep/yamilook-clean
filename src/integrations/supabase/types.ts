@@ -2643,6 +2643,7 @@ export type Database = {
           host_id: string
           id: string
           livekit_room_name: string
+          media_enabled: boolean
           space: string
           started_at: string
           status: string
@@ -2655,6 +2656,7 @@ export type Database = {
           host_id: string
           id?: string
           livekit_room_name: string
+          media_enabled?: boolean
           space: string
           started_at?: string
           status?: string
@@ -2667,6 +2669,7 @@ export type Database = {
           host_id?: string
           id?: string
           livekit_room_name?: string
+          media_enabled?: boolean
           space?: string
           started_at?: string
           status?: string
@@ -3762,6 +3765,7 @@ export type Database = {
           photos_visibility:
             | Database["public"]["Enums"]["photos_visibility"]
             | null
+          plan: string
           profile_theme_color: string | null
           show_last_seen: boolean | null
           show_online_status: boolean | null
@@ -3807,6 +3811,7 @@ export type Database = {
           photos_visibility?:
             | Database["public"]["Enums"]["photos_visibility"]
             | null
+          plan?: string
           profile_theme_color?: string | null
           show_last_seen?: boolean | null
           show_online_status?: boolean | null
@@ -3852,6 +3857,7 @@ export type Database = {
           photos_visibility?:
             | Database["public"]["Enums"]["photos_visibility"]
             | null
+          plan?: string
           profile_theme_color?: string | null
           show_last_seen?: boolean | null
           show_online_status?: boolean | null
@@ -5882,6 +5888,7 @@ export type Database = {
           photos_visibility:
             | Database["public"]["Enums"]["photos_visibility"]
             | null
+          plan: string
           profile_theme_color: string | null
           show_last_seen: boolean | null
           show_online_status: boolean | null
