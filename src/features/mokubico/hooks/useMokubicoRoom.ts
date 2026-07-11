@@ -31,6 +31,8 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
   const [messages, setMessages] = useState<ConversaMessage[]>([]);
   // Each member's read cursor (userId → last_read_at ISO) for ✓/✓✓ receipts.
   const [reads, setReads] = useState<Record<string, string>>({});
+  // Participant avatars resolved by identity (= user id), which LiveKit omits.
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({});
 
   // --- Persistent text chat: initial fetch + realtime inserts ---
   useEffect(() => {
@@ -101,6 +103,17 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
     return () => { supabase.removeChannel(ch); };
   }, [conversaId]);
 
+  // Resolve participant avatars (identity = user id) whenever the set changes.
+  const peerIds = peers.map((p) => p.id).sort().join(',');
+  useEffect(() => {
+    const ids = peers.map((p) => p.id);
+    if (!ids.length) return;
+    supabase.rpc('get_public_profiles_by_ids', { p_ids: ids }).then(({ data }) => {
+      if (data) setAvatars((prev) => ({ ...prev, ...Object.fromEntries(data.map((p) => [p.id, p.avatar_url])) }));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peerIds]);
+
   // --- Group voice (LiveKit) ---
   const refreshPeers = useCallback((room: Room) => {
     const speaking = new Set(room.activeSpeakers.map((p) => p.identity));
@@ -169,5 +182,5 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
 
   useEffect(() => () => { roomRef.current?.disconnect(); roomRef.current = null; }, []);
 
-  return { connect, leave, toggleMic, sendMessage, connected, connecting, error, micOn, peers, messages, reads, selfId: user?.id ?? '' };
+  return { connect, leave, toggleMic, sendMessage, connected, connecting, error, micOn, peers, messages, reads, avatars, selfId: user?.id ?? '' };
 }

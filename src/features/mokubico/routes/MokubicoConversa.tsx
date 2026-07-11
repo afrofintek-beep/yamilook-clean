@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Loader2, Lock, Mic, MicOff, Send, PhoneOff, Users, Check, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMokubicoRoom } from '../hooks/useMokubicoRoom';
@@ -113,6 +113,7 @@ export default function MokubicoConversa() {
               <div key={p.id} className="flex flex-col items-center gap-1.5 w-16">
                 <div className={cn('rounded-full p-0.5 transition-colors', p.speaking ? 'ring-2 ring-green-500' : 'ring-2 ring-transparent')}>
                   <Avatar className="h-12 w-12">
+                    <AvatarImage src={room.avatars[p.id] ?? undefined} />
                     <AvatarFallback>{p.name.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </div>
