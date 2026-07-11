@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Loader2, Lock, Mic, MicOff, Send, PhoneOff, Users } from 'lucide-react';
+import { ArrowLeft, Loader2, Lock, Mic, MicOff, Send, PhoneOff, Users, Check, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMokubicoRoom } from '../hooks/useMokubicoRoom';
 import { toast } from 'sonner';
@@ -131,14 +131,28 @@ export default function MokubicoConversa() {
         {room.messages.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">Sê o primeiro a escrever.</p>
         ) : (
-          room.messages.map((m) => (
-            <div key={m.id} className={cn('flex flex-col', m.senderId === room.selfId ? 'items-end' : 'items-start')}>
-              <div className={cn('max-w-[80%] rounded-2xl px-3 py-1.5 text-sm', m.senderId === room.selfId ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
-                {m.senderId !== room.selfId && <div className="text-[10px] font-semibold opacity-70">{m.senderName}</div>}
-                {m.text}
+          room.messages.map((m) => {
+            const mine = m.senderId === room.selfId;
+            // Read when another member's cursor is at/after this message.
+            const readByOther = mine && Object.entries(room.reads).some(
+              ([uid, ts]) => uid !== room.selfId && ts >= m.createdAt,
+            );
+            return (
+              <div key={m.id} className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}>
+                <div className={cn('max-w-[80%] rounded-2xl px-3 py-1.5 text-sm', mine ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
+                  {!mine && <div className="text-[10px] font-semibold opacity-70">{m.senderName}</div>}
+                  {m.text}
+                </div>
+                {mine && (
+                  <span className="mt-0.5 mr-1" title={readByOther ? 'Lida' : 'Enviada'}>
+                    {readByOther
+                      ? <CheckCheck className="w-3.5 h-3.5 text-primary" />
+                      : <Check className="w-3.5 h-3.5 text-muted-foreground" />}
+                  </span>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={msgEndRef} />
       </div>

@@ -29,6 +29,8 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
   const [micOn, setMicOn] = useState(true);
   const [peers, setPeers] = useState<Peer[]>([]);
   const [messages, setMessages] = useState<ConversaMessage[]>([]);
+  // Each member's read cursor (userId → last_read_at ISO) for ✓/✓✓ receipts.
+  const [reads, setReads] = useState<Record<string, string>>({});
 
   // --- Persistent text chat: initial fetch + realtime inserts ---
   useEffect(() => {
@@ -70,6 +72,34 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
     });
     // Realtime echoes it back to us (deduped by id), so no optimistic append.
   }, [conversaId, user, profile]);
+
+  // --- Read receipts: mark my cursor, and track everyone's ---
+  useEffect(() => {
+    if (!conversaId || !user) return;
+    supabase.from('mokubico_conversa_reads').upsert(
+      { conversa_id: conversaId, user_id: user.id, last_read_at: new Date().toISOString() },
+      { onConflict: 'conversa_id,user_id' },
+    ).then(() => { /* fire and forget */ });
+  }, [conversaId, user, messages.length]);
+
+  useEffect(() => {
+    if (!conversaId) return;
+    supabase
+      .from('mokubico_conversa_reads')
+      .select('user_id, last_read_at')
+      .eq('conversa_id', conversaId)
+      .then(({ data }) => {
+        if (data) setReads(Object.fromEntries(data.map((r) => [r.user_id, r.last_read_at])));
+      });
+    const ch = supabase
+      .channel(`mok-reads-${conversaId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mokubico_conversa_reads', filter: `conversa_id=eq.${conversaId}` }, (payload) => {
+        const r = payload.new as { user_id: string; last_read_at: string } | undefined;
+        if (r?.user_id) setReads((prev) => ({ ...prev, [r.user_id]: r.last_read_at }));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [conversaId]);
 
   // --- Group voice (LiveKit) ---
   const refreshPeers = useCallback((room: Room) => {
@@ -139,5 +169,5 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
 
   useEffect(() => () => { roomRef.current?.disconnect(); roomRef.current = null; }, []);
 
-  return { connect, leave, toggleMic, sendMessage, connected, connecting, error, micOn, peers, messages, selfId: user?.id ?? '' };
+  return { connect, leave, toggleMic, sendMessage, connected, connecting, error, micOn, peers, messages, reads, selfId: user?.id ?? '' };
 }

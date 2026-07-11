@@ -2609,6 +2609,32 @@ export type Database = {
           },
         ]
       }
+      mokubico_conversa_reads: {
+        Row: {
+          conversa_id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          conversa_id: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          conversa_id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mokubico_conversa_reads_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "mokubico_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mokubico_conversas: {
         Row: {
           banda_id: string | null
