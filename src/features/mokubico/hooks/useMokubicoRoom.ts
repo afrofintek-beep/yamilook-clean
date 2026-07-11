@@ -16,6 +16,7 @@ interface Peer {
   id: string;
   name: string;
   speaking: boolean;
+  videoTrack?: Track;
 }
 
 /** Group voice (LiveKit) + persistent text chat (mokubico_messages + realtime)
@@ -27,6 +28,7 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(false);
   const [peers, setPeers] = useState<Peer[]>([]);
   const [messages, setMessages] = useState<ConversaMessage[]>([]);
   // Each member's read cursor (userId → last_read_at ISO) for ✓/✓✓ receipts.
@@ -118,7 +120,15 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
   const refreshPeers = useCallback((room: Room) => {
     const speaking = new Set(room.activeSpeakers.map((p) => p.identity));
     const all: Participant[] = [room.localParticipant, ...room.remoteParticipants.values()];
-    setPeers(all.map((p) => ({ id: p.identity, name: p.name || 'Alguém', speaking: speaking.has(p.identity) })));
+    setPeers(all.map((p) => {
+      const camPub = p.getTrackPublication(Track.Source.Camera);
+      return {
+        id: p.identity,
+        name: p.name || 'Alguém',
+        speaking: speaking.has(p.identity),
+        videoTrack: camPub && !camPub.isMuted ? camPub.track ?? undefined : undefined,
+      };
+    }));
   }, []);
 
   const getToken = useCallback(async (): Promise<{ token: string; url: string } | null> => {
@@ -145,11 +155,17 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
       if (!creds) throw new Error('Sem credenciais para entrar.');
       const room = new Room({ adaptiveStream: true, dynacast: true });
       roomRef.current = room;
+      const refresh = () => refreshPeers(room);
       room
-        .on(RoomEvent.ParticipantConnected, () => refreshPeers(room))
-        .on(RoomEvent.ParticipantDisconnected, () => refreshPeers(room))
-        .on(RoomEvent.ActiveSpeakersChanged, () => refreshPeers(room))
-        .on(RoomEvent.TrackSubscribed, (track) => { if (track.kind === Track.Kind.Audio) track.attach(); refreshPeers(room); })
+        .on(RoomEvent.ParticipantConnected, refresh)
+        .on(RoomEvent.ParticipantDisconnected, refresh)
+        .on(RoomEvent.ActiveSpeakersChanged, refresh)
+        .on(RoomEvent.TrackSubscribed, (track) => { if (track.kind === Track.Kind.Audio) track.attach(); refresh(); })
+        .on(RoomEvent.TrackUnsubscribed, refresh)
+        .on(RoomEvent.TrackMuted, refresh)
+        .on(RoomEvent.TrackUnmuted, refresh)
+        .on(RoomEvent.LocalTrackPublished, refresh)
+        .on(RoomEvent.LocalTrackUnpublished, refresh)
         .on(RoomEvent.Disconnected, () => setConnected(false));
       await room.connect(creds.url, creds.token);
       await room.localParticipant.setMicrophoneEnabled(true);
@@ -174,6 +190,15 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
     setMicOn(next);
   }, [micOn]);
 
+  const toggleCamera = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) return;
+    const next = !camOn;
+    await room.localParticipant.setCameraEnabled(next);
+    setCamOn(next);
+    refreshPeers(room);
+  }, [camOn, refreshPeers]);
+
   const leave = useCallback(() => {
     roomRef.current?.disconnect();
     roomRef.current = null;
@@ -182,5 +207,5 @@ export function useMokubicoRoom(conversaId: string | null, roomName: string | nu
 
   useEffect(() => () => { roomRef.current?.disconnect(); roomRef.current = null; }, []);
 
-  return { connect, leave, toggleMic, sendMessage, connected, connecting, error, micOn, peers, messages, reads, avatars, selfId: user?.id ?? '' };
+  return { connect, leave, toggleMic, toggleCamera, sendMessage, connected, connecting, error, micOn, camOn, peers, messages, reads, avatars, selfId: user?.id ?? '' };
 }

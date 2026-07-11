@@ -5,8 +5,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Loader2, Lock, Mic, MicOff, Send, PhoneOff, Users, Check, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Loader2, Lock, Mic, MicOff, Send, PhoneOff, Users, Check, CheckCheck, Video, VideoOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { VideoTrack } from '@/components/live/VideoTrack';
 import { useMokubicoRoom } from '../hooks/useMokubicoRoom';
 import { toast } from 'sonner';
 
@@ -108,16 +109,24 @@ export default function MokubicoConversa() {
         {room.error ? (
           <p className="text-xs text-destructive text-center">{room.error}</p>
         ) : (
-          <div className="flex flex-wrap gap-4 justify-center">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {room.peers.map((p) => (
-              <div key={p.id} className="flex flex-col items-center gap-1.5 w-16">
-                <div className={cn('rounded-full p-0.5 transition-colors', p.speaking ? 'ring-2 ring-green-500' : 'ring-2 ring-transparent')}>
-                  <Avatar className="h-12 w-12">
+              <div
+                key={p.id}
+                className={cn(
+                  'relative w-28 h-28 rounded-2xl overflow-hidden bg-muted flex items-center justify-center shrink-0 transition-shadow',
+                  p.speaking && 'ring-2 ring-green-500',
+                )}
+              >
+                {p.videoTrack ? (
+                  <VideoTrack track={p.videoTrack} muted={p.id === room.selfId} className="w-full h-full object-cover" />
+                ) : (
+                  <Avatar className="h-14 w-14">
                     <AvatarImage src={room.avatars[p.id] ?? undefined} />
                     <AvatarFallback>{p.name.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                </div>
-                <span className="text-[11px] text-muted-foreground truncate w-full text-center">
+                )}
+                <span className="absolute bottom-1 left-2 right-2 truncate text-[11px] text-white drop-shadow">
                   {p.id === room.selfId ? 'Tu' : p.name}
                 </span>
               </div>
@@ -173,6 +182,16 @@ export default function MokubicoConversa() {
             disabled={!room.connected}
           >
             {room.micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+          </Button>
+          <Button
+            size="icon"
+            variant={room.camOn ? 'default' : 'secondary'}
+            className="rounded-full h-11 w-11 shrink-0"
+            onClick={room.toggleCamera}
+            disabled={!room.connected}
+            title={room.camOn ? 'Desligar câmara' : 'Ligar câmara'}
+          >
+            {room.camOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
           </Button>
           <Input
             value={text}
