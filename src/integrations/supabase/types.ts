@@ -5961,6 +5961,10 @@ export type Database = {
       }
       is_moderator_or_admin: { Args: { p_user_id: string }; Returns: boolean }
       is_profile_owner: { Args: { profile_id: string }; Returns: boolean }
+      join_banda_by_location: {
+        Args: { p_city: string; p_country?: string; p_name: string }
+        Returns: string
+      }
       kumbu_award: {
         Args: {
           p_action_type: string

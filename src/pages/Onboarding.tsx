@@ -760,6 +760,20 @@ export default function Onboarding() {
         return;
       }
 
+      // Phase 0: turn the chosen neighborhood into a real banda membership
+      // (find-or-create the banda + activate it in user_bandas).
+      const bandaName = selectedNeighborhood === '__other__'
+        ? customNeighborhood.trim()
+        : selectedNeighborhood;
+      if (bandaName && selectedCity) {
+        const { error: bandaErr } = await supabase.rpc('join_banda_by_location', {
+          p_name: bandaName,
+          p_city: selectedCity,
+          p_country: selectedCountry || 'Angola',
+        });
+        if (bandaErr) logger.error('Error assigning banda', 'onboarding', bandaErr);
+      }
+
       justCompletedRef.current = true;
 
       // Refresh AuthContext profile so ProtectedRoute sees onboarding_completed=true
