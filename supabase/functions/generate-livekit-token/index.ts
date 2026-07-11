@@ -175,6 +175,9 @@ serve(async (req) => {
     }
     // Publish rights come from the DB (host), not a client-supplied flag.
     const dbIsHost = access.is_host === true;
+    // MOKUBICO conversas are group voice — everyone allowed in may talk. Live
+    // broadcasts stay host-only.
+    const canPublish = isMokubico ? true : dbIsHost;
 
     // Create grants based on role
     const grants: ClaimGrants = {
@@ -183,8 +186,8 @@ serve(async (req) => {
       video: {
         room: sanitizedRoomName,
         roomJoin: true,
-        canPublish: dbIsHost, // Only the real host can publish video/audio
-        canSubscribe: true, // Everyone allowed in can subscribe/watch
+        canPublish, // conversa: everyone talks; live: host only
+        canSubscribe: true, // Everyone allowed in can subscribe/hear
         canPublishData: true, // Everyone allowed in can send chat messages
         roomCreate: dbIsHost, // Only the real host can create rooms
       },
