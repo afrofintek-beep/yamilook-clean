@@ -3804,6 +3804,8 @@ export type Database = {
           kumbu_lifetime?: number
           last_seen?: string | null
           level?: string
+          latitude?: number | null
+          longitude?: number | null
           neighborhood?: string | null
           onboarding_completed?: boolean | null
           partner_user_id?: string | null
@@ -3850,6 +3852,8 @@ export type Database = {
           kumbu_lifetime?: number
           last_seen?: string | null
           level?: string
+          latitude?: number | null
+          longitude?: number | null
           neighborhood?: string | null
           onboarding_completed?: boolean | null
           partner_user_id?: string | null

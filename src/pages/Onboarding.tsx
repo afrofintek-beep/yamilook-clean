@@ -739,6 +739,14 @@ export default function Onboarding() {
           : (selectedNeighborhood || null);
       }
 
+      // Persist the captured GPS so the AFROLOC code can be generated from the
+      // real location (the DB trigger encodes it into CC-ZU-G10-X-Y). Without
+      // coordinates the code stays null — declared city/banda is not enough.
+      if (geoLocation) {
+        profileUpdate.latitude = geoLocation.lat;
+        profileUpdate.longitude = geoLocation.lng;
+      }
+
       if (finalAvatarUrl) {
         profileUpdate.avatar_url = finalAvatarUrl;
       }
