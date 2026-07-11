@@ -116,6 +116,17 @@ function installChunkLoadRecovery() {
 
 installChunkLoadRecovery();
 
+// When a newly-deployed service worker takes control (autoUpdate + clientsClaim),
+// reload once so the page runs the fresh deploy instead of stale cached chunks.
+if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+  let swReloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (swReloaded) return;
+    swReloaded = true;
+    window.location.reload();
+  });
+}
+
 // Render immediately for instant first paint
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
