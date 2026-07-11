@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,9 +28,12 @@ export default function MokubicoConversa() {
   const [conversa, setConversa] = useState<ConversaInfo | null>(null);
   const [text, setText] = useState('');
   const msgEndRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   const isHost = !!conversa && conversa.host_id === user?.id;
   const room = useMokubicoRoom(id ?? null, conversa?.livekit_room_name ?? null);
+  const self = room.peers.find((p) => p.id === room.selfId);
+  const others = room.peers.filter((p) => p.id !== room.selfId);
 
   useEffect(() => {
     if (!id) return;
@@ -104,35 +108,62 @@ export default function MokubicoConversa() {
         )}
       </header>
 
-      {/* Participants (voice) */}
-      <div className="px-4 py-4 shrink-0 border-b border-border/50">
+      {/* Participants — others fill the strip; your own camera is a small
+          draggable self-view in the corner (FaceTime-style). */}
+      <div ref={stageRef} className="relative px-4 py-4 shrink-0 border-b border-border/50 min-h-[8.5rem]">
         {room.error ? (
           <p className="text-xs text-destructive text-center">{room.error}</p>
         ) : (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {room.peers.map((p) => (
-              <div
-                key={p.id}
+          <>
+            <div className="flex gap-2 overflow-x-auto pb-1 pr-24">
+              {others.map((p) => (
+                <div
+                  key={p.id}
+                  className={cn(
+                    'relative w-28 h-28 rounded-2xl overflow-hidden bg-muted flex items-center justify-center shrink-0 transition-shadow',
+                    p.speaking && 'ring-2 ring-green-500',
+                  )}
+                >
+                  {p.videoTrack ? (
+                    <VideoTrack track={p.videoTrack} className="w-full h-full object-cover" />
+                  ) : (
+                    <Avatar className="h-14 w-14">
+                      <AvatarImage src={room.avatars[p.id] ?? undefined} />
+                      <AvatarFallback>{p.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  )}
+                  <span className="absolute bottom-1 left-2 right-2 truncate text-[11px] text-white drop-shadow">{p.name}</span>
+                </div>
+              ))}
+              {others.length === 0 && (
+                <p className="text-xs text-muted-foreground self-center">
+                  {room.connecting ? 'A entrar…' : 'À espera de mais pessoas…'}
+                </p>
+              )}
+            </div>
+
+            {self && (
+              <motion.div
+                drag
+                dragConstraints={stageRef}
+                dragMomentum={false}
                 className={cn(
-                  'relative w-28 h-28 rounded-2xl overflow-hidden bg-muted flex items-center justify-center shrink-0 transition-shadow',
-                  p.speaking && 'ring-2 ring-green-500',
+                  'absolute bottom-3 right-4 z-10 w-20 h-28 rounded-xl overflow-hidden bg-muted border-2 border-background shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing',
+                  self.speaking && 'ring-2 ring-green-500',
                 )}
               >
-                {p.videoTrack ? (
-                  <VideoTrack track={p.videoTrack} muted={p.id === room.selfId} className="w-full h-full object-cover" />
+                {self.videoTrack ? (
+                  <VideoTrack track={self.videoTrack} muted className="w-full h-full object-cover -scale-x-100" />
                 ) : (
-                  <Avatar className="h-14 w-14">
-                    <AvatarImage src={room.avatars[p.id] ?? undefined} />
-                    <AvatarFallback>{p.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={room.avatars[self.id] ?? undefined} />
+                    <AvatarFallback>{self.name.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 )}
-                <span className="absolute bottom-1 left-2 right-2 truncate text-[11px] text-white drop-shadow">
-                  {p.id === room.selfId ? 'Tu' : p.name}
-                </span>
-              </div>
-            ))}
-            {room.connecting && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground self-center" />}
-          </div>
+                <span className="absolute bottom-0.5 left-1.5 text-[10px] text-white drop-shadow">Tu</span>
+              </motion.div>
+            )}
+          </>
         )}
       </div>
 
