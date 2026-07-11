@@ -76,8 +76,8 @@ export function useOpenConversa() {
         .single();
       if (error) throw error;
 
-      // Limit: max 8 in a conversa → at most 7 invited guests (host + 7).
-      const guests = guestIds.slice(0, 7);
+      // Limit: Quarto is 1:1 (host + 1); other spaces cap at 8 (host + 7).
+      const guests = guestIds.slice(0, space === 'quarto' ? 1 : 7);
       if (guests.length > 0) {
         await supabase
           .from('mokubico_conversa_guests')

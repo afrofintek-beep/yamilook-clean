@@ -25,9 +25,17 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
   const [inviteOpen, setInviteOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
+  // Quarto ("Só Nós") is intimate 1:1 — exactly one other person.
+  const isQuarto = space === 'quarto';
+  const MAX_GUESTS = isQuarto ? 1 : 7; // host + guests (8 people cap, 2 for Quarto)
+
   const reset = () => { setTitle(''); setGuests([]); };
 
   const create = async () => {
+    if (isQuarto && guests.length !== 1) {
+      toast.info('No Quarto escolhes 1 pessoa (conversa só entre vocês).');
+      return;
+    }
     setCreating(true);
     try {
       const { id, existing } = await openConversa({ space, title: title.trim(), guestIds: guests.map((g) => g.id) });
@@ -42,10 +50,9 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
     }
   };
 
-  const MAX_GUESTS = 7; // host + 7 = 8 people
   const onGuests = (chosen: InvitedUser[]) => {
     if (chosen.length > MAX_GUESTS) {
-      toast.info(`Máximo ${MAX_GUESTS} convidados (8 pessoas na conversa).`);
+      toast.info(isQuarto ? 'O Quarto é só para 1 pessoa.' : `Máximo ${MAX_GUESTS} convidados (8 pessoas na conversa).`);
       setGuests(chosen.slice(0, MAX_GUESTS));
     } else {
       setGuests(chosen);
@@ -83,9 +90,11 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium">
-                  {guests.length === 0 ? 'Escolher pessoas' : `${guests.length} ${guests.length === 1 ? 'pessoa' : 'pessoas'}`}
+                  {guests.length === 0 ? (isQuarto ? 'Escolher 1 pessoa' : 'Escolher pessoas') : `${guests.length} ${guests.length === 1 ? 'pessoa' : 'pessoas'}`}
                 </div>
-                <div className="text-xs text-muted-foreground">Só quem escolheres pode entrar</div>
+                <div className="text-xs text-muted-foreground">
+                  {isQuarto ? 'Conversa só entre vocês os dois' : 'Só quem escolheres pode entrar'}
+                </div>
               </div>
             </button>
             {guests.length > 0 && (
@@ -107,7 +116,7 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
           </Button>
         </div>
 
-        <MokubicoInviteSheet open={inviteOpen} onOpenChange={setInviteOpen} selected={guests} onConfirm={onGuests} />
+        <MokubicoInviteSheet open={inviteOpen} onOpenChange={setInviteOpen} single={isQuarto} selected={guests} onConfirm={onGuests} />
       </SheetContent>
     </Sheet>
   );
