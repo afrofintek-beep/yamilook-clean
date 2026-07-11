@@ -55,7 +55,16 @@ export function useOpenConversa() {
     async ({ space, title, guestIds }: { space: string; title: string; guestIds: string[] }) => {
       if (!user) throw new Error('Not authenticated');
 
-      // The user's active banda, for context (nullable).
+      // Limit: one live conversa per host. If one's already open, reuse it.
+      const { data: existing } = await supabase
+        .from('mokubico_conversas')
+        .select('id')
+        .eq('host_id', user.id)
+        .eq('status', 'live')
+        .limit(1)
+        .maybeSingle();
+      if (existing) return { id: existing.id as string, existing: true };
+
       const { data: ub } = await supabase
         .from('user_bandas').select('banda_id').eq('user_id', user.id).eq('is_active', true).limit(1).maybeSingle();
 
@@ -67,12 +76,14 @@ export function useOpenConversa() {
         .single();
       if (error) throw error;
 
-      if (guestIds.length > 0) {
+      // Limit: max 8 in a conversa → at most 7 invited guests (host + 7).
+      const guests = guestIds.slice(0, 7);
+      if (guests.length > 0) {
         await supabase
           .from('mokubico_conversa_guests')
-          .insert(guestIds.map((uid) => ({ conversa_id: conversa.id, user_id: uid })));
+          .insert(guests.map((uid) => ({ conversa_id: conversa.id, user_id: uid })));
       }
-      return { id: conversa.id as string, roomName };
+      return { id: conversa.id as string, existing: false };
     },
     [user],
   );

@@ -30,14 +30,25 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
   const create = async () => {
     setCreating(true);
     try {
-      const { id } = await openConversa({ space, title: title.trim(), guestIds: guests.map((g) => g.id) });
+      const { id, existing } = await openConversa({ space, title: title.trim(), guestIds: guests.map((g) => g.id) });
       reset();
       onOpenChange(false);
+      if (existing) toast.info('Já tens uma conversa aberta — leva-te a ela.');
       navigate(`/mokubico/conversa/${id}`);
     } catch {
       toast.error('Não foi possível abrir a conversa.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const MAX_GUESTS = 7; // host + 7 = 8 people
+  const onGuests = (chosen: InvitedUser[]) => {
+    if (chosen.length > MAX_GUESTS) {
+      toast.info(`Máximo ${MAX_GUESTS} convidados (8 pessoas na conversa).`);
+      setGuests(chosen.slice(0, MAX_GUESTS));
+    } else {
+      setGuests(chosen);
     }
   };
 
@@ -96,7 +107,7 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
           </Button>
         </div>
 
-        <MokubicoInviteSheet open={inviteOpen} onOpenChange={setInviteOpen} selected={guests} onConfirm={setGuests} />
+        <MokubicoInviteSheet open={inviteOpen} onOpenChange={setInviteOpen} selected={guests} onConfirm={onGuests} />
       </SheetContent>
     </Sheet>
   );
