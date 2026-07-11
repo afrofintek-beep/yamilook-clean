@@ -28,7 +28,7 @@ export default function MokubicoConversa() {
   const msgEndRef = useRef<HTMLDivElement>(null);
 
   const isHost = !!conversa && conversa.host_id === user?.id;
-  const room = useMokubicoRoom(conversa?.livekit_room_name ?? null);
+  const room = useMokubicoRoom(id ?? null, conversa?.livekit_room_name ?? null);
 
   useEffect(() => {
     if (!id) return;

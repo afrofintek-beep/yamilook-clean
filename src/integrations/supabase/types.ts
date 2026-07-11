@@ -2648,6 +2648,41 @@ export type Database = {
         }
         Relationships: []
       }
+      mokubico_messages: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          id: string
+          sender_id: string
+          sender_name: string | null
+          text: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          sender_name?: string | null
+          text: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          sender_name?: string | null
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mokubico_messages_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "mokubico_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       muted_status_contacts: {
         Row: {
           created_at: string
@@ -5931,6 +5966,11 @@ export type Database = {
         Returns: Json
       }
       mark_message_read: { Args: { p_message_id: string }; Returns: undefined }
+      mokubico_conversa_host: { Args: { p_conversa: string }; Returns: string }
+      mokubico_is_guest: {
+        Args: { p_conversa: string; p_user: string }
+        Returns: boolean
+      }
       process_payout: {
         Args: { p_action: string; p_payout_id: string; p_reason?: string }
         Returns: Json
