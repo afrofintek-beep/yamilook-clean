@@ -2583,6 +2583,71 @@ export type Database = {
           },
         ]
       }
+      mokubico_conversa_guests: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mokubico_conversa_guests_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "mokubico_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mokubico_conversas: {
+        Row: {
+          banda_id: string | null
+          created_at: string
+          ended_at: string | null
+          host_id: string
+          id: string
+          livekit_room_name: string
+          space: string
+          started_at: string
+          status: string
+          title: string | null
+        }
+        Insert: {
+          banda_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          host_id: string
+          id?: string
+          livekit_room_name: string
+          space: string
+          started_at?: string
+          status?: string
+          title?: string | null
+        }
+        Update: {
+          banda_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          host_id?: string
+          id?: string
+          livekit_room_name?: string
+          space?: string
+          started_at?: string
+          status?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       muted_status_contacts: {
         Row: {
           created_at: string
@@ -5694,6 +5759,7 @@ export type Database = {
       }
       approve_mvp_candidate: { Args: { p_candidate_id: string }; Returns: Json }
       can_join_live_room: { Args: { p_room: string }; Returns: Json }
+      can_join_mokubico_room: { Args: { p_room: string }; Returns: Json }
       can_view_post: {
         Args: { p_owner: string; p_viewer: string; p_visibility: string }
         Returns: boolean

@@ -68,6 +68,7 @@ const PresentationPrint = lazy(() => import("./pages/PresentationPrint"));
 const UserAccountsManualPrint = lazy(() => import("./pages/UserAccountsManualPrint"));
 const MokubHome = lazy(() => import("./features/mokubico/routes/MokubHome"));
 const MokubicoSpace = lazy(() => import("./features/mokubico/routes/MokubicoSpace"));
+const MokubicoConversa = lazy(() => import("./features/mokubico/routes/MokubicoConversa"));
 
 // Academia da Banda
 const AcademiaHome = lazy(() => import("./features/academia/routes/AcademiaHome"));
@@ -285,6 +286,7 @@ function AnimatedRoutes() {
           <Route path="/academia/live/:sessionId" element={<ProtectedRoute><AcademiaLiveRoom /></ProtectedRoute>} />
           <Route path="/academia/mentor/:mentorId" element={<ProtectedRoute><MentorProfileScreen /></ProtectedRoute>} />
           <Route path="/academia/:sessionId" element={<ProtectedRoute><AcademiaSession /></ProtectedRoute>} />
+          <Route path="/mokubico/conversa/:id" element={<ProtectedRoute><MokubicoConversa /></ProtectedRoute>} />
           <Route path="/mokubico/:space" element={<ProtectedRoute><MokubicoSpace /></ProtectedRoute>} />
           <Route path="/papos" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

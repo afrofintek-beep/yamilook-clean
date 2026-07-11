@@ -1,33 +1,27 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { EmptyStateBack } from '@/components/common/EmptyStateBack';
-import { ArrowLeft, Radio } from 'lucide-react';
+import { ArrowLeft, Radio, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PalcoCard } from '../components/PalcoCard';
-import { GenderPromptCard } from '../components/GenderPromptCard';
+import { NewConversaSheet } from '../components/NewConversaSheet';
 import { SPACES, MOKUBICO_COPY } from '../copy';
-import { useSpaceRodas } from '../hooks/useMokubicoData';
-import { useAuth } from '@/hooks/useAuth';
+import { useSpaceConversas } from '../hooks/useMokubicoConversas';
 import BottomNav from '@/components/BottomNav';
 
 export default function MokubicoSpace() {
   const { space } = useParams<{ space: string }>();
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const queryClient = useQueryClient();
+  const [newOpen, setNewOpen] = useState(false);
 
   const config = SPACES.find((s) => s.key === space);
-  const { data: rodas = [], isLoading } = useSpaceRodas(space ?? '');
+  const { data: conversas = [], isLoading } = useSpaceConversas(space ?? '');
 
   if (!config) {
     return <EmptyStateBack message="Espaço não encontrado." fallbackRoute="/mokubico" />;
   }
 
-  const hasLive = rodas.some((p) => p.isLive);
-  // Legacy accounts with no gender on file can't be placed in the Cozinha das
-  // Sis — ask them to self-declare before showing the space.
-  const needsGender = config.key === 'cozinha' && !!profile && !profile.gender;
+  const hasLive = conversas.length > 0;
 
   return (
     <div className="flex min-h-screen-safe flex-col bg-background pb-[calc(11rem+env(safe-area-inset-bottom,0px))]">
@@ -55,53 +49,54 @@ export default function MokubicoSpace() {
         </div>
       </header>
 
-      {/* Rodas list */}
+      {/* Conversas list */}
       <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-3">
-        {needsGender ? (
-          <GenderPromptCard
-            onSaved={() => queryClient.invalidateQueries({ queryKey: ['mokubico-space-rodas'] })}
-          />
-        ) : isLoading ? (
+        {isLoading ? (
           <div className="space-y-3">
             {[1, 2].map((i) => (
-              <div key={i} className="h-32 rounded-xl bg-muted/30 animate-pulse" />
+              <div key={i} className="h-20 rounded-xl bg-muted/30 animate-pulse" />
             ))}
           </div>
-        ) : rodas.length === 0 ? (
+        ) : conversas.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
             <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center">
               <span className="text-2xl">{config.emoji}</span>
             </div>
             <p className="text-sm text-muted-foreground">{MOKUBICO_COPY.emptySpace}</p>
-            <p className="text-xs text-muted-foreground/70">{MOKUBICO_COPY.beFirst}</p>
+            <p className="text-xs text-muted-foreground/70">Abre a primeira conversa deste espaço.</p>
           </div>
         ) : (
-          rodas.map((r) => (
-            <PalcoCard
-              key={r.id}
-              palco={{
-                id: r.id,
-                title: r.title,
-                hostName: r.hostName,
-                listeners: r.listeners,
-                isLive: r.isLive,
-                palcoId: r.palcoId,
-              }}
-            />
+          conversas.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => navigate(`/mokubico/conversa/${c.id}`)}
+              className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:bg-secondary/40"
+            >
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Radio className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold truncate">{c.title}</div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {c.isHost ? 'A tua conversa' : c.hostName}
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full bg-primary/10 text-primary text-xs font-semibold px-3 py-1.5 flex items-center gap-1">
+                <Users className="h-3 w-3" /> Entrar
+              </span>
+            </button>
           ))
         )}
       </div>
 
       {/* Fixed bottom CTA */}
       <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px)+0.75rem)] left-0 right-0 z-40 p-4">
-        <Button
-          className="w-full rounded-full shadow-glow"
-          onClick={() => navigate(`/palco/create?space=${config.key}`)}
-        >
-          {MOKUBICO_COPY.openRoda}
+        <Button className="w-full rounded-full shadow-glow" onClick={() => setNewOpen(true)}>
+          Abrir conversa
         </Button>
       </div>
 
+      <NewConversaSheet open={newOpen} onOpenChange={setNewOpen} space={config.key} spaceTitle={config.title} />
       <BottomNav />
     </div>
   );
