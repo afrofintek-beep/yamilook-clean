@@ -5116,6 +5116,51 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_purchases: {
+        Row: {
+          amount_kwanza: number
+          created_at: string
+          fulfilled_at: string | null
+          id: string
+          merchant_ref: string | null
+          method: string | null
+          months: number
+          period: string
+          provider: string
+          provider_ref: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_kwanza: number
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          merchant_ref?: string | null
+          method?: string | null
+          months?: number
+          period?: string
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_kwanza?: number
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          merchant_ref?: string | null
+          method?: string | null
+          months?: number
+          period?: string
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       theme_suggestions: {
         Row: {
           city: string | null
@@ -6069,6 +6114,10 @@ export type Database = {
         Returns: string
       }
       fulfill_credit_purchase: {
+        Args: { p_provider_ref?: string; p_purchase_id: string }
+        Returns: Json
+      }
+      fulfill_pro_subscription: {
         Args: { p_provider_ref?: string; p_purchase_id: string }
         Returns: Json
       }

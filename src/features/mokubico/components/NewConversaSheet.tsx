@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { UserPlus, Loader2, X } from 'lucide-react';
 import { MokubicoInviteSheet, type InvitedUser } from './MokubicoInviteSheet';
 import { useOpenConversa } from '../hooks/useMokubicoConversas';
+import { SubscribeProSheet } from '@/components/mokubico/SubscribeProSheet';
+import { Crown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -23,6 +25,7 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
   const [title, setTitle] = useState('');
   const [guests, setGuests] = useState<InvitedUser[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [proOpen, setProOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
   // Quarto ("Só Nós") is intimate 1:1 — exactly one other person.
@@ -113,9 +116,18 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
           </div>
 
           {isQuintal && (
-            <p className="text-[11px] text-muted-foreground bg-secondary/50 rounded-lg p-2.5 leading-relaxed">
-              🔒 No Quintal, a <b>voz e o vídeo</b> são <b>Pro</b>. Sem Pro, a conversa é <b>só de texto</b> (sem limite de pessoas).
-            </p>
+            <div className="bg-secondary/50 rounded-lg p-2.5 space-y-2">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                🔒 No Quintal, a <b>voz e o vídeo</b> são <b>Pro</b>. Sem Pro, a conversa é <b>só de texto</b> (sem limite de pessoas).
+              </p>
+              <button
+                type="button"
+                onClick={() => setProOpen(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600"
+              >
+                <Crown className="w-3.5 h-3.5" /> Subir a Pro
+              </button>
+            </div>
           )}
 
           <Button className="w-full h-12 rounded-xl" onClick={create} disabled={creating}>
@@ -124,6 +136,7 @@ export function NewConversaSheet({ open, onOpenChange, space, spaceTitle }: Prop
         </div>
 
         <MokubicoInviteSheet open={inviteOpen} onOpenChange={setInviteOpen} single={isQuarto} selected={guests} onConfirm={onGuests} />
+        <SubscribeProSheet open={proOpen} onOpenChange={setProOpen} />
       </SheetContent>
     </Sheet>
   );
