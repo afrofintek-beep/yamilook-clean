@@ -529,6 +529,42 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_config: {
+        Row: {
+          currency: string
+          id: number
+          max_video_participants: number
+          pro_annual: number
+          pro_monthly: number
+          updated_at: string
+          updated_by: string | null
+          video_enabled: boolean
+          video_minutes_cap: number | null
+        }
+        Insert: {
+          currency?: string
+          id?: number
+          max_video_participants?: number
+          pro_annual?: number
+          pro_monthly?: number
+          updated_at?: string
+          updated_by?: string | null
+          video_enabled?: boolean
+          video_minutes_cap?: number | null
+        }
+        Update: {
+          currency?: string
+          id?: number
+          max_video_participants?: number
+          pro_annual?: number
+          pro_monthly?: number
+          updated_at?: string
+          updated_by?: string | null
+          video_enabled?: boolean
+          video_minutes_cap?: number | null
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string
@@ -3877,6 +3913,7 @@ export type Database = {
             | Database["public"]["Enums"]["photos_visibility"]
             | null
           plan: string
+          plan_expires_at: string | null
           profile_theme_color: string | null
           show_last_seen: boolean | null
           show_online_status: boolean | null
@@ -3925,6 +3962,7 @@ export type Database = {
             | Database["public"]["Enums"]["photos_visibility"]
             | null
           plan?: string
+          plan_expires_at?: string | null
           profile_theme_color?: string | null
           show_last_seen?: boolean | null
           show_online_status?: boolean | null
@@ -3973,6 +4011,7 @@ export type Database = {
             | Database["public"]["Enums"]["photos_visibility"]
             | null
           plan?: string
+          plan_expires_at?: string | null
           profile_theme_color?: string | null
           show_last_seen?: boolean | null
           show_online_status?: boolean | null
@@ -5926,6 +5965,7 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_billing_overview: { Args: never; Returns: Json }
       admin_create_academia_session: {
         Args: {
           _description: string
@@ -5938,8 +5978,48 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_list_pro_users: {
+        Args: never
+        Returns: {
+          display_name: string
+          id: string
+          plan_expires_at: string
+          username: string
+        }[]
+      }
+      admin_set_billing_config: {
+        Args: {
+          p_currency?: string
+          p_max_video_participants: number
+          p_pro_annual: number
+          p_pro_monthly: number
+          p_video_enabled: boolean
+          p_video_minutes_cap?: number
+        }
+        Returns: {
+          currency: string
+          id: number
+          max_video_participants: number
+          pro_annual: number
+          pro_monthly: number
+          updated_at: string
+          updated_by: string | null
+          video_enabled: boolean
+          video_minutes_cap: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_config"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_set_kumbu_available: {
         Args: { _amount: number; _user_id: string }
+        Returns: Json
+      }
+      admin_set_user_plan: {
+        Args: { p_months?: number; p_plan: string; p_user_id: string }
         Returns: Json
       }
       afroloc_b36zz: { Args: { n: number }; Returns: string }
@@ -6033,6 +6113,7 @@ export type Database = {
             | Database["public"]["Enums"]["photos_visibility"]
             | null
           plan: string
+          plan_expires_at: string | null
           profile_theme_color: string | null
           show_last_seen: boolean | null
           show_online_status: boolean | null
@@ -6104,6 +6185,7 @@ export type Database = {
         Returns: boolean
       }
       is_moderator_or_admin: { Args: { p_user_id: string }; Returns: boolean }
+      is_pro: { Args: { p_user?: string }; Returns: boolean }
       is_profile_owner: { Args: { profile_id: string }; Returns: boolean }
       join_banda_by_location: {
         Args: { p_city: string; p_country?: string; p_name: string }

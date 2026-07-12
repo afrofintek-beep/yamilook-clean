@@ -69,9 +69,10 @@ export function useOpenConversa() {
         .from('user_bandas').select('banda_id').eq('user_id', user.id).eq('is_active', true).limit(1).maybeSingle();
 
       // Quintal voice/video is a Pro feature; free Quintal is text-only. Other
-      // spaces include voice/video for free.
-      const { data: me } = await supabase.from('profiles').select('plan').eq('id', user.id).maybeSingle();
-      const isPro = me?.plan === 'pro';
+      // spaces include voice/video for free. is_pro respects the subscription
+      // expiry (an expired Pro no longer unlocks media).
+      const { data: proData } = await supabase.rpc('is_pro', {});
+      const isPro = proData === true;
       const mediaEnabled = space !== 'quintal' || isPro;
 
       const roomName = `mok-${user.id}-${Date.now()}`;
