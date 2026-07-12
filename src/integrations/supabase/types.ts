@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       academia_reservations: {
@@ -302,6 +277,53 @@ export type Database = {
           },
         ]
       }
+      administrative_divisions: {
+        Row: {
+          code: string
+          country_code: string
+          created_at: string | null
+          id: string
+          level: number
+          metadata: Json | null
+          name: string
+          name_norm: string | null
+          parent_code: string | null
+          parent_level: number | null
+        }
+        Insert: {
+          code: string
+          country_code: string
+          created_at?: string | null
+          id?: string
+          level: number
+          metadata?: Json | null
+          name: string
+          name_norm?: string | null
+          parent_code?: string | null
+          parent_level?: number | null
+        }
+        Update: {
+          code?: string
+          country_code?: string
+          created_at?: string | null
+          id?: string
+          level?: number
+          metadata?: Json | null
+          name?: string
+          name_norm?: string | null
+          parent_code?: string | null
+          parent_level?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administrative_divisions_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "afroloc_countries"
+            referencedColumns: ["iso"]
+          },
+        ]
+      }
       advertisements: {
         Row: {
           ad_type: Database["public"]["Enums"]["ad_type"]
@@ -425,6 +447,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      afroloc_banda_division: {
+        Row: {
+          banda_norm: string
+          best_effort: boolean
+          city: string
+          com_slug: string
+          country_code: string
+          is_municipality: boolean
+          mun_slug: string
+          prov_seg: string
+        }
+        Insert: {
+          banda_norm: string
+          best_effort?: boolean
+          city: string
+          com_slug: string
+          country_code: string
+          is_municipality?: boolean
+          mun_slug: string
+          prov_seg: string
+        }
+        Update: {
+          banda_norm?: string
+          best_effort?: boolean
+          city?: string
+          com_slug?: string
+          country_code?: string
+          is_municipality?: boolean
+          mun_slug?: string
+          prov_seg?: string
+        }
+        Relationships: []
+      }
+      afroloc_countries: {
+        Row: {
+          iso: string
+          name: string
+          nivel1_type: string | null
+          official_languages: string[] | null
+          spoken_languages: string[] | null
+        }
+        Insert: {
+          iso: string
+          name: string
+          nivel1_type?: string | null
+          official_languages?: string[] | null
+          spoken_languages?: string[] | null
+        }
+        Update: {
+          iso?: string
+          name?: string
+          nivel1_type?: string | null
+          official_languages?: string[] | null
+          spoken_languages?: string[] | null
+        }
+        Relationships: []
       }
       bandas: {
         Row: {
@@ -3757,7 +3836,9 @@ export type Database = {
           kumbu_available: number
           kumbu_lifetime: number
           last_seen: string | null
+          latitude: number | null
           level: string
+          longitude: number | null
           neighborhood: string | null
           onboarding_completed: boolean | null
           partner_user_id: string | null
@@ -3803,8 +3884,8 @@ export type Database = {
           kumbu_available?: number
           kumbu_lifetime?: number
           last_seen?: string | null
-          level?: string
           latitude?: number | null
+          level?: string
           longitude?: number | null
           neighborhood?: string | null
           onboarding_completed?: boolean | null
@@ -3851,8 +3932,8 @@ export type Database = {
           kumbu_available?: number
           kumbu_lifetime?: number
           last_seen?: string | null
-          level?: string
           latitude?: number | null
+          level?: string
           longitude?: number | null
           neighborhood?: string | null
           onboarding_completed?: boolean | null
@@ -5108,6 +5189,7 @@ export type Database = {
       }
       user_bandas: {
         Row: {
+          activated_at: string | null
           banda_id: string
           is_active: boolean
           joined_at: string
@@ -5115,6 +5197,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          activated_at?: string | null
           banda_id: string
           is_active?: boolean
           joined_at?: string
@@ -5122,6 +5205,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          activated_at?: string | null
           banda_id?: string
           is_active?: boolean
           joined_at?: string
@@ -5828,12 +5912,36 @@ export type Database = {
         Args: { _amount: number; _user_id: string }
         Returns: Json
       }
+      afroloc_b36zz: { Args: { n: number }; Returns: string }
+      afroloc_nom: {
+        Args: {
+          p_cc: string
+          p_lat: number
+          p_lng: number
+          p_mun: string
+          p_prov: string
+          p_zona: string
+        }
+        Returns: string
+      }
       approve_mvp_candidate: { Args: { p_candidate_id: string }; Returns: Json }
+      banda_residency: { Args: { p_user?: string }; Returns: Json }
       can_join_live_room: { Args: { p_room: string }; Returns: Json }
       can_join_mokubico_room: { Args: { p_room: string }; Returns: Json }
       can_view_post: {
         Args: { p_owner: string; p_viewer: string; p_visibility: string }
         Returns: boolean
+      }
+      change_banda: {
+        Args: {
+          p_city: string
+          p_country?: string
+          p_lat?: number
+          p_lng?: number
+          p_name: string
+          p_neighborhood?: string
+        }
+        Returns: Json
       }
       cleanup_old_signals: { Args: never; Returns: number }
       cleanup_stuck_calls: { Args: never; Returns: number }
@@ -5884,7 +5992,9 @@ export type Database = {
           kumbu_available: number
           kumbu_lifetime: number
           last_seen: string | null
+          latitude: number | null
           level: string
+          longitude: number | null
           neighborhood: string | null
           onboarding_completed: boolean | null
           partner_user_id: string | null
@@ -6242,9 +6352,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       account_status: ["active", "suspended", "deleted", "pending", "banned"],
@@ -6321,3 +6428,4 @@ export const Constants = {
     },
   },
 } as const
+

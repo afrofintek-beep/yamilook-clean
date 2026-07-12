@@ -30,12 +30,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Loader2, Check, Palette, Users, Globe, Lock } from 'lucide-react';
+import { Camera, Loader2, Check, Palette, Users, Globe, Lock, MapPin, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { BandaChangeSheet } from './BandaChangeSheet';
 
 type PhotosVisibility = 'everyone' | 'friends' | 'nobody';
 
@@ -84,9 +85,10 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: ProfileEditSheetProps) {
-  const { user, updateProfile, refreshProfile } = useAuth();
+  const { user, updateProfile, refreshProfile, profile: authProfile } = useAuth();
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
+  const [bandaOpen, setBandaOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [themeColor, setThemeColor] = useState(profile.profile_theme_color || '#6366f1');
@@ -368,6 +370,27 @@ export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: Prof
                 )}
               />
 
+              {/* Banda (neighborhood) */}
+              <div className="space-y-2 pt-4 border-t">
+                <Label className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> A minha banda
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setBandaOpen(true)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/50 text-left"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">
+                      {authProfile?.neighborhood || 'Definir a minha banda'}
+                      {authProfile?.city ? ` · ${authProfile.city}` : ''}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Mudaste-te? Atualiza aqui a tua vizinhança.</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
+              </div>
+
               {/* Privacy Settings */}
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="font-semibold">{t('settings.privacy') || 'Privacy'}</h3>
@@ -459,6 +482,17 @@ export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: Prof
             </form>
           </Form>
         </div>
+
+        <BandaChangeSheet
+          open={bandaOpen}
+          onOpenChange={setBandaOpen}
+          current={{
+            country_code: authProfile?.country_code ?? null,
+            city: authProfile?.city ?? null,
+            neighborhood: authProfile?.neighborhood ?? null,
+          }}
+          onChanged={async () => { await refreshProfile(); onUpdate(); }}
+        />
       </SheetContent>
     </Sheet>
   );
