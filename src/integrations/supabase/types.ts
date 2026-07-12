@@ -3402,6 +3402,36 @@ export type Database = {
           },
         ]
       }
+      podp_daily: {
+        Row: {
+          banda_id: string | null
+          created_at: string
+          day: string
+          dist_m: number | null
+          lat: number | null
+          lng: number | null
+          user_id: string
+        }
+        Insert: {
+          banda_id?: string | null
+          created_at?: string
+          day: string
+          dist_m?: number | null
+          lat?: number | null
+          lng?: number | null
+          user_id: string
+        }
+        Update: {
+          banda_id?: string | null
+          created_at?: string
+          day?: string
+          dist_m?: number | null
+          lat?: number | null
+          lng?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_archives: {
         Row: {
           created_at: string
@@ -6122,6 +6152,15 @@ export type Database = {
         Args: { p_conversa: string; p_user: string }
         Returns: boolean
       }
+      podp_check_in: {
+        Args: { p_accuracy?: number; p_lat: number; p_lng: number }
+        Returns: Json
+      }
+      podp_haversine_m: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
+      podp_streak: { Args: { p_user: string }; Returns: number }
       process_payout: {
         Args: { p_action: string; p_payout_id: string; p_reason?: string }
         Returns: Json

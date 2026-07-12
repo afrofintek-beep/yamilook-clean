@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { MapPin, Loader2, ShieldCheck, Home, Clock } from 'lucide-react';
+import { MapPin, Loader2, ShieldCheck, Home, Clock, Flame, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AFRICAN_LOCATIONS } from '@/lib/african-locations';
 import { NEIGHBORHOOD_COORDINATES } from '@/lib/neighborhood-coordinates';
@@ -23,6 +23,8 @@ interface Residency {
   status: 'none' | 'novo' | 'residente' | 'verificado';
   days?: number;
   activity?: number;
+  present_days_14?: number;
+  need_present?: number;
   next_change_at?: string;
   can_change_now?: boolean;
 }
@@ -51,7 +53,12 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [streak, setStreak] = useState<number | null>(null);
   const [residency, setResidency] = useState<Residency | null>(null);
+
+  const loadResidency = () =>
+    supabase.rpc('banda_residency', {}).then(({ data }) => setResidency((data as Residency) ?? null));
 
   useEffect(() => {
     if (!open) return;
@@ -59,8 +66,40 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
     setCity(current.city || '');
     setNeighborhood(current.neighborhood || '');
     setGps(null);
-    supabase.rpc('banda_residency', {}).then(({ data }) => setResidency((data as Residency) ?? null));
+    setStreak(null);
+    loadResidency();
   }, [open, current]);
+
+  const checkIn = async () => {
+    setChecking(true);
+    try {
+      const pos = await new Promise<GeolocationPosition>((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 }),
+      );
+      const { data, error } = await supabase.rpc('podp_check_in', {
+        p_lat: pos.coords.latitude,
+        p_lng: pos.coords.longitude,
+        p_accuracy: pos.coords.accuracy ?? null,
+      });
+      if (error) throw error;
+      const r = data as { ok: boolean; reason?: string; present?: boolean; already?: boolean; streak?: number };
+      if (!r.ok) {
+        toast.error(r.reason === 'no_home' ? 'Define primeiro a tua banda.'
+          : r.reason === 'low_accuracy' ? 'Sinal de GPS fraco — tenta ao ar livre.'
+          : 'Não foi possível fazer check-in.');
+        return;
+      }
+      if (!r.present) toast.error('Estás longe da tua banda — o check-in conta perto de casa.');
+      else if (r.already) toast.info('Já fizeste check-in hoje. 👍🏾');
+      else toast.success('Check-in feito! Presença registada. 🏡');
+      if (typeof r.streak === 'number') setStreak(r.streak);
+      await loadResidency();
+    } catch {
+      toast.error('Não foi possível obter a localização.');
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const countryData = useMemo(() => AFRICAN_LOCATIONS.find((l) => l.countryCode === country), [country]);
   const cities = countryData?.cities ?? [];
@@ -148,12 +187,51 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
                 <badge.icon className="w-3.5 h-3.5" /> {badge.label}
               </span>
             )}
-            {residency?.status === 'residente' && (
+            {residency && residency.status !== 'none' && residency.status !== 'verificado' && (
               <p className="text-[11px] text-muted-foreground">
-                Participa na banda (publica, entra em lives) para te tornares <b>residente verificado</b>.
+                Para <b>residente verificado</b>: 30 dias na banda, participar (posts/lives) e presença regular.
               </p>
             )}
           </div>
+
+          {/* PoDP — prova de presença na banda por check-in */}
+          {residency && residency.status !== 'none' && (
+            <div className="rounded-2xl border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-primary" /> Presença na banda
+                </div>
+                {(streak ?? 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs text-orange-600 font-medium">
+                    <Flame className="w-3.5 h-3.5" /> {streak} {streak === 1 ? 'dia' : 'dias'}
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <span>Últimos 14 dias</span>
+                  <span>{residency.present_days_14 ?? 0}/{residency.need_present ?? 8} dias</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{ width: `${Math.min(100, ((residency.present_days_14 ?? 0) / (residency.need_present ?? 8)) * 100)}%` }}
+                  />
+                </div>
+              </div>
+              <Button
+                type="button" variant="secondary"
+                className="w-full h-11 rounded-xl"
+                onClick={checkIn} disabled={checking}
+              >
+                {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4 mr-1" />}
+                Estou na minha banda
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Um check-in por dia, perto de casa, prova que vives mesmo aqui.
+              </p>
+            </div>
+          )}
 
           {/* Cooldown notice */}
           {residency?.can_change_now === false && nextChange && (
