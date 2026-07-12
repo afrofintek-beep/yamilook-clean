@@ -15,6 +15,7 @@ import {
   BadgeCheck
 } from 'lucide-react';
 import { useAdvertising, Advertisement, BusinessProfile, LocationMarket } from '@/hooks/useAdvertising';
+import { resolveAdAction } from '@/lib/ad-action';
 import { toast } from 'sonner';
 
 interface SponsoredPostCardProps {
@@ -55,8 +56,11 @@ export function SponsoredPostCard({ ad, userMarket, onAction }: SponsoredPostCar
 
   const handleCtaClick = () => {
     recordClick(ad.id, 'cta');
-    if (ad.cta_url) {
-      window.open(ad.cta_url, '_blank');
+    const action = resolveAdAction(ad);
+    if (action.kind === 'none') {
+      toast.info('Este anúncio ainda não tem link nem contacto.');
+    } else {
+      window.open(action.href!, '_blank', 'noopener,noreferrer');
     }
     onAction?.();
   };
@@ -141,7 +145,7 @@ export function SponsoredPostCard({ ad, userMarket, onAction }: SponsoredPostCar
 
         {/* Media - show ad media, fallback to business cover */}
         {(ad.media_url || business?.cover_image_url) && (
-          <div className="relative aspect-video bg-secondary">
+          <div className="relative aspect-video bg-secondary cursor-pointer" onClick={handleCtaClick}>
             <img
               src={ad.media_url || business?.cover_image_url || ''}
               alt={ad.title || business?.business_name || ''}
@@ -172,7 +176,7 @@ export function SponsoredPostCard({ ad, userMarket, onAction }: SponsoredPostCar
               onClick={handleCtaClick}
             >
               {ad.call_to_action}
-              {ad.cta_url && <ExternalLink className="w-4 h-4 ml-2" />}
+              {resolveAdAction(ad).kind !== 'none' && <ExternalLink className="w-4 h-4 ml-2" />}
             </Button>
           )}
         </div>

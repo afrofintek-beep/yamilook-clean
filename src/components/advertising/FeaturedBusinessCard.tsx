@@ -12,6 +12,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAdvertising, Advertisement, BusinessProfile, LocationMarket } from '@/hooks/useAdvertising';
+import { resolveAdAction } from '@/lib/ad-action';
+import { toast } from 'sonner';
 
 interface FeaturedBusinessCardProps {
   ad: Advertisement & { business?: BusinessProfile };
@@ -49,6 +51,12 @@ export function FeaturedBusinessCard({ ad, userMarket, compact = false, onAction
 
   const handleClick = () => {
     recordClick(ad.id, 'view_profile');
+    const action = resolveAdAction(ad);
+    if (action.kind === 'none') {
+      toast.info('Este negócio ainda não tem contacto disponível.');
+    } else {
+      window.open(action.href!, '_blank', 'noopener,noreferrer');
+    }
     onAction?.();
   };
 
