@@ -18,6 +18,33 @@ import { useLiveSessions } from './useLiveSessions';
 import { useLiveChat } from './useLiveChat';
 import type { LiveSession, StreamError, UseLiveStreamReturn } from './types';
 
+/** Turn a LiveKit/WebRTC failure (Error, DOMException, ConnectionError, plain
+ *  object or string) into a clear Portuguese message — the raw catch used to
+ *  collapse all of these into a useless "Unknown error". */
+function describeLiveError(error: unknown): string {
+  if (!error) return 'Não foi possível iniciar a transmissão. Tenta de novo.';
+  if (typeof error === 'string') return error;
+  const e = error as { message?: string; error?: string; reason?: unknown; name?: string };
+  const raw = e.message || e.error || (typeof e.reason === 'string' ? e.reason : '') || e.name || '';
+  const l = String(raw).toLowerCase();
+  if (l.includes('permission') || l.includes('notallowed')) return 'Sem permissão para a câmara/microfone. Autoriza no navegador e tenta de novo.';
+  if (l.includes('notreadable') || l.includes('in use') || l.includes('could not start') || l.includes('busy')) return 'A câmara está a ser usada por outra app (ex.: Zoom). Fecha-a e tenta de novo.';
+  if (l.includes('notfound') || l.includes('devices not found') || l.includes('no device')) return 'Não foi encontrada câmara ou microfone neste dispositivo.';
+  if (l.includes('connect') || l.includes('websocket') || l.includes('network') || l.includes('timeout') || l.includes('server') || l.includes('signal')) return 'Falha de ligação ao servidor de vídeo. Verifica a internet e tenta de novo.';
+  return raw ? String(raw) : 'Não foi possível iniciar a transmissão. Tenta de novo.';
+}
+
+/** LiveKit connect can fail transiently (cold edge, brief network blip). One
+ *  quick retry turns most of the ~5s "failed fast" sessions into a success. */
+async function connectWithRetry(room: Room, url: string, token: string): Promise<void> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { await room.connect(url, token); return; }
+    catch (e) { lastErr = e; if (attempt === 0) await new Promise((r) => setTimeout(r, 1000)); }
+  }
+  throw lastErr;
+}
+
 /**
  * Minimal structural type for enabling/disabling a media track. LiveKit's
  * LocalTrack exposes `mute`/`unmute`; some track implementations also expose a
@@ -148,7 +175,7 @@ export function useLiveStream(): UseLiveStreamReturn {
       roomRef.current = newRoom;
 
       const tracks = localTracks ?? (await createLocalTracks({ audio: true, video: true }));
-      await newRoom.connect(credentials.url, credentials.token);
+      await connectWithRetry(newRoom, credentials.url, credentials.token);
       for (const track of tracks) {
         await newRoom.localParticipant.publishTrack(track, { source: track.kind === Track.Kind.Video ? Track.Source.Camera : Track.Source.Microphone });
       }
@@ -172,8 +199,9 @@ export function useLiveStream(): UseLiveStreamReturn {
       if (createdSessionId) {
         await supabase.from('live_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', createdSessionId);
       }
-      if (!streamError) { setStreamError({ code: 'UNKNOWN', message: 'Failed to start stream', details: error instanceof Error ? error.message : 'Unknown' }); }
-      toast({ title: 'Failed to start stream', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
+      const friendly = describeLiveError(error);
+      if (!streamError) { setStreamError({ code: 'UNKNOWN', message: 'Failed to start stream', details: friendly }); }
+      toast({ title: 'Não foi possível abrir o Palco', description: friendly, variant: 'destructive' });
       return null;
     } finally {
       setLoading(false);
@@ -194,7 +222,7 @@ export function useLiveStream(): UseLiveStreamReturn {
       const newRoom = new Room({ adaptiveStream: true, dynacast: true });
       setupRoom(newRoom);
       roomRef.current = newRoom;
-      await newRoom.connect(credentials.url, credentials.token);
+      await connectWithRetry(newRoom, credentials.url, credentials.token);
 
       await supabase.from('live_participants').insert({ session_id: sessionId, user_id: user.id, role: 'viewer' });
 
@@ -210,7 +238,7 @@ export function useLiveStream(): UseLiveStreamReturn {
       return true;
     } catch (error) {
       logger.error('Error joining stream', 'live', error);
-      toast({ title: 'Failed to join stream', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
+      toast({ title: 'Não foi possível entrar na live', description: describeLiveError(error), variant: 'destructive' });
       return false;
     } finally {
       setLoading(false);
