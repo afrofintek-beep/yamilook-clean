@@ -25,7 +25,7 @@ interface Config {
 }
 interface Overview { active: number; expiring_7d: number; monthly_price: number; est_mrr: number; }
 interface ProUser { id: string; display_name: string; username: string; plan_expires_at: string | null; }
-interface Found { id: string; display_name: string; username: string; }
+interface Found { id: string; display_name: string; username: string; kyc_verified?: boolean; }
 interface Mentor { user_id: string; display_name: string; username: string; specialty: string | null; is_verified_mentor: boolean; }
 
 const fmtKz = (n: number) => `${n.toLocaleString('pt-PT')} Kz`;
@@ -102,7 +102,7 @@ export default function AdminBilling() {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('id, display_name, username')
+        .select('id, display_name, username, kyc_verified')
         .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
         .limit(8);
       setResults((data as Found[]) ?? []);
@@ -145,6 +145,20 @@ export default function AdminBilling() {
       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
   if (!isAdmin) return null;
+
+  const toggleKyc = async (userId: string, verified: boolean) => {
+    setBusyId(userId);
+    try {
+      const { error } = await supabase.rpc('admin_set_kyc_verified', { p_user: userId, p_verified: verified });
+      if (error) throw error;
+      toast.success(verified ? 'Identidade verificada (KYC).' : 'Verificação KYC retirada.');
+      setResults((rs) => rs.map((r) => (r.id === userId ? { ...r, kyc_verified: verified } : r)));
+    } catch {
+      toast.error('Não foi possível atualizar o KYC.');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const toggleMentor = async (userId: string, verified: boolean) => {
     setBusyId(userId);
@@ -269,11 +283,23 @@ export default function AdminBilling() {
             {results.map((r) => (
               <div key={r.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/40">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{r.display_name}</div>
+                  <div className="text-sm font-medium truncate flex items-center gap-1">
+                    {r.display_name}
+                    {r.kyc_verified && <BadgeCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                  </div>
                   <div className="text-xs text-muted-foreground truncate">@{r.username}</div>
                 </div>
+                <Button
+                  size="sm"
+                  variant={r.kyc_verified ? 'ghost' : 'outline'}
+                  className="h-8"
+                  disabled={busyId === r.id}
+                  onClick={() => toggleKyc(r.id, !r.kyc_verified)}
+                >
+                  {busyId === r.id ? <Loader2 className="w-4 h-4 animate-spin" /> : (r.kyc_verified ? 'KYC ✓' : 'Verificar KYC')}
+                </Button>
                 <Button size="sm" className="h-8" onClick={() => grant(r.id)} disabled={busyId === r.id}>
-                  {busyId === r.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Crown className="w-3.5 h-3.5 mr-1" /> Dar Pro</>}
+                  {busyId === r.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Crown className="w-3.5 h-3.5 mr-1" /> Pro</>}
                 </Button>
               </div>
             ))}
