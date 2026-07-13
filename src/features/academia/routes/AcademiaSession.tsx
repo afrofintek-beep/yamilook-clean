@@ -12,7 +12,6 @@ import { EmptyStateBack } from '@/components/common/EmptyStateBack';
 import { ACADEMIA_COPY } from '../copy';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { kumbuSpend, kumbuRefund } from '@/features/kumbu/kumbuApi';
 import { useSubmitAcademiaReview } from '../hooks/useAcademia';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -84,32 +83,13 @@ export default function AcademiaSession() {
   const reserveMutation = useMutation({
     mutationFn: async () => {
       if (!user || !sessionId) throw new Error('Not authenticated');
-
-      // Secure the seat first — the unique constraint guards double-booking.
-      const { error } = await supabase.from('academia_reservations').insert({
-        session_id: sessionId,
-        user_id: user.id,
-      });
+      // Atomic + server-authoritative: charges the learner and holds the Kumbu.
+      // The mentor is paid on completion (academia_complete). Guards double-book,
+      // full/past/own sessions.
+      const { data, error } = await supabase.rpc('academia_reserve', { p_session: sessionId });
       if (error) throw error;
-
-      // Premium sessions cost Kumbu — charge after the seat is reserved,
-      // rolling the reservation back if the balance is insufficient.
-      if (session?.isPremium && session.priceCoins > 0) {
-        const spend = await kumbuSpend({
-          amount: session.priceCoins,
-          source: 'academia',
-          referenceId: sessionId,
-          description: `Reserva: ${session.title}`,
-        });
-        if (!spend.success) {
-          await supabase
-            .from('academia_reservations')
-            .delete()
-            .eq('session_id', sessionId)
-            .eq('user_id', user.id);
-          throw new Error('kumbu_insufficient');
-        }
-      }
+      const r = data as { ok: boolean; reason?: string };
+      if (!r.ok) throw new Error(r.reason || 'reserve_failed');
     },
     onSuccess: () => {
       toast.success('Lugar reservado com sucesso!');
@@ -119,46 +99,29 @@ export default function AcademiaSession() {
       queryClient.invalidateQueries({ queryKey: ['kumbu-ledger'] });
     },
     onError: (err: unknown) => {
-      if (err instanceof Error && err.message === 'kumbu_insufficient') {
-        toast.error('Kumbu insuficiente para reservar esta sessão.');
-      } else if ((err as { code?: string } | null)?.code === '23505') {
-        toast.error('Já reservaste esta sessão.');
-      } else {
-        toast.error('Erro ao reservar. Tenta novamente.');
-      }
+      const reason = err instanceof Error ? err.message : '';
+      const msg: Record<string, string> = {
+        insufficient: 'Kumbu insuficiente para reservar esta sessão.',
+        already: 'Já reservaste esta sessão.',
+        full: 'Sessão lotada.',
+        past: 'Esta sessão já passou.',
+        closed: 'Esta sessão já foi encerrada.',
+        own_session: 'É a tua própria sessão.',
+      };
+      toast.error(msg[reason] ?? 'Erro ao reservar. Tenta novamente.');
     },
   });
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
       if (!user || !sessionId) throw new Error('Not authenticated');
-      const { error } = await supabase
-        .from('academia_reservations')
-        .delete()
-        .eq('session_id', sessionId)
-        .eq('user_id', user.id);
+      // Atomic: releases the seat and refunds the learner (academia_cancel).
+      const { data, error } = await supabase.rpc('academia_cancel', { p_session: sessionId });
       if (error) throw error;
-
-      // Premium sessions are charged on reserve — give the Kumbu back.
-      // kumbu_refund is idempotent (it nets ledger debits against prior
-      // refunds), so a double cancel never double-refunds. Best-effort:
-      // the reservation is already gone, so a refund hiccup must not fail
-      // the cancel.
-      if (session?.isPremium && session.priceCoins > 0) {
-        const refund = await kumbuRefund({
-          referenceId: sessionId,
-          source: 'academia',
-          description: `Reembolso: ${session.title}`,
-        });
-        if (refund.success && (refund.refunded ?? 0) > 0) {
-          return {
-            refunded: true,
-            amount: refund.refunded as number,
-            available: refund.available ?? null,
-          };
-        }
-      }
-      return { refunded: false, amount: 0, available: null };
+      const r = data as { ok: boolean; reason?: string; refunded?: number; available?: string | number | null };
+      if (!r.ok) throw new Error(r.reason || 'cancel_failed');
+      const amount = Number(r.refunded ?? 0);
+      return { refunded: amount > 0, amount, available: r.available != null ? Number(r.available) : null };
     },
     onSuccess: ({ refunded, amount, available }) => {
       toast.success(refunded ? 'Reserva cancelada. Kumbu devolvido.' : 'Reserva cancelada.');
@@ -200,6 +163,30 @@ export default function AcademiaSession() {
     onError: () => {
       toast.error('Erro ao cancelar. Tenta novamente.');
     },
+  });
+
+  // Mentor concludes the session → gets paid (price − platform fee) per
+  // attendee. Idempotent server-side (already-attended reservations aren't
+  // paid twice).
+  const completeMutation = useMutation({
+    mutationFn: async () => {
+      if (!sessionId) throw new Error('no_session');
+      const { data, error } = await supabase.rpc('academia_complete', { p_session: sessionId });
+      if (error) throw error;
+      const r = data as { ok: boolean; reason?: string; paid_to_mentor?: number };
+      if (!r.ok) throw new Error(r.reason || 'complete_failed');
+      return r;
+    },
+    onSuccess: (r) => {
+      toast.success((r?.paid_to_mentor ?? 0) > 0
+        ? `Sessão concluída. Recebeste ${r.paid_to_mentor} Kumbu. 🎓`
+        : 'Sessão concluída.');
+      queryClient.invalidateQueries({ queryKey: ['academia-session', sessionId] });
+      queryClient.invalidateQueries({ queryKey: ['academia-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['kumbu-ledger'] });
+      void refreshProfile();
+    },
+    onError: () => toast.error('Não foi possível concluir a sessão.'),
   });
 
   if (isLoading) {
@@ -365,6 +352,16 @@ export default function AcademiaSession() {
           {isLive ? (
             <Button variant="destructive" className="w-full rounded-full" onClick={() => navigate(`/academia/live/${session.id}`)}>
               {ACADEMIA_COPY.enter}
+            </Button>
+          ) : isMentor ? (
+            <Button
+              className="w-full rounded-full"
+              disabled={completeMutation.isPending || session.status === 'completed'}
+              onClick={() => completeMutation.mutate()}
+            >
+              {session.status === 'completed'
+                ? 'Sessão concluída'
+                : completeMutation.isPending ? 'A concluir…' : 'Concluir e receber'}
             </Button>
           ) : isReserved ? (
             <Button

@@ -18,19 +18,25 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          price_paid: number
           session_id: string
+          status: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          price_paid?: number
           session_id: string
+          status?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          price_paid?: number
           session_id?: string
+          status?: string
           user_id?: string
         }
         Relationships: [
@@ -531,6 +537,7 @@ export type Database = {
       }
       billing_config: {
         Row: {
+          academia_fee_percent: number
           currency: string
           id: number
           max_video_participants: number
@@ -542,6 +549,7 @@ export type Database = {
           video_minutes_cap: number | null
         }
         Insert: {
+          academia_fee_percent?: number
           currency?: string
           id?: number
           max_video_participants?: number
@@ -553,6 +561,7 @@ export type Database = {
           video_minutes_cap?: number | null
         }
         Update: {
+          academia_fee_percent?: number
           currency?: string
           id?: number
           max_video_participants?: number
@@ -6001,6 +6010,9 @@ export type Database = {
       }
     }
     Functions: {
+      academia_cancel: { Args: { p_session: string }; Returns: Json }
+      academia_complete: { Args: { p_session: string }; Returns: Json }
+      academia_reserve: { Args: { p_session: string }; Returns: Json }
       active_banda_id: { Args: { p_user: string }; Returns: string }
       add_group_member: {
         Args: {
@@ -6023,6 +6035,16 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_list_mentors: {
+        Args: never
+        Returns: {
+          display_name: string
+          is_verified_mentor: boolean
+          specialty: string
+          user_id: string
+          username: string
+        }[]
+      }
       admin_list_pro_users: {
         Args: never
         Returns: {
@@ -6042,6 +6064,7 @@ export type Database = {
           p_video_minutes_cap?: number
         }
         Returns: {
+          academia_fee_percent: number
           currency: string
           id: number
           max_video_participants: number
@@ -6063,6 +6086,10 @@ export type Database = {
         Args: { _amount: number; _user_id: string }
         Returns: Json
       }
+      admin_set_mentor_verified: {
+        Args: { p_user: string; p_verified: boolean }
+        Returns: Json
+      }
       admin_set_user_plan: {
         Args: { p_months?: number; p_plan: string; p_user_id: string }
         Returns: Json
@@ -6080,6 +6107,7 @@ export type Database = {
         Returns: string
       }
       approve_mvp_candidate: { Args: { p_candidate_id: string }; Returns: Json }
+      are_friends: { Args: { a: string; b: string }; Returns: boolean }
       banda_residency: { Args: { p_user?: string }; Returns: Json }
       can_join_live_room: { Args: { p_room: string }; Returns: Json }
       can_join_mokubico_room: { Args: { p_room: string }; Returns: Json }
@@ -6213,6 +6241,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved_live_guest: {
+        Args: { p_session: string; p_user: string }
+        Returns: boolean
+      }
       is_brada: {
         Args: { p_owner: string; p_viewer: string }
         Returns: boolean
@@ -6277,6 +6309,7 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: Json
       }
+      live_session_host_id: { Args: { p_session: string }; Returns: string }
       mark_message_read: { Args: { p_message_id: string }; Returns: undefined }
       mokubico_conversa_host: { Args: { p_conversa: string }; Returns: string }
       mokubico_is_guest: {
