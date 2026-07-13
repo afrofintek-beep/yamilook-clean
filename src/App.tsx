@@ -332,8 +332,11 @@ function AnimatedRoutes() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/help" element={<HelpCenter />} />
           <Route path="/join/:code" element={<JoinGroup />} />
+          {/* ONE shared LiveStreamProvider across the banda hub and the live
+              view so the host's room survives navigation (/banda → /live/:id).
+              Separate providers were unmounting the room mid-transition, which
+              ended the live the instant it opened. */}
           <Route
-            path="/live"
             element={
               <ProtectedRoute>
                 <LiveStreamProvider>
@@ -342,19 +345,10 @@ function AnimatedRoutes() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<LiveHub />} />
-            <Route path=":sessionId" element={<Live />} />
+            <Route path="/banda" element={<BandaHub />} />
+            <Route path="/live" element={<LiveHub />} />
+            <Route path="/live/:sessionId" element={<Live />} />
           </Route>
-          <Route
-            path="/banda"
-            element={
-              <ProtectedRoute>
-                <LiveStreamProvider>
-                  <BandaHub />
-                </LiveStreamProvider>
-              </ProtectedRoute>
-            }
-          />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/welcome" element={<PublicRoute><Welcome /></PublicRoute>} />
