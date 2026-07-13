@@ -541,6 +541,11 @@ export type Database = {
           currency: string
           id: number
           max_video_participants: number
+          payout_daily_cap: number
+          payout_hold_days: number
+          payout_max_per_request: number
+          payout_monthly_cap: number
+          payout_require_kyc: boolean
           pro_annual: number
           pro_monthly: number
           updated_at: string
@@ -553,6 +558,11 @@ export type Database = {
           currency?: string
           id?: number
           max_video_participants?: number
+          payout_daily_cap?: number
+          payout_hold_days?: number
+          payout_max_per_request?: number
+          payout_monthly_cap?: number
+          payout_require_kyc?: boolean
           pro_annual?: number
           pro_monthly?: number
           updated_at?: string
@@ -565,6 +575,11 @@ export type Database = {
           currency?: string
           id?: number
           max_video_participants?: number
+          payout_daily_cap?: number
+          payout_hold_days?: number
+          payout_max_per_request?: number
+          payout_monthly_cap?: number
+          payout_require_kyc?: boolean
           pro_annual?: number
           pro_monthly?: number
           updated_at?: string
@@ -3911,6 +3926,7 @@ export type Database = {
           kumbu_available: number
           kumbu_earned: number
           kumbu_lifetime: number
+          kyc_verified: boolean
           last_seen: string | null
           latitude: number | null
           level: string
@@ -3961,6 +3977,7 @@ export type Database = {
           kumbu_available?: number
           kumbu_earned?: number
           kumbu_lifetime?: number
+          kyc_verified?: boolean
           last_seen?: string | null
           latitude?: number | null
           level?: string
@@ -4011,6 +4028,7 @@ export type Database = {
           kumbu_available?: number
           kumbu_earned?: number
           kumbu_lifetime?: number
+          kyc_verified?: boolean
           last_seen?: string | null
           latitude?: number | null
           level?: string
@@ -6071,6 +6089,11 @@ export type Database = {
           currency: string
           id: number
           max_video_participants: number
+          payout_daily_cap: number
+          payout_hold_days: number
+          payout_max_per_request: number
+          payout_monthly_cap: number
+          payout_require_kyc: boolean
           pro_annual: number
           pro_monthly: number
           updated_at: string
@@ -6087,6 +6110,10 @@ export type Database = {
       }
       admin_set_kumbu_available: {
         Args: { _amount: number; _user_id: string }
+        Returns: Json
+      }
+      admin_set_kyc_verified: {
+        Args: { p_user: string; p_verified: boolean }
         Returns: Json
       }
       admin_set_mentor_verified: {
@@ -6182,6 +6209,7 @@ export type Database = {
           kumbu_available: number
           kumbu_earned: number
           kumbu_lifetime: number
+          kyc_verified: boolean
           last_seen: string | null
           latitude: number | null
           level: string
