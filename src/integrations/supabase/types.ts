@@ -1679,6 +1679,7 @@ export type Database = {
           created_at: string
           device_name: string | null
           device_type: string | null
+          fingerprint: string | null
           id: string
           ip_address: unknown
           is_current: boolean | null
@@ -1692,6 +1693,7 @@ export type Database = {
           created_at?: string
           device_name?: string | null
           device_type?: string | null
+          fingerprint?: string | null
           id?: string
           ip_address?: unknown
           is_current?: boolean | null
@@ -1705,6 +1707,7 @@ export type Database = {
           created_at?: string
           device_name?: string | null
           device_type?: string | null
+          fingerprint?: string | null
           id?: string
           ip_address?: unknown
           is_current?: boolean | null
@@ -6393,6 +6396,7 @@ export type Database = {
       }
       use_group_invite: { Args: { invite_code: string }; Returns: Json }
       user_is_participant: { Args: { conv_id: string }; Returns: boolean }
+      users_share_device: { Args: { a: string; b: string }; Returns: boolean }
       validate_mvp_access_code: { Args: { p_code: string }; Returns: Json }
     }
     Enums: {

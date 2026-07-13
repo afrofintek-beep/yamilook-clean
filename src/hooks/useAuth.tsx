@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode, useRef, useC
 import { User, Session, AuthError, Provider } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { recordDevice } from '@/lib/device';
 
 interface Profile {
   id: string;
@@ -179,6 +180,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const profileData = await fetchProfile(session.user.id);
             setProfile(profileData);
           }, 0);
+          // Record the device (anti-collusion signal) on sign-in. Best-effort.
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+            void recordDevice(session.user.id);
+          }
         } else {
           setProfile(null);
         }
