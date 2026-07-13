@@ -3909,6 +3909,7 @@ export type Database = {
           is_online: boolean | null
           is_verified: boolean | null
           kumbu_available: number
+          kumbu_earned: number
           kumbu_lifetime: number
           last_seen: string | null
           latitude: number | null
@@ -3958,6 +3959,7 @@ export type Database = {
           is_online?: boolean | null
           is_verified?: boolean | null
           kumbu_available?: number
+          kumbu_earned?: number
           kumbu_lifetime?: number
           last_seen?: string | null
           latitude?: number | null
@@ -4007,6 +4009,7 @@ export type Database = {
           is_online?: boolean | null
           is_verified?: boolean | null
           kumbu_available?: number
+          kumbu_earned?: number
           kumbu_lifetime?: number
           last_seen?: string | null
           latitude?: number | null
@@ -6177,6 +6180,7 @@ export type Database = {
           is_online: boolean | null
           is_verified: boolean | null
           kumbu_available: number
+          kumbu_earned: number
           kumbu_lifetime: number
           last_seen: string | null
           latitude: number | null
