@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,6 +18,8 @@ interface PendingRow {
 export function LivePendingRequests({ sessionId }: { sessionId: string }) {
   const [pending, setPending] = useState<PendingRow[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
+  // user_ids already seen — so we alert the host only about NEW requests.
+  const seenRef = useRef<Set<string> | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -25,18 +27,26 @@ export function LivePendingRequests({ sessionId }: { sessionId: string }) {
       .select('id, user_id')
       .eq('session_id', sessionId)
       .eq('status', 'pending');
-    if (!data?.length) { setPending([]); return; }
+    if (!data?.length) { setPending([]); seenRef.current = new Set(); return; }
 
     const ids = data.map((r) => r.user_id);
     const { data: profiles } = await supabase.rpc('get_public_profiles_by_ids', { p_ids: ids });
     const map = new Map<string, { display_name: string; avatar_url: string | null }>();
     for (const p of profiles ?? []) map.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url });
-    setPending(data.map((r) => ({
+    const list: PendingRow[] = data.map((r) => ({
       id: r.id,
       user_id: r.user_id,
       name: map.get(r.user_id)?.display_name || 'Alguém',
       avatar_url: map.get(r.user_id)?.avatar_url ?? null,
-    })));
+    }));
+    // Notify the host about newly-arrived requests (not on the first load).
+    if (seenRef.current) {
+      for (const r of list) {
+        if (!seenRef.current.has(r.user_id)) toast.info(`${r.name} pediu para entrar na live.`);
+      }
+    }
+    seenRef.current = new Set(list.map((r) => r.user_id));
+    setPending(list);
   }, [sessionId]);
 
   useEffect(() => {
