@@ -40,7 +40,9 @@ export function SessionCard({
   priceCoins,
   onPress,
 }: SessionCardProps) {
-  const isEnded = status === 'ended';
+  // 'completed' (sessão dada) e 'cancelled' também são estados terminais —
+  // não devem aparecer como reserváveis.
+  const isEnded = status === 'ended' || status === 'completed' || status === 'cancelled';
 
   // Registration deadline logic
   const now = new Date();

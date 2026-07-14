@@ -214,7 +214,7 @@ export default function AcademiaSession() {
   }
 
   const isLive = session.status === 'live';
-  const isEnded = session.status === 'ended';
+  const isEnded = session.status === 'ended' || session.status === 'completed' || session.status === 'cancelled';
   const isReserved = !!myReservation;
   const isMentor = user?.id === session.mentorId;
   const isFull = session.spotsLeft <= 0;
