@@ -127,6 +127,33 @@ if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
   });
 }
 
+// PWA: regista o service worker (modo autoUpdate) e FORÇA a procura de novas
+// versões — à carga, de hora a hora, e sempre que a app volta ao primeiro plano.
+// Sem isto, um PWA que fica sempre aberto no telemóvel nunca chama update() e
+// fica preso a um build antigo em cache (o autoUpdate/skipWaiting só dispara
+// quando um SW novo é detetado). Não corre em iframe (previews de dev).
+async function setupPwaAutoUpdate() {
+  if (isInIframe) return;
+  try {
+    const { registerSW } = await import("virtual:pwa-register");
+    registerSW({
+      immediate: true,
+      onRegisteredSW(_swUrl, reg) {
+        if (!reg) return;
+        const check = () => reg.update().catch(() => {});
+        setInterval(check, 60 * 60 * 1000); // de hora a hora
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") check(); // ao voltar ao 1º plano
+        });
+      },
+    });
+  } catch {
+    // ambiente sem PWA (ex.: dev sem devOptions) — ignora
+  }
+}
+
+void setupPwaAutoUpdate();
+
 // Render immediately for instant first paint
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
