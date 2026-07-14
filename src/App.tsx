@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { OnlineStatusTracker } from "@/components/OnlineStatusTracker";
 import { LiveStreamProvider } from "@/components/live/LiveStreamProvider";
 import { GlobalMessageNotifier } from "@/components/GlobalMessageNotifier";
+import { GlobalLiveInviteNotifier } from "@/components/GlobalLiveInviteNotifier";
 import { KumbuEarnNotifier } from "@/components/KumbuEarnNotifier";
 import ThemeSync from "@/components/ThemeSync";
 
@@ -415,6 +416,7 @@ function AppContent() {
 
       <OnlineStatusTracker />
       <GlobalMessageNotifier />
+      <GlobalLiveInviteNotifier />
       <KumbuEarnNotifier />
       <ThemeSync />
       <ActiveCallProvider>
