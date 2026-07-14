@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 import { getNearestCountry } from '@/lib/african-locations';
+import { snapToGrid } from '@/lib/geo-privacy';
 
 // Find nearest city from coordinates
 function detectLocationFromCoords(lat: number, lng: number): { city: string } {
@@ -51,8 +52,9 @@ export function RitmosFeed() {
     if (!hasDetectedLocation && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
-          const location = detectLocationFromCoords(latitude, longitude);
+          // Snap to ~10m grid cell immediately — precise coords must never flow further
+          const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
+          const location = detectLocationFromCoords(_cell.lat, _cell.lng);
           setCurrentCity(location.city);
           fetchRitmos(location.city);
           setHasDetectedLocation(true);

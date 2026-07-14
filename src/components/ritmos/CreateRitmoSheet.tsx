@@ -41,6 +41,7 @@ import {
 } from '@/lib/african-locations';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { snapToGrid } from '@/lib/geo-privacy';
 
 interface CreateRitmoSheetProps {
   open: boolean;
@@ -124,7 +125,10 @@ export function CreateRitmoSheet({ open, onOpenChange }: CreateRitmoSheetProps) 
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
+        // Snap to ~10m grid cell immediately — precise coords must never flow further
+        const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
+        const latitude = _cell.lat;
+        const longitude = _cell.lng;
         const detectedCountry = getNearestCountry(latitude, longitude);
         
         if (detectedCountry) {

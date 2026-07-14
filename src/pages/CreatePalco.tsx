@@ -42,6 +42,7 @@ import { toast } from 'sonner';
 import { useCurrencyRates, CurrencyRate } from '@/hooks/useCurrencyRates';
 import { getNearestCountry } from '@/lib/african-locations';
 import { getCurrencyForCountry } from '@/lib/country-currency-map';
+import { snapToGrid } from '@/lib/geo-privacy';
 import {
   Select,
   SelectContent,
@@ -168,7 +169,9 @@ export default function CreatePalco() {
       
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
+          const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
+          const latitude = _cell.lat;
+          const longitude = _cell.lng;
           console.log('[GPS] Coordinates obtained:', { latitude, longitude });
           
           const country = getNearestCountry(latitude, longitude);

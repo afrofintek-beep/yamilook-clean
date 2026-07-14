@@ -26,6 +26,7 @@ import { format, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { snapToGrid } from '@/lib/geo-privacy';
 
 interface CreateAdSheetProps {
   open: boolean;
@@ -88,7 +89,8 @@ export function CreateAdSheet({ open, onOpenChange, preselectedPostId }: CreateA
     setDetectingLocation(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const nearest = findNearestMarket(position.coords.latitude, position.coords.longitude);
+        const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
+        const nearest = findNearestMarket(_cell.lat, _cell.lng);
         if (nearest) {
           setSelectedMarket(nearest);
         }

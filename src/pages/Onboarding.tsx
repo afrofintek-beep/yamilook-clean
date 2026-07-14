@@ -41,6 +41,7 @@ import YamilookLogo from '@/components/brand/YamilookLogo';
 import { triggerCelebrationConfetti } from '@/lib/confetti';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import { snapToGrid } from '@/lib/geo-privacy';
 import { Link } from 'react-router-dom';
 
  // Import onboarding illustrations
@@ -265,9 +266,10 @@ export default function Onboarding() {
         });
       });
 
+      const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
       const coords = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
+        lat: _cell.lat,
+        lng: _cell.lng,
       };
       setGeoLocation(coords);
       
@@ -455,9 +457,10 @@ export default function Onboarding() {
           });
         });
         
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        
+        const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
+        const lat = _cell.lat;
+        const lng = _cell.lng;
+
         // Get all distances for this reading
         const allDistances = getDistancesToAllNeighborhoods(lat, lng, selectedCountry, selectedCity);
         const top5 = allDistances.slice(0, 5);

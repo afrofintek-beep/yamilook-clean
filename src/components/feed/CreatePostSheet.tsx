@@ -43,6 +43,7 @@ import { AFRICAN_REACTIONS } from '@/lib/reactions';
 import { TopicSelector } from './TopicSelector';
 import { VideoEditor } from './VideoEditor';
 import { supabase } from '@/integrations/supabase/client';
+import { snapToGrid } from '@/lib/geo-privacy';
 
 // African-inspired emoji set for Yamilook
 const AFRICAN_EMOJIS = [
@@ -115,8 +116,11 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        // Snap to ~10m grid cell immediately — precise coords must never flow further
+        const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
+        const latitude = _cell.lat;
+        const longitude = _cell.lng;
         try {
-          const { latitude, longitude } = position.coords;
           // Use reverse geocoding to get location name
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=14&addressdetails=1`
@@ -148,7 +152,6 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
           });
         } catch (error) {
           console.error('Error getting location name:', error);
-          const { latitude, longitude } = position.coords;
           setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
         } finally {
           setIsGettingLocation(false);

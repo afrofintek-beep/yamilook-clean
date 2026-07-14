@@ -17,6 +17,7 @@ import { usePosts, PostWithUser, Topic } from '@/hooks/usePosts';
 import { useAdvertising, LocationMarket } from '@/hooks/useAdvertising';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { snapToGrid } from '@/lib/geo-privacy';
 import { cn } from '@/lib/utils';
 
 interface DiscoverUser {
@@ -114,7 +115,9 @@ export default function Discover() {
         if (result.state === 'granted') {
           navigator.geolocation.getCurrentPosition(
             (position) => {
-              const { latitude, longitude } = position.coords;
+              const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
+              const latitude = _cell.lat;
+              const longitude = _cell.lng;
               let nearest: LocationMarket | undefined;
               let minDist = Infinity;
               for (const market of locationMarkets) {

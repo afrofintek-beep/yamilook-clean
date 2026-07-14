@@ -11,6 +11,7 @@ import { AFRICAN_LOCATIONS } from '@/lib/african-locations';
 import { NEIGHBORHOOD_COORDINATES } from '@/lib/neighborhood-coordinates';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { snapToGrid } from '@/lib/geo-privacy';
 
 interface Props {
   open: boolean;
@@ -76,9 +77,10 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
       const pos = await new Promise<GeolocationPosition>((res, rej) =>
         navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 }),
       );
+      const _cell = snapToGrid(pos.coords.latitude, pos.coords.longitude);
       const { data, error } = await supabase.rpc('podp_check_in', {
-        p_lat: pos.coords.latitude,
-        p_lng: pos.coords.longitude,
+        p_lat: _cell.lat,
+        p_lng: _cell.lng,
         p_accuracy: pos.coords.accuracy ?? null,
       });
       if (error) throw error;
@@ -118,7 +120,8 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
       const pos = await new Promise<GeolocationPosition>((res, rej) =>
         navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 }),
       );
-      setGps({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      const _cell = snapToGrid(pos.coords.latitude, pos.coords.longitude);
+      setGps({ lat: _cell.lat, lng: _cell.lng });
       toast.success('Localização captada.');
     } catch {
       toast.error('Não foi possível obter a localização.');

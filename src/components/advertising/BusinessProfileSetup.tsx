@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Building2, MapPin, Phone, Mail, Globe, Loader2, CheckCircle2, Sparkles } from 'lucide-react';
 import { useAdvertising, BusinessProfile, LocationMarket } from '@/hooks/useAdvertising';
 import { useTranslation } from 'react-i18next';
+import { snapToGrid } from '@/lib/geo-privacy';
 
 interface BusinessProfileSetupProps {
   open: boolean;
@@ -87,17 +88,18 @@ export function BusinessProfileSetup({ open, onOpenChange, onComplete }: Busines
     setDetectingLocation(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLatitude(position.coords.latitude);
-        setLongitude(position.coords.longitude);
-        
+        const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
+        setLatitude(_cell.lat);
+        setLongitude(_cell.lng);
+
         // Find nearest market
         let nearestMarket: LocationMarket | null = null;
         let minDistance = Infinity;
-        
+
         locationMarkets.forEach(market => {
           const distance = Math.sqrt(
-            Math.pow(position.coords.latitude - market.latitude, 2) +
-            Math.pow(position.coords.longitude - market.longitude, 2)
+            Math.pow(_cell.lat - market.latitude, 2) +
+            Math.pow(_cell.lng - market.longitude, 2)
           );
           if (distance < minDistance) {
             minDistance = distance;

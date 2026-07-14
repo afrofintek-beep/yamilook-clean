@@ -23,6 +23,7 @@ import YamilookLogo from '@/components/brand/YamilookLogo';
 import { useCurrencyRates } from '@/hooks/useCurrencyRates';
 import { getNearestCountry } from '@/lib/african-locations';
 import { getCurrencyForCountry } from '@/lib/country-currency-map';
+import { snapToGrid } from '@/lib/geo-privacy';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 // Sample questions for display
@@ -81,7 +82,9 @@ export default function PalcoDiscover() {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           clearTimeout(timeout);
-          const { latitude, longitude } = position.coords;
+          const _cell = snapToGrid(position.coords.latitude, position.coords.longitude);
+          const latitude = _cell.lat;
+          const longitude = _cell.lng;
           const country = getNearestCountry(latitude, longitude);
           
           if (country) {
