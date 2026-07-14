@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, HelpCircle, History, Trophy, Sparkles, ChevronRight, Banknote } from 'lucide-react';
+import { ArrowLeft, HelpCircle, History, Trophy, Sparkles, ChevronRight, Banknote, Coins } from 'lucide-react';
 import KumbuBalanceCard from '../components/KumbuBalanceCard';
 import KumbuHowToEarn from '../components/KumbuHowToEarn';
+import { BuyKumbuSheet } from '../components/BuyKumbuSheet';
 import { TAGLINE_FULL } from '../copy';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +14,7 @@ export default function KumbuWallet() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showHelp, setShowHelp] = useState(false);
+  const [buyOpen, setBuyOpen] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
 
   // Approved creators withdraw (payout); everyone else sees the apply CTA.
@@ -45,6 +47,14 @@ export default function KumbuWallet() {
 
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
         <KumbuBalanceCard />
+
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setBuyOpen(true)}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white font-semibold shadow-sm"
+        >
+          <Coins className="h-5 w-5" /> Comprar Kumbu
+        </motion.button>
 
         <div className="flex gap-2">
           <motion.button
@@ -93,6 +103,7 @@ export default function KumbuWallet() {
       </main>
 
       <KumbuHowToEarn open={showHelp} onOpenChange={setShowHelp} />
+      <BuyKumbuSheet open={buyOpen} onOpenChange={setBuyOpen} />
     </div>
   );
 }

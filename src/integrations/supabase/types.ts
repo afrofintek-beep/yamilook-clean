@@ -1985,6 +1985,48 @@ export type Database = {
         }
         Relationships: []
       }
+      kumbu_purchases: {
+        Row: {
+          amount_kwanza: number
+          created_at: string
+          fulfilled_at: string | null
+          id: string
+          kumbu: number
+          merchant_ref: string | null
+          method: string | null
+          provider: string
+          provider_ref: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_kwanza: number
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          kumbu: number
+          merchant_ref?: string | null
+          method?: string | null
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_kwanza?: number
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          kumbu?: number
+          merchant_ref?: string | null
+          method?: string | null
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       live_access: {
         Row: {
           created_at: string
@@ -6175,6 +6217,10 @@ export type Database = {
         Returns: string
       }
       fulfill_credit_purchase: {
+        Args: { p_provider_ref?: string; p_purchase_id: string }
+        Returns: Json
+      }
+      fulfill_kumbu_purchase: {
         Args: { p_provider_ref?: string; p_purchase_id: string }
         Returns: Json
       }
