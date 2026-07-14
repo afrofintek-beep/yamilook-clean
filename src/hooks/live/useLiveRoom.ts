@@ -116,7 +116,13 @@ export function useLiveStream(): UseLiveStreamReturn {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const { data, error } = await supabase.functions.invoke('generate-livekit-token', { body, headers: authHeaders });
-        if (error) throw error;
+        if (error) {
+          // 403 = not authorized yet (must request to enter). Not a real error —
+          // don't retry or toast; the caller shows the "pedir para entrar" gate.
+          const status = (error as { context?: { status?: number } })?.context?.status;
+          if (status === 403) return null;
+          throw error;
+        }
         if (data?.token) return { token: data.token, url: data.url };
         throw new Error('No token in response');
       } catch (error) {
@@ -217,7 +223,9 @@ export function useLiveStream(): UseLiveStreamReturn {
       if (session.status !== 'live') { toast({ title: 'This stream has ended', variant: 'destructive' }); return false; }
 
       const credentials = await getToken(session.livekit_room_name!, false);
-      if (!credentials) throw new Error('Failed to get credentials');
+      // No credentials = not authorized yet → let Live.tsx show the request gate
+      // instead of a scary "Failed to get credentials" toast.
+      if (!credentials) return false;
 
       const newRoom = new Room({ adaptiveStream: true, dynacast: true });
       setupRoom(newRoom);
