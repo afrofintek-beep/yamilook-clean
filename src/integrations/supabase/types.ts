@@ -6386,6 +6386,12 @@ export type Database = {
         Args: { _amount: number; _package?: string }
         Returns: Json
       }
+      live_accept_invite: { Args: { p_session: string }; Returns: Json }
+      live_decline_invite: { Args: { p_session: string }; Returns: Json }
+      live_invite: {
+        Args: { p_session: string; p_user_ids: string[] }
+        Returns: Json
+      }
       live_session_access_info: {
         Args: { p_session_id: string }
         Returns: Json

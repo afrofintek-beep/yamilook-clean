@@ -64,16 +64,36 @@ export function LiveAccessRequest({
     toast.success('Pedido enviado. À espera da autorização do dono.');
   };
 
+  // Convidado aceita o convite → passa a aprovado e entra.
+  const accept = async () => {
+    if (!user) return;
+    setSending(true);
+    const { data, error } = await supabase.rpc('live_accept_invite', { p_session: sessionId });
+    setSending(false);
+    if (error || !(data as { ok?: boolean })?.ok) { toast.error('Não foi possível aceitar o convite.'); return; }
+    setStatus('approved');
+    onGranted();
+  };
+
+  const decline = async () => {
+    if (!user) return;
+    await supabase.rpc('live_decline_invite', { p_session: sessionId });
+    navigate(-1);
+  };
+
+  const invited = status === 'invited';
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-8 text-center gap-5 safe-top">
       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
         <Lock className="w-7 h-7 text-primary" />
       </div>
       <div className="space-y-1">
-        <h1 className="text-lg font-bold text-foreground">Live da banda</h1>
+        <h1 className="text-lg font-bold text-foreground">{invited ? 'Convite para a live' : 'Live da banda'}</h1>
         <p className="text-sm text-muted-foreground max-w-xs">
-          {info.host_name ? `${info.host_name} está ao vivo para a banda.` : 'Esta live é da banda.'}{' '}
-          Não fazes parte, mas podes pedir para entrar.
+          {invited
+            ? `${info.host_name ?? 'O anfitrião'} convidou-te para esta live. Aceita para entrar.`
+            : `${info.host_name ? `${info.host_name} está ao vivo para a banda.` : 'Esta live é da banda.'} Não fazes parte, mas podes pedir para entrar.`}
         </p>
       </div>
 
@@ -81,6 +101,13 @@ export function LiveAccessRequest({
         <Button className="rounded-full px-6" onClick={onGranted}>
           <Radio className="w-4 h-4 mr-2" /> Entrar na live
         </Button>
+      ) : invited ? (
+        <div className="flex flex-col items-center gap-2">
+          <Button className="rounded-full px-6 bg-amber-400 text-black hover:bg-amber-500" onClick={accept} disabled={sending}>
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Radio className="w-4 h-4 mr-2" /> Aceitar e entrar</>}
+          </Button>
+          <button className="text-xs text-muted-foreground" onClick={decline}>Recusar</button>
+        </div>
       ) : status === 'pending' ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" /> À espera da autorização do dono…

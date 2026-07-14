@@ -66,12 +66,11 @@ export function LivePendingRequests({ sessionId }: { sessionId: string }) {
 
   const preAuthorize = async (users: InvitedUser[]) => {
     if (!users.length) return;
-    const { error } = await supabase.from('live_access').upsert(
-      users.map((u) => ({ session_id: sessionId, user_id: u.id, status: 'approved' })),
-      { onConflict: 'session_id,user_id' },
-    );
-    if (error) { toast.error('Não foi possível autorizar.'); return; }
-    toast.success(`${users.length} ${users.length === 1 ? 'pessoa autorizada' : 'pessoas autorizadas'}.`);
+    // Convite (status 'invited') — a pessoa recebe e tem de ACEITAR para entrar,
+    // já não é entrada directa.
+    const { error } = await supabase.rpc('live_invite', { p_session: sessionId, p_user_ids: users.map((u) => u.id) });
+    if (error) { toast.error('Não foi possível convidar.'); return; }
+    toast.success(`${users.length} ${users.length === 1 ? 'pessoa convidada' : 'pessoas convidadas'}.`);
   };
 
   return (
