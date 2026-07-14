@@ -78,7 +78,7 @@ export function LivePendingRequests({ sessionId }: { sessionId: string }) {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-white/90">
-          Pedidos {pending.length > 0 && <span className="ml-1 rounded-full bg-white/20 px-1.5">{pending.length}</span>}
+          Pedidos {pending.length > 0 && <span className="ml-1 rounded-full bg-amber-400 px-1.5 text-black font-bold">{pending.length}</span>}
         </span>
         <button
           type="button"
@@ -90,12 +90,12 @@ export function LivePendingRequests({ sessionId }: { sessionId: string }) {
       </div>
 
       {pending.map((r) => (
-        <div key={r.id} className="flex items-center gap-2 rounded-xl bg-black/30 p-1.5">
-          <Avatar className="h-8 w-8 shrink-0">
+        <div key={r.id} className="flex items-center gap-2 rounded-xl bg-amber-400/15 border border-amber-400/40 p-1.5">
+          <Avatar className="h-8 w-8 shrink-0 ring-2 ring-amber-400/60">
             <AvatarImage src={r.avatar_url ?? undefined} />
             <AvatarFallback className="text-xs">{r.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <span className="flex-1 min-w-0 truncate text-sm text-white">{r.name}</span>
+          <span className="flex-1 min-w-0 truncate text-sm font-medium text-amber-200">{r.name}</span>
           <Button size="icon" className="h-8 w-8 rounded-full bg-green-600 hover:bg-green-700" onClick={() => decide(r.id, 'approved')}>
             <Check className="h-4 w-4" />
           </Button>
