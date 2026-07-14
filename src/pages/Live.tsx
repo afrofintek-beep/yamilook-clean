@@ -1,5 +1,5 @@
 /* @refresh reset */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Users, Radio, X } from 'lucide-react';
@@ -118,15 +118,21 @@ export default function Live() {
     });
   }, [sessionId, hasJoined, joinStream, navigate, isHost, currentSession?.id, room, accessInfo]);
 
-  // Cleanup on unmount
+  // Cleanup on REAL unmount only. Reads the latest values from a ref so this
+  // effect has empty deps — otherwise leaveStream/hasJoined changing identity
+  // each render made it fire leaveStream() in a loop (join → leave → join…),
+  // which is why the live never stabilised / the video never rendered.
+  const leaveRef = useRef({ hasJoined, isHost, leaveStream });
+  leaveRef.current = { hasJoined, isHost, leaveStream };
   useEffect(() => {
     return () => {
-      if (hasJoined && !isHost) {
+      const { hasJoined: joined, isHost: host, leaveStream: leave } = leaveRef.current;
+      if (joined && !host) {
         console.log('[Live] Viewer leaving stream on unmount');
-        leaveStream();
+        leave();
       }
     };
-  }, [hasJoined, isHost, leaveStream]);
+  }, []);
 
   const handleEndOrLeave = async () => {
     try {
