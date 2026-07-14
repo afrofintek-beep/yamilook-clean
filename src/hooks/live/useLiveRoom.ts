@@ -186,7 +186,7 @@ export function useLiveStream(): UseLiveStreamReturn {
         await newRoom.localParticipant.publishTrack(track, { source: track.kind === Track.Kind.Video ? Track.Source.Camera : Track.Source.Microphone });
       }
 
-      await supabase.from('live_participants').insert({ session_id: session.id, user_id: user.id, role: 'host' });
+      await supabase.from('live_participants').upsert({ session_id: session.id, user_id: user.id, role: 'host' }, { onConflict: 'session_id,user_id' });
 
       setRoom(newRoom);
       setLocalParticipant(newRoom.localParticipant);
@@ -232,7 +232,7 @@ export function useLiveStream(): UseLiveStreamReturn {
       roomRef.current = newRoom;
       await connectWithRetry(newRoom, credentials.url, credentials.token);
 
-      await supabase.from('live_participants').insert({ session_id: sessionId, user_id: user.id, role: 'viewer' });
+      await supabase.from('live_participants').upsert({ session_id: sessionId, user_id: user.id, role: 'viewer' }, { onConflict: 'session_id,user_id' });
 
       const { data: existingMessages } = await supabase.from('live_messages').select('*, user:profiles(display_name, avatar_url)').eq('session_id', sessionId).eq('is_deleted', false).order('created_at', { ascending: true }).limit(100);
 
