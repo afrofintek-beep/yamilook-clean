@@ -87,7 +87,7 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
       const r = data as { ok: boolean; reason?: string; present?: boolean; already?: boolean; streak?: number };
       if (!r.ok) {
         toast.error(r.reason === 'no_home' ? 'Define primeiro a tua banda.'
-          : r.reason === 'low_accuracy' ? 'Sinal de GPS fraco — tenta ao ar livre.'
+          : r.reason === 'low_accuracy' ? 'Sinal fraco — tenta ao ar livre.'
           : 'Não foi possível fazer check-in.');
         return;
       }
@@ -97,7 +97,7 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
       if (typeof r.streak === 'number') setStreak(r.streak);
       await loadResidency();
     } catch {
-      toast.error('Não foi possível obter a localização.');
+      toast.error('Não foi possível confirmar a tua presença.');
     } finally {
       setChecking(false);
     }
@@ -122,9 +122,9 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
       );
       const _cell = snapToGrid(pos.coords.latitude, pos.coords.longitude);
       setGps({ lat: _cell.lat, lng: _cell.lng });
-      toast.success('Localização captada.');
+      toast.success('Endereço AFROLOC captado.');
     } catch {
-      toast.error('Não foi possível obter a localização.');
+      toast.error('Não foi possível gerar o teu endereço AFROLOC.');
     } finally {
       setLocating(false);
     }
@@ -159,7 +159,7 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
         }
         return;
       }
-      toast.success(changingBanda ? 'Mudaste de banda! 🏡' : 'Localização atualizada.');
+      toast.success(changingBanda ? 'Mudaste de banda! 🏡' : 'Endereço AFROLOC atualizado.');
       onChanged();
       onOpenChange(false);
     } catch {
@@ -279,10 +279,10 @@ export function BandaChangeSheet({ open, onOpenChange, current, onChanged }: Pro
               onClick={useGps} disabled={locating}
             >
               {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4 mr-1" />}
-              {gps ? 'Localização captada ✓' : 'Usar a minha localização (mais preciso)'}
+              {gps ? 'Endereço AFROLOC captado ✓' : 'Gerar o meu endereço AFROLOC (mais preciso)'}
             </Button>
             <p className="text-[11px] text-muted-foreground">
-              A tua localização gera o teu código AFROLOC. Sem GPS, usamos o centro do bairro escolhido.
+              Isto gera a tua identidade digital territorial (endereço AFROLOC). Sem isso, usamos o centro do bairro escolhido.
             </p>
           </div>
 

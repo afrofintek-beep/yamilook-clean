@@ -252,7 +252,7 @@
     "postDeleted": "Post deleted",
     "postDeletedDesc": "Your post has been removed",
     "locationNotSupported": "Location not supported",
-    "browserNoLocation": "Your browser does not support geolocation",
+    "browserNoLocation": "Your browser cannot add a location",
     "locationAdded": "Location added",
     "locationError": "Error getting location",
     "locationDenied": "Location permission denied",

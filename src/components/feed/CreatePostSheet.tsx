@@ -141,9 +141,9 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
             locationParts.push(address.country);
           }
           
-          const locationName = locationParts.length > 0 
+          const locationName = locationParts.length > 0
             ? locationParts.slice(0, 2).join(', ')
-            : `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            : 'Local marcado';
           
           setLocation(locationName);
           toast({
@@ -152,7 +152,7 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
           });
         } catch (error) {
           console.error('Error getting location name:', error);
-          setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          setLocation('Local marcado');
         } finally {
           setIsGettingLocation(false);
         }

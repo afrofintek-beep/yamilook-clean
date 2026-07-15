@@ -103,7 +103,7 @@ export function CreateRitmoSheet({ open, onOpenChange }: CreateRitmoSheetProps) 
     setLocationError(null);
     
     if (!navigator.geolocation) {
-      setLocationError('Geolocalização não suportada neste dispositivo');
+      setLocationError('Este dispositivo não permite gerar o endereço AFROLOC automaticamente');
       setDetectingLocation(false);
       return;
     }
@@ -113,7 +113,7 @@ export function CreateRitmoSheet({ open, onOpenChange }: CreateRitmoSheetProps) 
       if (navigator.permissions) {
         const perm = await navigator.permissions.query({ name: 'geolocation' });
         if (perm.state !== 'granted') {
-          setLocationError('Permissão de localização não concedida. Ative nas configurações.');
+          setLocationError('Acesso ao endereço AFROLOC não concedido. Ativa nas definições.');
           setDetectingLocation(false);
           return;
         }
@@ -145,18 +145,18 @@ export function CreateRitmoSheet({ open, onOpenChange }: CreateRitmoSheetProps) 
           }
           setLocationDetected(true);
         } else {
-          setLocationError('Não foi possível determinar a localização');
+          setLocationError('Não foi possível gerar o teu endereço AFROLOC');
         }
         setDetectingLocation(false);
       },
       (error) => {
         console.error('Geolocation error:', error);
         if (error.code === error.PERMISSION_DENIED) {
-          setLocationError('Permissão de localização negada. Ative a localização nas configurações.');
+          setLocationError('Acesso ao endereço AFROLOC negado. Ativa nas definições.');
         } else if (error.code === error.TIMEOUT) {
-          setLocationError('Tempo limite para obter localização. Tente novamente.');
+          setLocationError('Tempo esgotado ao gerar o endereço AFROLOC. Tenta novamente.');
         } else {
-          setLocationError('Erro ao obter localização. Tente novamente.');
+          setLocationError('Erro ao gerar o endereço AFROLOC. Tenta novamente.');
         }
         setDetectingLocation(false);
       },
@@ -241,7 +241,7 @@ export function CreateRitmoSheet({ open, onOpenChange }: CreateRitmoSheetProps) 
 
     // Validate location before saving
     if (!city) {
-      toast.error('Localização é obrigatória. Por favor, selecione uma cidade.');
+      toast.error('Endereço AFROLOC obrigatório. Por favor, seleciona uma cidade.');
       return;
     }
 
@@ -474,7 +474,7 @@ export function CreateRitmoSheet({ open, onOpenChange }: CreateRitmoSheetProps) 
                   <div className="flex items-center justify-between">
                     <Label className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
-                      Localização *
+                      Identidade territorial *
                       {detectingLocation && (
                         <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                       )}
@@ -504,7 +504,7 @@ export function CreateRitmoSheet({ open, onOpenChange }: CreateRitmoSheetProps) 
                     <Alert className="py-2 border-primary/30 bg-primary/5">
                       <Check className="h-4 w-4 text-primary" />
                       <AlertDescription className="text-xs text-primary">
-                        Localização detectada automaticamente
+                        Endereço AFROLOC detetado automaticamente
                       </AlertDescription>
                     </Alert>
                   )}

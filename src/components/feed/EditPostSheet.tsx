@@ -73,7 +73,7 @@ export function EditPostSheet({ open, onOpenChange, post, onSave }: EditPostShee
             <Input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder={t('feed.addLocation', 'Adicionar localização')}
+              placeholder={t('feed.addLocation', 'Adicionar local')}
               className="flex-1"
             />
           </div>

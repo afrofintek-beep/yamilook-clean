@@ -1066,7 +1066,7 @@ export default function Settings() {
 
               {/* Banda Visibility */}
               <div className="px-4 pb-2">
-                <p className="text-sm font-semibold text-foreground">Localização (Banda)</p>
+                <p className="text-sm font-semibold text-foreground">Identidade territorial (Banda)</p>
                 <p className="text-xs text-muted-foreground">Quem pode ver a tua Banda no perfil</p>
               </div>
 

@@ -408,7 +408,7 @@ export function CreateAdSheet({ open, onOpenChange, preselectedPostId }: CreateA
             ) : (
               <MapPin className="w-4 h-4 mr-2" />
             )}
-            Usar localização atual
+            Gerar o meu endereço AFROLOC
           </Button>
           
           <p className="text-xs text-muted-foreground text-center">

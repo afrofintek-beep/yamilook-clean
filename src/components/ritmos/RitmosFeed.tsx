@@ -196,7 +196,7 @@ export function RitmosFeed() {
           <div className="bg-black/40 backdrop-blur-md text-white rounded-full px-4 py-2 flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             <span className="text-sm font-medium">
-              {ritmos[currentIndex].neighborhood || ritmos[currentIndex].city || 'Sem localização'}
+              {ritmos[currentIndex].neighborhood || ritmos[currentIndex].city || 'Sem local'}
             </span>
           </div>
         </div>

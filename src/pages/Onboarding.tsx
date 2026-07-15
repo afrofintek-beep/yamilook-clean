@@ -229,7 +229,7 @@ export default function Onboarding() {
   // Handle getting GPS location and try to match with known neighborhoods
   const handleGetLocation = useCallback(async (forCustomNeighborhood = false, forceNewReading = false, isAutoDetect = false) => {
     if (!navigator.geolocation) {
-      if (!isAutoDetect) toast.error('O teu dispositivo não suporta geolocalização');
+      if (!isAutoDetect) toast.error('O teu dispositivo não permite gerar o endereço AFROLOC automaticamente');
       return;
     }
 
@@ -384,7 +384,7 @@ export default function Onboarding() {
             setDetectedNeighborhoodName(matchedNeighborhood);
             setGeoNeighborhoodNotFound(false);
              setLocationConfirmed(false); // Require explicit confirmation
-             toast.success(`Bairro detectado: ${matchedNeighborhood}. Por favor, confirma a tua localização.`);
+             toast.success(`Bairro detetado: ${matchedNeighborhood}. Confirma o teu endereço AFROLOC.`);
           } else {
             // No match found - auto-select "Outro" option
             setGeoNeighborhoodNotFound(true);
@@ -398,31 +398,31 @@ export default function Onboarding() {
             }
             toast.success(detectedName 
               ? `Bairro "${detectedName}" não está na lista. Podes confirmar ou editar.`
-              : 'Localização obtida. Indica o nome do teu bairro.'
+              : 'Endereço AFROLOC gerado. Indica o nome do teu bairro.'
             );
           }
         } catch (geoError) {
           console.warn('Reverse geocoding failed:', geoError);
           // If reverse geocoding fails, still allow location validation for "Outro"
           if (forCustomNeighborhood) {
-            toast.success('Localização validada!');
+            toast.success('Endereço AFROLOC validado!');
           } else {
             setGeoNeighborhoodNotFound(true);
             setSelectedNeighborhood('__other__');
-            toast.info('Localização obtida. Selecciona o teu bairro manualmente.');
+            toast.info('Endereço AFROLOC gerado. Seleciona o teu bairro manualmente.');
           }
         }
       } else {
-        toast.success('Localização obtida!');
+        toast.success('Endereço AFROLOC gerado!');
       }
     } catch (error) {
       const code = (error as GeolocationPositionError | null)?.code;
       if (code === 1) {
-        toast.error('Permissão de localização negada. Por favor, ativa nas definições.');
+        toast.error('Acesso negado. Ativa nas definições para gerar o teu endereço AFROLOC.');
       } else if (code === 2) {
-        toast.error('Não foi possível obter a localização. Verifica a tua conexão.');
+        toast.error('Não foi possível gerar o teu endereço AFROLOC. Verifica a tua ligação.');
       } else {
-        toast.error('Tempo esgotado ao obter localização. Tenta novamente.');
+        toast.error('Tempo esgotado ao gerar o teu endereço AFROLOC. Tenta novamente.');
       }
     } finally {
       setIsGettingLocation(false);
@@ -511,7 +511,7 @@ export default function Onboarding() {
     setIsGettingLocation(false);
     setLocationConfirmed(false);
     
-    toast.success(`Bairro detectado: ${bestReading.neighborhood} (${bestReading.distance.toFixed(1)}km). Confirma a tua localização.`);
+    toast.success(`Bairro detetado: ${bestReading.neighborhood}. Confirma o teu endereço AFROLOC.`);
   };
 
   // Auto-trigger GPS detection when city is selected
@@ -543,7 +543,7 @@ export default function Onboarding() {
    const handleConfirmLocation = () => {
      if (geoLocation && selectedNeighborhood && selectedNeighborhood !== '__other__') {
        setLocationConfirmed(true);
-       toast.success('Localização confirmada!');
+       toast.success('Endereço AFROLOC confirmado!');
      }
    };
 
@@ -585,7 +585,7 @@ export default function Onboarding() {
     if (selectedCity) {
       if (selectedNeighborhood === '__other__') {
         if (!geoLocation) {
-          toast.error('Por favor, valida a tua localização por GPS');
+          toast.error('Gera o teu endereço AFROLOC para continuar');
           return;
         }
       }
@@ -1084,7 +1084,7 @@ export default function Onboarding() {
                          <>
                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                              <MapPin className="w-4 h-4" />
-                             <span>Confirma a tua localização para continuar</span>
+                             <span>Confirma o teu endereço AFROLOC para continuar</span>
                            </div>
                            <Button
                              type="button"
@@ -1095,12 +1095,12 @@ export default function Onboarding() {
                              {isGettingLocation ? (
                                <>
                                  <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                 A verificar localização...
+                                 A gerar o teu endereço AFROLOC...
                                </>
                              ) : (
                                <>
                                  <MapPin className="w-4 h-4 mr-2" />
-                                 Verificar localização por GPS
+                                 Gerar o meu endereço AFROLOC
                                </>
                              )}
                            </Button>
@@ -1110,7 +1110,7 @@ export default function Onboarding() {
                        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                          <MapPin className="w-4 h-4" />
                          <span>
-                           Estás a {detectedDistance ? detectedDistance.toFixed(1) : '?'}km do centro de <strong>{selectedNeighborhood}</strong>
+                           Endereço AFROLOC gerado em <strong>{selectedNeighborhood}</strong>
                          </span>
                        </div>
                        
@@ -1120,12 +1120,12 @@ export default function Onboarding() {
                            onClick={handleConfirmLocation}
                            className="w-full h-12 rounded-xl bg-gradient-primary hover:opacity-90 text-white"
                          >
-                           ✓ Confirmar esta localização
+                           ✓ Confirmar este endereço AFROLOC
                          </Button>
                        ) : (
                          <div className="flex items-center justify-center gap-2 text-sm text-primary font-medium">
                            <MapPin className="w-4 h-4" />
-                           Localização confirmada ✓
+                           Endereço AFROLOC confirmado ✓
                          </div>
                        )}
                          
@@ -1134,10 +1134,10 @@ export default function Onboarding() {
                           <div className="w-full p-3 bg-muted/50 rounded-xl">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                              <span>Leitura GPS {currentReadingIndex} de {ADDITIONAL_READINGS + 1}...</span>
+                              <span>Leitura {currentReadingIndex} de {ADDITIONAL_READINGS + 1}...</span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              A refinar localização para maior precisão
+                              A refinar o endereço AFROLOC para maior precisão
                             </p>
                           </div>
                         ) : (
@@ -1151,12 +1151,12 @@ export default function Onboarding() {
                             {isGettingLocation ? (
                               <>
                                 <div className="w-3 h-3 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                A ler GPS...
+                                A gerar...
                               </>
                             ) : (
                               <>
                                 <MapPin className="w-3 h-3 mr-2" />
-                                Nova leitura GPS
+                                Gerar de novo
                               </>
                             )}
                           </Button>
@@ -1225,12 +1225,12 @@ export default function Onboarding() {
                       ) : geoLocation ? (
                         <>
                           <MapPin className="w-4 h-4 mr-2" />
-                          Localização validada ✓
+                          Endereço AFROLOC validado ✓
                         </>
                       ) : (
                         <>
                           <MapPin className="w-4 h-4 mr-2" />
-                          Validar por GPS
+                          Gerar o meu endereço AFROLOC
                         </>
                       )}
                     </Button>
@@ -1238,7 +1238,7 @@ export default function Onboarding() {
                   
                   {!geoLocation && (
                     <p className="text-xs text-muted-foreground text-center">
-                      É necessário validar a tua localização por GPS para usar um bairro personalizado
+                      É necessário gerar o teu endereço AFROLOC para usar um bairro personalizado
                     </p>
                   )}
                 </div>
@@ -1264,7 +1264,7 @@ export default function Onboarding() {
               </Button>
             </div>
             <p className="text-xs text-destructive/70 mt-4 text-center">
-               * País, cidade, bairro e confirmação de localização são obrigatórios
+               * País, cidade, bairro e confirmação do endereço AFROLOC são obrigatórios
             </p>
           </motion.div>
         );

@@ -171,7 +171,7 @@ function ProfileFieldsPage() {
           ["bio", "Biografia"],
           ["birthday", "Data de nascimento"],
           ["gender", "male / female / other"],
-          ["city / neighborhood", "Localização (Banda)"],
+          ["city / neighborhood", "Identidade territorial (Banda)"],
           ["level", "default / verified_creator / founder"],
           ["kumbu_available", "Kumbu para gastar"],
           ["kumbu_lifetime", "Kumbu total (rank)"],
@@ -264,7 +264,7 @@ function BusinessPage() {
           ["logo_url / cover_image_url", "Imagens da marca"],
           ["city / neighborhood", "Localização"],
           ["phone / email / website", "Contactos"],
-          ["latitude / longitude", "Coordenadas GPS"],
+          ["latitude / longitude", "Identidade digital territorial"],
           ["credit_balance", "Saldo de créditos"],
           ["is_verified", "Estado de verificação"],
         ].map(([field, desc], i) => (
