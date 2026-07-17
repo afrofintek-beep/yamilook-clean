@@ -102,7 +102,7 @@ describe('CreatePostSheet', () => {
 
   it('renders privacy selector', () => {
     render(<CreatePostSheet {...defaultProps} />);
-    expect(screen.getByText('Contactos')).toBeInTheDocument();
+    expect(screen.getByText('Amigos')).toBeInTheDocument();
   });
 
   it('renders character counter', () => {
@@ -309,6 +309,6 @@ describe('CreatePostSheet', () => {
     render(<CreatePostSheet {...defaultProps} />);
     
     // The default should be "Contacts"
-    expect(screen.getByText('Contactos')).toBeInTheDocument();
+    expect(screen.getByText('Amigos')).toBeInTheDocument();
   });
 });
