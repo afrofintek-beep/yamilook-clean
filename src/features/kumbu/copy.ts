@@ -38,7 +38,7 @@ export const EARN_ACTIONS = [
   { action: 'Participar na Roda', kumbu: '+5', limit: 'máx. 3/dia' },
   { action: 'Criar Roda', kumbu: '+8', limit: 'máx. 2/dia' },
   { action: 'Sessão na Academia', kumbu: '+15', limit: 'máx. 1/dia' },
-  { action: 'Convidar utilizador activo', kumbu: '+15', limit: 'máx. 5/mês' },
+  { action: 'Convidar utilizador activo', kumbu: '+15', limit: 'brevemente' },
   { action: 'Publicar no feed', kumbu: '+3', limit: 'máx. 3/dia' },
 ];
 
