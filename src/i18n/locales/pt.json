@@ -487,7 +487,12 @@
     "momambos": "Momambos",
     "photoUpdated": "Foto atualizada!",
     "ritmos": "Ritmos",
-    "uploadFailed": "Falha ao carregar a foto"
+    "uploadFailed": "Falha ao carregar a foto",
+    "gender": "Género",
+    "genderUnset": "Não definido",
+    "genderFemale": "Feminino",
+    "genderMale": "Masculino",
+    "genderOther": "Outro"
   },
   "status": {
     "title": "Estados",

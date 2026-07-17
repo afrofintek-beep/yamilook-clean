@@ -94,6 +94,7 @@ export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: Prof
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [themeColor, setThemeColor] = useState(profile.profile_theme_color || '#6366f1');
   const [photosVisibility, setPhotosVisibility] = useState<PhotosVisibility>(profile.photos_visibility || 'friends');
+  const [gender, setGender] = useState<'male' | 'female' | 'other' | ''>(authProfile?.gender || '');
   const [privacySettings, setPrivacySettings] = useState({
     show_last_seen: profile.show_last_seen,
     show_online_status: profile.show_online_status,
@@ -202,6 +203,7 @@ export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: Prof
           avatar_url: avatarUrl,
           profile_theme_color: themeColor,
           photos_visibility: photosVisibility,
+          gender: gender || null,
           ...privacySettings,
         })
         .eq('id', profile.id);
@@ -370,6 +372,21 @@ export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: Prof
                   </FormItem>
                 )}
               />
+
+              {/* Género (define Bradas vs Sis na linguagem da banda) */}
+              <div className="space-y-2">
+                <Label>{t('profile.gender', 'Género')}</Label>
+                <Select value={gender} onValueChange={(v) => setGender(v as typeof gender)}>
+                  <SelectTrigger className="h-12 rounded-xl bg-secondary/50">
+                    <SelectValue placeholder={t('profile.genderUnset', 'Não definido')} />
+                  </SelectTrigger>
+                  <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
+                    <SelectItem value="female">👩🏾 {t('profile.genderFemale', 'Feminino')}</SelectItem>
+                    <SelectItem value="male">👨🏾 {t('profile.genderMale', 'Masculino')}</SelectItem>
+                    <SelectItem value="other">🌟 {t('profile.genderOther', 'Outro')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Banda (neighborhood) */}
               <div className="space-y-2 pt-4 border-t">

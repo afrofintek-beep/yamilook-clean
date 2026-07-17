@@ -462,7 +462,12 @@
     "momambos": "Momambos",
     "photoUpdated": "Photo updated!",
     "ritmos": "Ritmos",
-    "uploadFailed": "Failed to upload photo"
+    "uploadFailed": "Failed to upload photo",
+    "gender": "Gender",
+    "genderUnset": "Not set",
+    "genderFemale": "Female",
+    "genderMale": "Male",
+    "genderOther": "Other"
   },
   "status": {
     "title": "Status",
