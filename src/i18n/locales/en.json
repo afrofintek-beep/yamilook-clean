@@ -65,7 +65,10 @@
     "lowercase": "One lowercase letter",
     "minCharacters": "At least 8 characters",
     "number": "One number",
-    "uppercase": "One uppercase letter"
+    "uppercase": "One uppercase letter",
+    "mvpBanner": "Yamilook is in closed launch (MVP): signing up requires an invite code from a member. The public launch date will be announced soon.",
+    "mvpOnlyToast": "Yamilook is invite-only during the MVP phase. The launch date will be announced soon.",
+    "accessCodeLabel": "Invite or MVP access code *"
   },
   "settings": {
     "title": "Settings",

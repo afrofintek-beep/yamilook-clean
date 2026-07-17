@@ -680,6 +680,10 @@ export default function Onboarding() {
   const handleRegister = async () => {
     if (!isRegisterFormValid) return;
 
+    if (!getReferralCode()) {
+      toast.error(t('auth.mvpOnlyToast', 'A Yamilook está em fase MVP (só por convite). A data de lançamento será anunciada brevemente.'));
+      return;
+    }
     setIsRegistering(true);
     try {
       const { error } = await signUp(email, password, {

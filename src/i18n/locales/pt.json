@@ -101,7 +101,10 @@
     "lowercase": "Uma letra minúscula",
     "minCharacters": "Pelo menos 8 caracteres",
     "number": "Um número",
-    "uppercase": "Uma letra maiúscula"
+    "uppercase": "Uma letra maiúscula",
+    "mvpBanner": "A Yamilook está em fase de lançamento fechado (MVP): a inscrição requer um código de convite de um membro. A data de lançamento pública será anunciada brevemente.",
+    "mvpOnlyToast": "A Yamilook está em fase MVP (só por convite). A data de lançamento será anunciada brevemente.",
+    "accessCodeLabel": "Código de convite ou de acesso MVP *"
   },
   "nav": {
     "home": "Início",

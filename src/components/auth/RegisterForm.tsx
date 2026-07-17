@@ -145,12 +145,15 @@ export function RegisterForm() {
             display_name: values.displayName,
             username: values.username.toLowerCase(),
             ref: getReferralCode() || undefined,
+            access_code: values.accessCode?.toUpperCase() || undefined,
           },
         },
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message.includes('MVP_ONLY')
+          ? t('auth.mvpOnlyToast', 'A Yamilook está em fase MVP (só por convite). A data de lançamento será anunciada brevemente.')
+          : error.message);
         return;
       }
 
@@ -183,6 +186,11 @@ export function RegisterForm() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
       >
+        {/* Aviso de fase MVP */}
+        <div className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground">
+          🚀 {t('auth.mvpBanner', 'A Yamilook está em fase de lançamento fechado (MVP): a inscrição requer um código de convite de um membro. A data de lançamento pública será anunciada brevemente.')}
+        </div>
+
         {/* Access Code — first field */}
         <motion.div
           initial={{ opacity: 0, x: -10 }}
@@ -194,7 +202,7 @@ export function RegisterForm() {
             name="accessCode"
             render={({ field, fieldState }) => (
               <FormItem>
-                <FormLabel>Código de Acesso MVP *</FormLabel>
+                <FormLabel>{t('auth.accessCodeLabel', 'Código de convite ou de acesso MVP *')}</FormLabel>
                   <div className={fieldState.error ? "animate-shake" : ""}>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
