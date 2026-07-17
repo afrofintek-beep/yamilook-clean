@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Scissors, Sparkles, Type, Music, Check, Play, Pause,
@@ -312,12 +313,15 @@ export function VideoEditor({ file, onSave, onCancel }: VideoEditorProps) {
   const trimEndSec = (trimEnd / 100) * duration;
   const trimDuration = trimEndSec - trimStartSec;
 
-  return (
+  // Portal para o body: fora do stacking context animado da página (senão o
+  // editor fica ATRÁS da sheet) e com pointer-events próprios (a sheet modal
+  // põe pointer-events:none no body).
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-[#0a0a0a] flex flex-col safe-top safe-bottom"
+      className="fixed inset-0 z-[200] bg-[#0a0a0a] flex flex-col safe-top safe-bottom pointer-events-auto"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
@@ -777,6 +781,7 @@ export function VideoEditor({ file, onSave, onCancel }: VideoEditorProps) {
           )}
         </div>
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }

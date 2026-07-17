@@ -92,6 +92,15 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [editingVideoIndex, setEditingVideoIndex] = useState<number | null>(null);
+  // Fechar o editor propaga um clique/foco para fora da Sheet DEPOIS de o
+  // estado mudar; sem esta janela de guarda, a Sheet interpretava-o como
+  // "interagiu fora" e fechava, perdendo o post inteiro.
+  const editorGuardRef = useRef(false);
+  const closeVideoEditor = () => {
+    editorGuardRef.current = true;
+    setEditingVideoIndex(null);
+    setTimeout(() => { editorGuardRef.current = false; }, 500);
+  };
   const handleGetLocation = async () => {
     if (!navigator.geolocation) {
       toast({
@@ -307,7 +316,13 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0 bg-card">
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] rounded-t-3xl p-0 bg-card"
+        onInteractOutside={(e) => { if (editingVideoIndex !== null || editorGuardRef.current) e.preventDefault(); }}
+        onPointerDownOutside={(e) => { if (editingVideoIndex !== null || editorGuardRef.current) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (editingVideoIndex !== null || editorGuardRef.current) e.preventDefault(); }}
+      >
         <SheetHeader className="p-4 border-b border-border flex-row items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             {t('feed.cancel')}
@@ -550,9 +565,9 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
               setFilePreviews(prev => prev.map((p, i) => i === editingVideoIndex ? (reader.result as string) : p));
             };
             reader.readAsDataURL(editedFile);
-            setEditingVideoIndex(null);
+            closeVideoEditor();
           }}
-          onCancel={() => setEditingVideoIndex(null)}
+          onCancel={closeVideoEditor}
         />
       )}
     </Sheet>
