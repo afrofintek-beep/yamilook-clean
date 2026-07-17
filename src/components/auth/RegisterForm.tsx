@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { captureReferralCode, getReferralCode, clearReferralCode } from '@/lib/referral';
+import { useState , useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -47,6 +48,9 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const { t } = useTranslation();
+  useEffect(() => {
+    captureReferralCode();
+  }, []);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
@@ -140,6 +144,7 @@ export function RegisterForm() {
           data: {
             display_name: values.displayName,
             username: values.username.toLowerCase(),
+            ref: getReferralCode() || undefined,
           },
         },
       });
@@ -159,6 +164,7 @@ export function RegisterForm() {
       }
 
       triggerCelebrationConfetti();
+      clearReferralCode();
       toast.success(t('auth.accountCreated'));
       navigate('/onboarding');
     } catch {

@@ -88,6 +88,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { applyTheme, type ThemePref } from '@/lib/theme';
 import { languages } from '@/i18n';
+import { buildInviteUrl } from '@/lib/referral';
 import { supabase } from '@/integrations/supabase/client';
 import { ChangePasswordSheet } from '@/components/settings/ChangePasswordSheet';
 import { ChatWallpaperSheet } from '@/components/settings/ChatWallpaperSheet';
@@ -453,7 +454,7 @@ export default function Settings() {
             {[
               { id: 'backup', icon: CloudUpload, label: t('settings.backup'), color: 'text-blue-500', onClick: () => setStorageOpen(true) },
               { id: 'invite', icon: Share2, label: t('settings.invite'), color: 'text-green-500', onClick: async () => {
-                const inviteUrl = 'https://yamilook.app';
+                const inviteUrl = buildInviteUrl(profile?.referral_code);
                 const shareData = {
                   title: 'Yamilook',
                   text: t('settings.inviteMessage') || 'Hey! Join me on Yamilook - a great way to stay connected!',
@@ -1307,7 +1308,7 @@ export default function Settings() {
               <Button
                 variant="outline" className="w-full rounded-xl justify-between"
                 onClick={async () => {
-                  const url = window.location.origin;
+                  const url = buildInviteUrl(profile?.referral_code);
                   const data = { title: 'Yamilook', text: t('settings.inviteMessage', 'Junta-te a mim no Yamilook!'), url };
                   try {
                     if (navigator.share) await navigator.share(data);

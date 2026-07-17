@@ -6,6 +6,8 @@ import { recordDevice } from '@/lib/device';
 
 interface Profile {
   id: string;
+  referral_code?: string | null;
+  referred_by?: string | null;
   phone_number: string | null;
   email: string | null;
   display_name: string;
@@ -44,7 +46,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, metadata?: { display_name?: string; username?: string }) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, metadata?: { display_name?: string; username?: string; ref?: string }) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signInWithSocial: (provider: SocialProvider) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
@@ -213,7 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (
     email: string,
     password: string,
-    metadata?: { display_name?: string; username?: string }
+    metadata?: { display_name?: string; username?: string; ref?: string }
   ) => {
     const { error } = await supabase.auth.signUp({
       email,

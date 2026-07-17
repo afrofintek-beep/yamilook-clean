@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
+import { captureReferralCode, getReferralCode, clearReferralCode } from '@/lib/referral';
 import { supabase } from '@/integrations/supabase/client';
 import type { TablesUpdate } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
@@ -109,6 +110,11 @@ export default function Onboarding() {
   const justCompletedRef = useRef(false);
 
   // The onboarding wizard is the pre-signup flow. If the user is already
+  // Capturar código de convite (?ref=) logo à entrada
+  useEffect(() => {
+    captureReferralCode();
+  }, []);
+
   // authenticated, send them to the app. If their profile is incomplete,
   // mark it complete in the background so they don't get bounced back here.
   useEffect(() => {
@@ -679,6 +685,7 @@ export default function Onboarding() {
       const { error } = await signUp(email, password, {
         display_name: displayName,
         username: username.toLowerCase(),
+        ref: getReferralCode() || undefined,
       });
 
       if (error) {
@@ -686,6 +693,8 @@ export default function Onboarding() {
         setIsRegistering(false);
         return;
       }
+
+      clearReferralCode();
 
       // Wait for auth state to settle — poll for session up to 5 seconds
       let session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'] = null;
