@@ -596,5 +596,11 @@
     "random": "Random",
     "viewAll": "View all streams",
     "currentlyLive": "{{count}} Live Now"
+  },
+  "privacy": {
+    "everyone": "Everyone",
+    "friends": "Friends",
+    "closeFriends": "Close friends",
+    "onlyMe": "Only me"
   }
 }

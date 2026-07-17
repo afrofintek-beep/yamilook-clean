@@ -75,10 +75,10 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
   const { toast } = useToast();
 
   const privacyOptions = [
-    { value: 'everyone', label: t('feed.everyone'), icon: Globe },
-    { value: 'contacts', label: t('feed.contacts'), icon: Users },
-    { value: 'close_friends', label: t('social.closeFriendsGroup'), icon: Circle },
-    { value: 'only_me', label: t('feed.onlyMe'), icon: Lock },
+    { value: 'everyone', label: t('privacy.everyone'), icon: Globe },
+    { value: 'contacts', label: t('privacy.friends'), icon: Users },
+    { value: 'close_friends', label: t('privacy.closeFriends'), icon: Circle },
+    { value: 'only_me', label: t('privacy.onlyMe'), icon: Lock },
   ];
   
   const [content, setContent] = useState('');
