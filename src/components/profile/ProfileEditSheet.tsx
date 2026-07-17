@@ -411,7 +411,7 @@ export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: Prof
                         <SelectItem key={opt.value} value={opt.value}>
                           <div className="flex items-center gap-2">
                             <span>{opt.emoji}</span>
-                            {opt.label}
+                            {t(opt.labelKey)}
                           </div>
                         </SelectItem>
                       ))}

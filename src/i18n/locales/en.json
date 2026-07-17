@@ -1,39 +1,5 @@
 {
   "auth": {
-    "currentPassword": "Current Password",
-    "newPassword": "New Password",
-    "incorrectPassword": "Current password is incorrect"
-  },
-  "settings": {
-    "passwordChanged": "Password changed",
-    "passwordChangedDesc": "Your password has been updated successfully.",
-    "passwordChangeFailed": "Failed to change password. Please try again.",
-    "updatePassword": "Update Password",
-    "wallpaperApplied": "Wallpaper applied",
-    "wallpaperAppliedDesc": "Your chat wallpaper has been updated.",
-    "colors": "Colors",
-    "gradients": "Gradients",
-    "patterns": "Patterns",
-    "applyWallpaper": "Apply Wallpaper"
-  },
-  "common": {
-    "loading": "Loading...",
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "back": "Back",
-    "next": "Next",
-    "confirm": "Confirm",
-    "search": "Search",
-    "send": "Send",
-    "close": "Close",
-    "done": "Done",
-    "retry": "Retry",
-    "yes": "Yes",
-    "no": "No"
-  },
-  "auth": {
     "login": "Sign In",
     "invalidCredentials": "Invalid email or password",
     "loginTitle": "Welcome to the hood",
@@ -93,18 +59,9 @@
     "passwordUpdated": "Password updated!",
     "redirectingToLogin": "Redirecting to login...",
     "canNowLogin": "You can now sign in with your new password",
-    "invalidResetLink": "Invalid or expired reset link"
-  },
-  "nav": {
-    "home": "Home",
-    "feed": "Muxi",
-    "chat": "Chats",
-    "calls": "Calls",
-    "contacts": "Contacts",
-    "profile": "Profile",
-    "settings": "Settings",
-    "status": "Status",
-    "discover": "Discover"
+    "invalidResetLink": "Invalid or expired reset link",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "settings": {
     "title": "Settings",
@@ -193,7 +150,58 @@
     "backupFailed": "Backup failed",
     "backupFailedDesc": "Failed to export your data. Please try again.",
     "backupChatsDesc": "Backup all chats to cloud",
-    "exporting": "Exporting..."
+    "exporting": "Exporting...",
+    "bandaIdentityTitle": "Territorial identity (Banda)",
+    "bandaIdentityDesc": "Who can see your Banda on your profile",
+    "journeyTitle": "Yamilook Journey",
+    "journeyDesc": "Choose who can see your journey and which stats to show",
+    "journeyWhoCanSee": "Who can see",
+    "journeyWhoCanSeeDesc": "Control access to your journey",
+    "journeyFriends": "Friends",
+    "journeyFriendsDesc": "Show number of friends",
+    "journeyPosts": "Posts",
+    "journeyPostsDesc": "Show number of posts",
+    "journeyMomambos": "Momambos",
+    "journeyMomambosDesc": "Show number of Momambos created",
+    "journeyMessages": "Messages",
+    "journeyMessagesDesc": "Show number of messages sent",
+    "journeyCalls": "Calls",
+    "journeyCallsDesc": "Show number of calls answered",
+    "journeyReactions": "Reactions",
+    "journeyReactionsDesc": "Show number of reactions given",
+    "advertising": "Advertising",
+    "advertisingSettings": "Advertising",
+    "manageAds": "Manage ads and credits",
+    "promoteYourBusiness": "Promote your business"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "confirm": "Confirm",
+    "search": "Search",
+    "send": "Send",
+    "close": "Close",
+    "done": "Done",
+    "retry": "Retry",
+    "yes": "Yes",
+    "no": "No",
+    "activate": "Activate"
+  },
+  "nav": {
+    "home": "Home",
+    "feed": "Muxi",
+    "chat": "Chats",
+    "calls": "Calls",
+    "contacts": "Contacts",
+    "profile": "Profile",
+    "settings": "Settings",
+    "status": "Status",
+    "discover": "Discover"
   },
   "chat": {
     "typeMessage": "Type a message...",
@@ -504,5 +512,23 @@
     "minutesAgo": "{{count}}m ago",
     "hoursAgo": "{{count}}h ago",
     "daysAgo": "{{count}}d ago"
+  },
+  "visibility": {
+    "everyone": "Everyone",
+    "everyoneDesc": "Anyone can see",
+    "friends": "Friends",
+    "friendsDesc": "Only your friends",
+    "closeFriends": "Close friends",
+    "closeFriendsDesc": "Only your inner circle",
+    "nobody": "Only me",
+    "nobodyDesc": "Only you can see"
+  },
+  "journey": {
+    "friendsStat": "Friends in your network",
+    "postsStat": "Posts made",
+    "momambosStat": "Momambos created",
+    "messagesStat": "Messages sent",
+    "callsStat": "Calls answered",
+    "reactionsStat": "Reactions given"
   }
 }

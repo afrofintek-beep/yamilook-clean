@@ -247,7 +247,7 @@ export function YamilookJourneySheet({
                 {visibility.show_journey_friends && (
                   <StatCard 
                     icon={Users} 
-                    label="Kambas na tua rede" 
+                    label={t('journey.friendsStat')} 
                     value={stats.friendsCount} 
                     delay={0.5}
                     onClick={() => handleOpenDetail('friends')}
@@ -256,7 +256,7 @@ export function YamilookJourneySheet({
                 {visibility.show_journey_posts && (
                   <StatCard 
                     icon={ImageIcon} 
-                    label="Publicações feitas" 
+                    label={t('journey.postsStat')} 
                     value={stats.postsCount} 
                     delay={0.6}
                     onClick={() => handleOpenDetail('posts')}
@@ -265,7 +265,7 @@ export function YamilookJourneySheet({
                 {visibility.show_journey_momambos && (
                   <StatCard 
                     icon={Calendar} 
-                    label="Momambos criados" 
+                    label={t('journey.momambosStat')} 
                     value={stats.momambosCount} 
                     delay={0.7}
                     onClick={() => handleOpenDetail('momambos')}
@@ -274,7 +274,7 @@ export function YamilookJourneySheet({
                 {visibility.show_journey_messages && (
                   <StatCard 
                     icon={MessageSquare} 
-                    label="Mensagens enviadas" 
+                    label={t('journey.messagesStat')} 
                     value={stats.messagesCount} 
                     delay={0.8}
                     onClick={() => handleOpenDetail('messages')}
@@ -283,7 +283,7 @@ export function YamilookJourneySheet({
                 {visibility.show_journey_calls && (
                   <StatCard 
                     icon={Video} 
-                    label="Chamadas atendidas" 
+                    label={t('journey.callsStat')} 
                     value={stats.callsCount} 
                     delay={0.9}
                     onClick={() => handleOpenDetail('calls')}
@@ -292,7 +292,7 @@ export function YamilookJourneySheet({
                 {visibility.show_journey_reactions && (
                   <StatCard 
                     icon={Heart} 
-                    label="Reacções dadas" 
+                    label={t('journey.reactionsStat')} 
                     value={stats.likesGiven} 
                     delay={1.0}
                     onClick={() => handleOpenDetail('reactions')}

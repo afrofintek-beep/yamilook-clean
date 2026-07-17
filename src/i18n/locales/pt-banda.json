@@ -97,5 +97,25 @@
     "viewGuideProfile": "Ver perfil do Mestre",
     "guideGreeting": "Olá, Mestre",
     "guideGreetingWithName": "Olá, Mestre {{name}}"
+  },
+  "visibility": {
+    "everyone": "Wis",
+    "everyoneDesc": "Qualquer wis pode ver",
+    "friends": "Kambas",
+    "friendsDesc": "Só os teus kambas",
+    "closeFriends": "Bradas",
+    "closeFriendsDesc": "Só os teus bradas",
+    "nobody": "Só Eu",
+    "nobodyDesc": "Só tu podes ver"
+  },
+  "settings": {
+    "journeyFriends": "Kambas",
+    "journeyFriendsDesc": "Mostrar número de kambas",
+    "journeyReactions": "Vibes",
+    "journeyReactionsDesc": "Mostrar número de vibes dadas"
+  },
+  "journey": {
+    "friendsStat": "Kambas na tua rede",
+    "reactionsStat": "Vibes dadas"
   }
 }

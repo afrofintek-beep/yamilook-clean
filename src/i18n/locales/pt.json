@@ -27,7 +27,8 @@
     "done": "Feito",
     "retry": "Tentar novamente",
     "yes": "Sim",
-    "no": "Não"
+    "no": "Não",
+    "activate": "Ativar"
   },
   "auth": {
     "login": "Entrar",
@@ -91,7 +92,9 @@
     "invalidResetLink": "Link de recuperação inválido ou expirado",
     "currentPassword": "Palavra-passe atual",
     "incorrectPassword": "Palavra-passe atual incorreta",
-    "invalidCredentials": "Email ou palavra-passe incorretos"
+    "invalidCredentials": "Email ou palavra-passe incorretos",
+    "showPassword": "Mostrar palavra-passe",
+    "hidePassword": "Esconder palavra-passe"
   },
   "nav": {
     "home": "Início",
@@ -214,7 +217,29 @@
     "colors": "Cores",
     "gradients": "Degradês",
     "patterns": "Padrões",
-    "applyWallpaper": "Aplicar Papel de Parede"
+    "applyWallpaper": "Aplicar Papel de Parede",
+    "bandaIdentityTitle": "Identidade territorial (Banda)",
+    "bandaIdentityDesc": "Quem pode ver a tua Banda no perfil",
+    "journeyTitle": "Jornada Yamilook",
+    "journeyDesc": "Escolhe quem pode ver a tua jornada e quais estatísticas mostrar",
+    "journeyWhoCanSee": "Quem pode ver",
+    "journeyWhoCanSeeDesc": "Controla o acesso à tua jornada",
+    "journeyFriends": "Amigos",
+    "journeyFriendsDesc": "Mostrar número de amigos",
+    "journeyPosts": "Publicações",
+    "journeyPostsDesc": "Mostrar número de publicações",
+    "journeyMomambos": "Momambos",
+    "journeyMomambosDesc": "Mostrar número de Momambos criados",
+    "journeyMessages": "Mensagens",
+    "journeyMessagesDesc": "Mostrar número de mensagens enviadas",
+    "journeyCalls": "Chamadas",
+    "journeyCallsDesc": "Mostrar número de chamadas atendidas",
+    "journeyReactions": "Reacções",
+    "journeyReactionsDesc": "Mostrar número de reacções dadas",
+    "advertising": "Publicidade",
+    "advertisingSettings": "Publicidade",
+    "manageAds": "Gerir anúncios e créditos",
+    "promoteYourBusiness": "Promove o teu negócio"
   },
   "chat": {
     "typeMessage": "Escreve uma mensagem...",
@@ -647,5 +672,23 @@
     "closeFriends": "Amigos Especiais",
     "onlyMe": "Só Eu",
     "closeFriendsOnly": "Só Amigos Especiais podem ver isto"
+  },
+  "visibility": {
+    "everyone": "Todos",
+    "everyoneDesc": "Qualquer pessoa pode ver",
+    "friends": "Amigos",
+    "friendsDesc": "Só os teus amigos",
+    "closeFriends": "Amigos próximos",
+    "closeFriendsDesc": "Só o teu círculo próximo",
+    "nobody": "Só eu",
+    "nobodyDesc": "Só tu podes ver"
+  },
+  "journey": {
+    "friendsStat": "Amigos na tua rede",
+    "postsStat": "Publicações feitas",
+    "momambosStat": "Momambos criados",
+    "messagesStat": "Mensagens enviadas",
+    "callsStat": "Chamadas atendidas",
+    "reactionsStat": "Reacções dadas"
   }
 }

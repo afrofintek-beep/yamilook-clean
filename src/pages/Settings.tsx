@@ -1066,8 +1066,8 @@ export default function Settings() {
 
               {/* Banda Visibility */}
               <div className="px-4 pb-2">
-                <p className="text-sm font-semibold text-foreground">Identidade territorial (Banda)</p>
-                <p className="text-xs text-muted-foreground">Quem pode ver a tua Banda no perfil</p>
+                <p className="text-sm font-semibold text-foreground">{t('settings.bandaIdentityTitle')}</p>
+                <p className="text-xs text-muted-foreground">{t('settings.bandaIdentityDesc')}</p>
               </div>
 
               <div className="px-4 pb-4">
@@ -1084,7 +1084,7 @@ export default function Settings() {
                   <SelectContent>
                     {VISIBILITY_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
-                        {opt.emoji} {opt.label}
+                        {opt.emoji} {t(opt.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1095,15 +1095,15 @@ export default function Settings() {
 
               {/* Journey Visibility Section */}
               <div className="px-4 pb-2">
-                <p className="text-sm font-semibold text-foreground">Jornada Yamilook</p>
-                <p className="text-xs text-muted-foreground">Escolhe quem pode ver a tua jornada e quais estatísticas mostrar</p>
+                <p className="text-sm font-semibold text-foreground">{t('settings.journeyTitle')}</p>
+                <p className="text-xs text-muted-foreground">{t('settings.journeyDesc')}</p>
               </div>
 
               <div className="px-4 pb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">Quem pode ver</p>
-                    <p className="text-xs text-muted-foreground">Controla o acesso à tua jornada</p>
+                    <p className="text-sm font-medium">{t('settings.journeyWhoCanSee')}</p>
+                    <p className="text-xs text-muted-foreground">{t('settings.journeyWhoCanSeeDesc')}</p>
                   </div>
                   <Select
                     value={settings?.journey_visibility || 'everyone'}
@@ -1115,7 +1115,7 @@ export default function Settings() {
                     <SelectContent>
                       {VISIBILITY_OPTIONS.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
-                          {opt.emoji} {opt.label}
+                          {opt.emoji} {t(opt.labelKey)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1125,8 +1125,8 @@ export default function Settings() {
 
               <SettingItem
                 icon={Users}
-                label="Amigos"
-                description="Mostrar número de amigos"
+                label={t('settings.journeyFriends')}
+                description={t('settings.journeyFriendsDesc')}
                 rightElement={
                   <Switch
                     checked={settings?.show_journey_friends ?? true}
@@ -1136,8 +1136,8 @@ export default function Settings() {
               />
               <SettingItem
                 icon={ImageIcon}
-                label="Publicações"
-                description="Mostrar número de publicações"
+                label={t('settings.journeyPosts')}
+                description={t('settings.journeyPostsDesc')}
                 rightElement={
                   <Switch
                     checked={settings?.show_journey_posts ?? true}
@@ -1147,8 +1147,8 @@ export default function Settings() {
               />
               <SettingItem
                 icon={Calendar}
-                label="Momambos"
-                description="Mostrar número de Momambos criados"
+                label={t('settings.journeyMomambos')}
+                description={t('settings.journeyMomambosDesc')}
                 rightElement={
                   <Switch
                     checked={settings?.show_journey_momambos ?? true}
@@ -1158,8 +1158,8 @@ export default function Settings() {
               />
               <SettingItem
                 icon={MessageSquare}
-                label="Mensagens"
-                description="Mostrar número de mensagens enviadas"
+                label={t('settings.journeyMessages')}
+                description={t('settings.journeyMessagesDesc')}
                 rightElement={
                   <Switch
                     checked={settings?.show_journey_messages ?? true}
@@ -1169,8 +1169,8 @@ export default function Settings() {
               />
               <SettingItem
                 icon={Phone}
-                label="Chamadas"
-                description="Mostrar número de chamadas atendidas"
+                label={t('settings.journeyCalls')}
+                description={t('settings.journeyCallsDesc')}
                 rightElement={
                   <Switch
                     checked={settings?.show_journey_calls ?? true}
@@ -1180,8 +1180,8 @@ export default function Settings() {
               />
               <SettingItem
                 icon={Heart}
-                label="Reacções"
-                description="Mostrar número de reacções dadas"
+                label={t('settings.journeyReactions')}
+                description={t('settings.journeyReactionsDesc')}
                 rightElement={
                   <Switch
                     checked={settings?.show_journey_reactions ?? true}
