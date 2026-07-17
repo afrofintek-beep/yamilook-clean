@@ -54,14 +54,16 @@
       "wis": "Wis",
       "kambas": "Kambas",
       "bradas": "Bradas"
-    }
+    },
+    "closeFriendsGroup_female": "Sis"
   },
   "privacy": {
     "everyone": "Wis",
     "friends": "Kambas",
     "closeFriends": "Bradas",
     "closeFriendsOnly": "Só Bradas podem ver isto",
-    "onlyMe": "Só eu"
+    "onlyMe": "Só eu",
+    "closeFriends_female": "Sis"
   },
   "profile": {
     "friends": "Kambas"
@@ -108,7 +110,9 @@
     "closeFriends": "Bradas",
     "closeFriendsDesc": "Só os teus bradas",
     "nobody": "Só Eu",
-    "nobodyDesc": "Só tu podes ver"
+    "nobodyDesc": "Só tu podes ver",
+    "closeFriends_female": "Sis",
+    "closeFriendsDesc_female": "Só as tuas sis"
   },
   "settings": {
     "journeyFriends": "Kambas",

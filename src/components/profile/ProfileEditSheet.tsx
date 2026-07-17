@@ -1,3 +1,4 @@
+import { genderCtx } from '@/lib/i18n-gender';
 import { useState, useEffect } from 'react';
 import { VISIBILITY_OPTIONS_SIMPLE } from '@/lib/visibility-options';
 import { useForm } from 'react-hook-form';
@@ -411,7 +412,7 @@ export function ProfileEditSheet({ open, onOpenChange, profile, onUpdate }: Prof
                         <SelectItem key={opt.value} value={opt.value}>
                           <div className="flex items-center gap-2">
                             <span>{opt.emoji}</span>
-                            {t(opt.labelKey)}
+                            {t(opt.labelKey, genderCtx(profile?.gender))}
                           </div>
                         </SelectItem>
                       ))}

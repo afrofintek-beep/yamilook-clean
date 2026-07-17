@@ -719,14 +719,16 @@
       "wis": "Seguidores",
       "kambas": "Amigos",
       "bradas": "Amigos Especiais"
-    }
+    },
+    "closeFriendsGroup_female": "Amigas Especiais"
   },
   "privacy": {
     "everyone": "Todos",
     "friends": "Amigos",
     "closeFriends": "Amigos Especiais",
     "onlyMe": "Só Eu",
-    "closeFriendsOnly": "Só Amigos Especiais podem ver isto"
+    "closeFriendsOnly": "Só Amigos Especiais podem ver isto",
+    "closeFriends_female": "Amigas Especiais"
   },
   "visibility": {
     "everyone": "Todos",
@@ -736,7 +738,8 @@
     "closeFriends": "Amigos próximos",
     "closeFriendsDesc": "Só o teu círculo próximo",
     "nobody": "Só eu",
-    "nobodyDesc": "Só tu podes ver"
+    "nobodyDesc": "Só tu podes ver",
+    "closeFriends_female": "Amigas próximas"
   },
   "journey": {
     "friendsStat": "Amigos na tua rede",

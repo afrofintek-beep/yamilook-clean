@@ -1,3 +1,4 @@
+import { genderCtx } from '@/lib/i18n-gender';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function Contacts() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const {
     contacts,
@@ -179,7 +180,7 @@ export default function Contacts() {
               size="icon"
               className="rounded-full"
               onClick={() => setCloseFriendsOpen(true)}
-              title={t('social.closeFriendsGroup')}
+              title={t('social.closeFriendsGroup', genderCtx(profile?.gender))}
             >
               <Circle className="w-5 h-5" />
             </Button>
@@ -235,7 +236,7 @@ export default function Contacts() {
               className="flex-1 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
               <Circle className="w-4 h-4 mr-2" />
-              {t('social.closeFriendsGroup')}
+              {t('social.closeFriendsGroup', genderCtx(profile?.gender))}
               {closeFriends.length > 0 && (
                 <Badge className="ml-2 h-5 min-w-[20px] px-1 bg-primary/20 text-primary text-xs">
                   {closeFriends.length}

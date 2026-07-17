@@ -1,3 +1,5 @@
+import { useAuth } from '@/hooks/useAuth';
+import { genderCtx } from '@/lib/i18n-gender';
 import { useState } from 'react';
 import { Circle, Search, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +25,7 @@ interface CloseFriendsSheetProps {
 
 export function CloseFriendsSheet({ open, onOpenChange }: CloseFriendsSheetProps) {
   const { t } = useTranslation();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const { contacts, loading: contactsLoading } = useContacts();
   const { closeFriends, toggleCloseFriend, loading: closeFriendsLoading } = useCloseFriends();
@@ -71,7 +74,7 @@ export function CloseFriendsSheet({ open, onOpenChange }: CloseFriendsSheetProps
         <SheetHeader className="pb-4">
           <SheetTitle className="flex items-center gap-2">
             <Circle className="w-5 h-5 text-primary" />
-            {t('social.closeFriendsGroup')}
+            {t('social.closeFriendsGroup', genderCtx(profile?.gender))}
           </SheetTitle>
           <p className="text-sm text-muted-foreground">
             {t('social.closeFriendsDescription')}

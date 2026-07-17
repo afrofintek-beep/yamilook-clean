@@ -1,3 +1,5 @@
+import { useAuth } from '@/hooks/useAuth';
+import { genderCtx } from '@/lib/i18n-gender';
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -63,10 +65,11 @@ type StatusType = 'text' | 'photo' | 'video';
 
 export function CreateStatusSheet({ open, onOpenChange }: CreateStatusSheetProps) {
   const { t } = useTranslation();
+  const { profile } = useAuth();
   const privacyOptions = [
     { value: 'everyone', label: t('privacy.everyone', 'Wis'), icon: Globe },
     { value: 'contacts', label: t('privacy.friends', 'Kambas'), icon: Users },
-    { value: 'close_friends', label: t('privacy.closeFriends', 'Bradas'), icon: Circle },
+    { value: 'close_friends', label: t('privacy.closeFriends', { defaultValue: 'Bradas', ...genderCtx(profile?.gender) }), icon: Circle },
     { value: 'only_me', label: t('privacy.onlyMe', 'Só Eu'), icon: Lock },
   ];
   const { createStatus } = useStatus();
@@ -304,7 +307,7 @@ export function CreateStatusSheet({ open, onOpenChange }: CreateStatusSheetProps
                       <SelectItem value="close_friends">
                         <div className="flex items-center gap-2">
                           <Circle className="w-4 h-4" />
-                          {t('social.closeFriendsGroup')}
+                          {t('social.closeFriendsGroup', genderCtx(profile?.gender))}
                         </div>
                       </SelectItem>
                       <SelectItem value="only_me">
@@ -403,7 +406,7 @@ export function CreateStatusSheet({ open, onOpenChange }: CreateStatusSheetProps
                       <SelectItem value="close_friends">
                         <div className="flex items-center gap-2">
                           <Circle className="w-4 h-4" />
-                          {t('social.closeFriendsGroup')}
+                          {t('social.closeFriendsGroup', genderCtx(profile?.gender))}
                         </div>
                       </SelectItem>
                       <SelectItem value="only_me">

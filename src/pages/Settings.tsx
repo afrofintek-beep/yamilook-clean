@@ -1,3 +1,4 @@
+import { genderCtx } from '@/lib/i18n-gender';
 import React, { useState, useCallback } from 'react';
 import { VISIBILITY_OPTIONS } from '@/lib/visibility-options';
 import { useNavigate } from 'react-router-dom';
@@ -1085,7 +1086,7 @@ export default function Settings() {
                   <SelectContent>
                     {VISIBILITY_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
-                        {opt.emoji} {t(opt.labelKey)}
+                        {opt.emoji} {t(opt.labelKey, genderCtx(profile?.gender))}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1116,7 +1117,7 @@ export default function Settings() {
                     <SelectContent>
                       {VISIBILITY_OPTIONS.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
-                          {opt.emoji} {t(opt.labelKey)}
+                          {opt.emoji} {t(opt.labelKey, genderCtx(profile?.gender))}
                         </SelectItem>
                       ))}
                     </SelectContent>

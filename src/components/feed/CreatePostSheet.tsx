@@ -1,3 +1,4 @@
+import { genderCtx } from '@/lib/i18n-gender';
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -77,7 +78,7 @@ export function CreatePostSheet({ open, onOpenChange }: CreatePostSheetProps) {
   const privacyOptions = [
     { value: 'everyone', label: t('privacy.everyone'), icon: Globe },
     { value: 'contacts', label: t('privacy.friends'), icon: Users },
-    { value: 'close_friends', label: t('privacy.closeFriends'), icon: Circle },
+    { value: 'close_friends', label: t('privacy.closeFriends', genderCtx(profile?.gender)), icon: Circle },
     { value: 'only_me', label: t('privacy.onlyMe'), icon: Lock },
   ];
   

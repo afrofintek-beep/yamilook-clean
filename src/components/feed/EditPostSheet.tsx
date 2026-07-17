@@ -1,3 +1,5 @@
+import { useAuth } from '@/hooks/useAuth';
+import { genderCtx } from '@/lib/i18n-gender';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -19,10 +21,11 @@ interface EditPostSheetProps {
 
 export function EditPostSheet({ open, onOpenChange, post, onSave }: EditPostSheetProps) {
   const { t } = useTranslation();
+  const { profile } = useAuth();
   const privacyOptions = [
     { value: 'everyone', icon: Globe, label: t('privacy.everyone', 'Wis') },
     { value: 'contacts', icon: Users, label: t('privacy.friends', 'Kambas') },
-    { value: 'close_friends', icon: Circle, label: t('privacy.closeFriends', 'Bradas') },
+    { value: 'close_friends', icon: Circle, label: t('privacy.closeFriends', { defaultValue: 'Bradas', ...genderCtx(profile?.gender) }) },
     { value: 'only_me', icon: Lock, label: t('privacy.onlyMe', 'Só Eu') },
   ];
   const [content, setContent] = useState(post.content || '');
