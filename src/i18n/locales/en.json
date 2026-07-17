@@ -61,7 +61,11 @@
     "canNowLogin": "You can now sign in with your new password",
     "invalidResetLink": "Invalid or expired reset link",
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "lowercase": "One lowercase letter",
+    "minCharacters": "At least 8 characters",
+    "number": "One number",
+    "uppercase": "One uppercase letter"
   },
   "settings": {
     "title": "Settings",
@@ -172,7 +176,31 @@
     "advertising": "Advertising",
     "advertisingSettings": "Advertising",
     "manageAds": "Manage ads and credits",
-    "promoteYourBusiness": "Promote your business"
+    "promoteYourBusiness": "Promote your business",
+    "applyCrop": "Apply crop",
+    "cacheCleared": "Cache cleared. Reloading…",
+    "callVibration": "Call vibration",
+    "cropImage": "Crop image",
+    "custom": "Custom",
+    "freeForm": "Free-form",
+    "inviteMessage": "Hey! Join me on Yamilook — a great way to stay connected!",
+    "inviteSent": "Invite shared!",
+    "linkCopied": "Link copied to clipboard!",
+    "noCustomWallpapers": "No custom wallpapers yet",
+    "patternClassic": "Classic",
+    "patternGentle": "Gentle",
+    "patternModern": "Modern",
+    "patternSilent": "Silent",
+    "patternUrgent": "Urgent",
+    "portrait": "Portrait",
+    "rotate": "Rotate",
+    "selectLanguage": "Select language",
+    "themeUpdated": "Theme updated",
+    "uploadImage": "Upload image",
+    "uploadToAdd": "Upload an image to get started",
+    "wallpaperDeleted": "Wallpaper deleted",
+    "wallpaperUploaded": "Wallpaper uploaded",
+    "wallpaperUploadedDesc": "The image was added to your options"
   },
   "common": {
     "loading": "Loading...",
@@ -190,7 +218,10 @@
     "retry": "Retry",
     "yes": "Yes",
     "no": "No",
-    "activate": "Activate"
+    "activate": "Activate",
+    "error": "Something went wrong",
+    "processing": "Processing...",
+    "saving": "Saving..."
   },
   "nav": {
     "home": "Home",
@@ -277,7 +308,14 @@
     "topicAlreadySuggested": "This topic has already been suggested",
     "topicTooShort": "Topic name must be at least 2 characters",
     "errorSuggestingTopic": "Error suggesting topic",
-    "noTopicsFound": "No topics found"
+    "noTopicsFound": "No topics found",
+    "addLocation": "Add location",
+    "editPost": "Edit post",
+    "postEdited": "Post edited",
+    "postEditedDesc": "Your post has been updated",
+    "posts": "Posts",
+    "promotePost": "Promote",
+    "whatsOnYourMind": "What's on your mind?"
   },
   "calls": {
     "title": "Calls",
@@ -348,7 +386,10 @@
     "addFriendsToChat": "Add friends to start chatting",
     "block": "Block",
     "report": "Report",
-    "closeFriends": "Close Friends"
+    "closeFriends": "Close Friends",
+    "requestAccepted": "Friend request accepted!",
+    "requestCancelled": "Request cancelled",
+    "requestSent": "Friend request sent!"
   },
   "closeFriends": {
     "title": "Close Friends",
@@ -413,7 +454,12 @@
     "noHighlights": "No highlights",
     "createYourHighlights": "Create your highlights",
     "showMomentsIdeasProjects": "Show moments, ideas and projects.",
-    "cover": "Cover"
+    "cover": "Cover",
+    "academiaActive": "Academia active",
+    "momambos": "Momambos",
+    "photoUpdated": "Photo updated!",
+    "ritmos": "Ritmos",
+    "uploadFailed": "Failed to upload photo"
   },
   "status": {
     "title": "Status",
@@ -505,7 +551,13 @@
     "network": "Connection error",
     "notFound": "Not found",
     "unauthorized": "Unauthorized",
-    "invalidCredentials": "Invalid credentials"
+    "invalidCredentials": "Invalid credentials",
+    "deleteFailed": "Failed to delete",
+    "fileTooLarge": "File too large",
+    "invalidFileType": "Invalid file type",
+    "maxFileSize": "Maximum size is 10MB",
+    "onlyImages": "Only images are allowed",
+    "uploadFailed": "Upload failed"
   },
   "time": {
     "now": "Now",
@@ -530,5 +582,16 @@
     "messagesStat": "Messages sent",
     "callsStat": "Calls answered",
     "reactionsStat": "Reactions given"
+  },
+  "kumbu": {
+    "openWallet": "View my Kumbu Wallet",
+    "viewWallet": "View wallet and history",
+    "wallet": "Kumbu Wallet"
+  },
+  "live": {
+    "noActiveStreams": "No one is live right now",
+    "random": "Random",
+    "viewAll": "View all streams",
+    "currentlyLive": "{{count}} Live Now"
   }
 }

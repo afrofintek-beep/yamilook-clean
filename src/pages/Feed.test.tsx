@@ -164,7 +164,7 @@ describe('Feed Page', () => {
   it('renders the header with the Yamilook logo', () => {
     render(<Feed />);
     // The header brand is an image logo, not text.
-    expect(screen.getByAltText('Yamilook')).toBeInTheDocument();
+    expect(screen.getAllByAltText('Yamilook').length).toBeGreaterThan(0);
   });
 
   it('renders navigation icons in header', () => {

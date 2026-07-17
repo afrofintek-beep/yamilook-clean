@@ -28,7 +28,10 @@
     "retry": "Tentar novamente",
     "yes": "Sim",
     "no": "Não",
-    "activate": "Ativar"
+    "activate": "Ativar",
+    "error": "Ocorreu um erro",
+    "processing": "A processar...",
+    "saving": "A guardar..."
   },
   "auth": {
     "login": "Entrar",
@@ -94,7 +97,11 @@
     "incorrectPassword": "Palavra-passe atual incorreta",
     "invalidCredentials": "Email ou palavra-passe incorretos",
     "showPassword": "Mostrar palavra-passe",
-    "hidePassword": "Esconder palavra-passe"
+    "hidePassword": "Esconder palavra-passe",
+    "lowercase": "Uma letra minúscula",
+    "minCharacters": "Pelo menos 8 caracteres",
+    "number": "Um número",
+    "uppercase": "Uma letra maiúscula"
   },
   "nav": {
     "home": "Início",
@@ -239,7 +246,31 @@
     "advertising": "Publicidade",
     "advertisingSettings": "Publicidade",
     "manageAds": "Gerir anúncios e créditos",
-    "promoteYourBusiness": "Promove o teu negócio"
+    "promoteYourBusiness": "Promove o teu negócio",
+    "applyCrop": "Aplicar recorte",
+    "cacheCleared": "Cache limpa. A recarregar…",
+    "callVibration": "Vibração nas chamadas",
+    "cropImage": "Ajustar imagem",
+    "custom": "Minhas",
+    "freeForm": "Livre",
+    "inviteMessage": "Ei! Junta-te a mim no Yamilook — a melhor forma de estarmos ligados!",
+    "inviteSent": "Convite partilhado!",
+    "linkCopied": "Link copiado!",
+    "noCustomWallpapers": "Ainda não tens imagens personalizadas",
+    "patternClassic": "Clássico",
+    "patternGentle": "Suave",
+    "patternModern": "Moderno",
+    "patternSilent": "Silencioso",
+    "patternUrgent": "Urgente",
+    "portrait": "Retrato",
+    "rotate": "Rodar",
+    "selectLanguage": "Selecionar idioma",
+    "themeUpdated": "Tema atualizado",
+    "uploadImage": "Carregar imagem",
+    "uploadToAdd": "Carrega uma imagem para começar",
+    "wallpaperDeleted": "Imagem eliminada",
+    "wallpaperUploaded": "Imagem carregada",
+    "wallpaperUploadedDesc": "A imagem foi adicionada às tuas opções"
   },
   "chat": {
     "typeMessage": "Escreve uma mensagem...",
@@ -316,7 +347,14 @@
     "topicAlreadySuggested": "Esta categoria já foi sugerida",
     "topicTooShort": "O nome da categoria deve ter pelo menos 2 caracteres",
     "errorSuggestingTopic": "Erro ao sugerir categoria",
-    "noTopicsFound": "Nenhuma categoria encontrada"
+    "noTopicsFound": "Nenhuma categoria encontrada",
+    "addLocation": "Adicionar local",
+    "editPost": "Editar publicação",
+    "postEdited": "Publicação editada",
+    "postEditedDesc": "A tua publicação foi atualizada",
+    "posts": "Publicações",
+    "promotePost": "Promover",
+    "whatsOnYourMind": "No que estás a pensar?"
   },
   "calls": {
     "title": "Chamadas",
@@ -387,7 +425,10 @@
     "addFriendsToChat": "Adiciona amigos para começar a conversar",
     "block": "Bloquear",
     "report": "Denunciar",
-    "closeFriends": "Amigos Especiais"
+    "closeFriends": "Amigos Especiais",
+    "requestAccepted": "Pedido de amizade aceite!",
+    "requestCancelled": "Pedido cancelado",
+    "requestSent": "Pedido de amizade enviado!"
   },
   "profile": {
     "title": "Perfil",
@@ -438,7 +479,12 @@
     "noHighlights": "Sem destaques",
     "createYourHighlights": "Cria os teus destaques",
     "showMomentsIdeasProjects": "Mostra momentos, ideias e projetos.",
-    "cover": "Capa"
+    "cover": "Capa",
+    "academiaActive": "Academia activa",
+    "momambos": "Momambos",
+    "photoUpdated": "Foto atualizada!",
+    "ritmos": "Ritmos",
+    "uploadFailed": "Falha ao carregar a foto"
   },
   "status": {
     "title": "Estados",
@@ -585,7 +631,13 @@
     "network": "Erro de ligação",
     "notFound": "Não encontrado",
     "unauthorized": "Não autorizado",
-    "invalidCredentials": "Credenciais inválidas"
+    "invalidCredentials": "Credenciais inválidas",
+    "deleteFailed": "Erro ao eliminar",
+    "fileTooLarge": "Ficheiro demasiado grande",
+    "invalidFileType": "Tipo de ficheiro inválido",
+    "maxFileSize": "O tamanho máximo é 10MB",
+    "onlyImages": "Apenas imagens são permitidas",
+    "uploadFailed": "Erro ao carregar"
   },
   "time": {
     "now": "Agora",
@@ -690,5 +742,16 @@
     "messagesStat": "Mensagens enviadas",
     "callsStat": "Chamadas atendidas",
     "reactionsStat": "Reacções dadas"
+  },
+  "kumbu": {
+    "openWallet": "Ver a minha Carteira Kumbu",
+    "viewWallet": "Ver carteira e histórico",
+    "wallet": "Carteira Kumbu"
+  },
+  "live": {
+    "noActiveStreams": "Ninguém está em direto agora",
+    "random": "Aleatório",
+    "viewAll": "Ver todas as transmissões",
+    "currentlyLive": "{{count}} em direto"
   }
 }

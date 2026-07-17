@@ -68,7 +68,9 @@
   },
   "contacts": {
     "closeFriends": "Bradas",
-    "friendRequests": "Pedidos de Kamba"
+    "friendRequests": "Pedidos de Kamba",
+    "requestAccepted": "Pedido de kamba aceite!",
+    "requestSent": "Pedido de kamba enviado!"
   },
   "status": {
     "closeFriends": "Bradas"
