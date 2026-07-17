@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico", "yamilook-logo.png"],
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/guia/, /^\/app/, /^\/download/],
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/guia/, /^\/app/, /^\/download/, /^\/store/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
