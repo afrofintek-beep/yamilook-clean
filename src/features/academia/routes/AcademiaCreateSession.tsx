@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ACADEMIA_COPY } from '../copy';
 import { useCreateAcademiaSession } from '../hooks/useAcademia';
+import { useAfrolocCertification } from '@/features/kumbu/hooks/useAfrolocCertification';
 
 const STEPS = [
   { key: 'title', label: 'Título', icon: Type },
@@ -20,6 +21,17 @@ const STEPS = [
   { key: 'format', label: 'Formato', icon: LayoutGrid },
   { key: 'price', label: 'Detalhes', icon: Coins },
 ] as const;
+
+// Valor por defeito para o campo de data/hora: amanhã às 18:00, no formato
+// `YYYY-MM-DDTHH:mm` que o input datetime-local exige (assim o campo nunca
+// fica incompleto e o botão Publicar não fica preso).
+function defaultDatetimeLocal(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(18, 0, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 const FORMAT_OPTIONS = [
   { value: '1:1', label: ACADEMIA_COPY.format1on1, desc: 'Sessão privada, 1 vaga', emoji: '🎯' },
@@ -35,10 +47,18 @@ export default function AcademiaCreateSession() {
   const [format, setFormat] = useState<string>('grupo');
   const [spots, setSpots] = useState('20');
   const [priceCoins, setPriceCoins] = useState('0');
-  const [datetime, setDatetime] = useState('');
+  const [datetime, setDatetime] = useState(defaultDatetimeLocal);
 
   const createMutation = useCreateAcademiaSession();
+  const { isCertified } = useAfrolocCertification();
   const price = Number(priceCoins) || 0;
+
+  // Data/hora válida = completa (data + hora) e no futuro.
+  const datetimeValid = useMemo(() => {
+    if (!datetime) return false;
+    const t = new Date(datetime).getTime();
+    return Number.isFinite(t) && t > Date.now();
+  }, [datetime]);
 
   const handleFormatChange = (value: string) => {
     setFormat(value);
@@ -54,10 +74,10 @@ export default function AcademiaCreateSession() {
       case 0: return title.trim().length >= 3;
       case 1: return true; // description optional
       case 2: return !!format;
-      case 3: return !!datetime;
+      case 3: return datetimeValid;
       default: return false;
     }
-  }, [step, title, format, datetime]);
+  }, [step, title, format, datetimeValid]);
 
   const isLastStep = step === STEPS.length - 1;
 
@@ -78,6 +98,10 @@ export default function AcademiaCreateSession() {
   };
 
   const handleSubmit = () => {
+    if (!datetimeValid) {
+      toast.error('Escolhe uma data e hora futuras para a sessão.');
+      return;
+    }
     createMutation.mutate(
       {
         title: title.trim(),
@@ -298,17 +322,19 @@ export default function AcademiaCreateSession() {
                     <p className="text-[10px] text-muted-foreground/50">0 = sessão gratuita</p>
                   </div>
 
-                  {price > 0 && (
-                    <Alert variant="destructive" className="bg-destructive/10 border-destructive/30 rounded-xl">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription className="text-xs">{ACADEMIA_COPY.verificationWarning}</AlertDescription>
+                  {price > 0 && !isCertified && (
+                    <Alert className="bg-primary/10 border-primary/30 rounded-xl">
+                      <AlertTriangle className="h-4 w-4 text-primary" />
+                      <AlertDescription className="text-xs">
+                        Podes publicar já. Para <strong>receberes</strong> os pagamentos vais precisar de verificar o teu endereço AFROLOC — fá-lo em Definições quando quiseres.
+                      </AlertDescription>
                     </Alert>
                   )}
 
                   <div className="space-y-2">
                     <Label htmlFor="datetime" className="text-xs flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5 text-primary" />
-                      Agendar
+                      Agendar <span className="text-muted-foreground font-normal">(data e hora)</span>
                     </Label>
                     <Input
                       id="datetime"
@@ -316,6 +342,9 @@ export default function AcademiaCreateSession() {
                       value={datetime}
                       onChange={(e) => setDatetime(e.target.value)}
                     />
+                    {!datetimeValid && (
+                      <p className="text-[11px] text-destructive">Escolhe uma data e hora futuras.</p>
+                    )}
                   </div>
                 </div>
 
